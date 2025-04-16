@@ -1,0 +1,153 @@
+@keyframes slideIn {
+  0% {
+    transform: translateX(-50%) translateY(-100%);
+  }
+  80% {
+    transform: translateX(-50%) translateY(10%);
+  }
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+}
+@keyframes slideOut {
+  0% {
+    transform: translateX(-50%) translateY(0);
+  }
+  80% {
+    transform: translateX(-50%) translateY(10%);
+  }
+  100% {
+    transform: translateX(-50%) translateY(-100%);
+  }
+}
+
+body {
+  font-size: 14px;
+}
+body > .body-mask{
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, .5);
+  display: none;
+  z-index: 2;
+  transition: all .3s ease;
+}
+body.disable{
+  overflow: hidden;
+}
+body.disable > .body-mask{
+  display: block;
+}
+.messages{
+  position: fixed;
+  top: .7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  gap: .5rem;
+}
+.messages.slide-in{
+  animation: slideIn 0.5s ease-out forwards;
+  display: flex;
+}
+.messages.slide-out{
+  display: flex;
+  animation: slideOut 0.5s ease-out forwards;
+}
+.message{
+  padding: 10px 1rem;
+  border-radius: 10px;
+  display: flex;
+  gap: .75rem;
+  align-items: flex-start;
+  width: auto;
+}
+.message.error{
+  color: red;
+  background-color: #f8d7da;
+}
+.message.success{
+  color: green;
+  background-color: #d4edda;
+}
+.message.success::before{
+  content: "✓";
+  color: green;
+}
+.message.error::before{
+  content: "✕";
+  color: red;
+}
+.message .text{
+  flex-grow: 1;
+}
+.message .close{
+  cursor: pointer;
+  font-weight: bold;
+  line-height: 100%;
+  flex-shrink: 0;
+  border-radius: 100%;
+  padding: 0 3px;
+  border: 1px solid #666;
+}
+.message.success .close{
+  border-color: green;
+}
+.message.error .close{
+  border-color: red;
+}
+.border-none:focus, .select:focus-within {
+  border: none;
+  box-shadow: none;
+  outline: none;
+}
+.file-list {
+  --input-color: color-mix(in oklab, var(--color-base-content) 20%, #0000);
+  height: calc(100vh - 266px);
+  min-height: 100px;
+  border: 1px solid var(--input-color);
+  border-radius: .25rem;
+}
+.file-list th[data-field]:not([data-field="checkbox"]){
+  cursor: pointer;
+}
+.file-list th[order-dir="asc"]::after {
+  content: "▲";
+  font-size: 0.8rem;
+  margin-left: 5px;
+}
+.file-list th[order-dir="desc"]::after {
+  content: "▼";
+  font-size: 0.8rem;
+  margin-left: 5px;
+}
+.file-list .col-checkbox {
+  width: 32px;
+  padding-inline-end: 0;
+  text-align: center;
+}
+.file-list tbody .modified {
+  color: blue;
+}
+.file-list tbody .added {
+  color: #724e18;
+}
+.file-list tbody .deleted {
+  color: red;
+}
+.file-list tbody .untracked {
+  color: green;
+}
+.file-list .table tbody td {
+  padding-block: 5px;
+  white-space: nowrap;
+}

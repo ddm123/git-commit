@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Git Submit</title>
+  <link href="../../dist/tailwind.css" rel="stylesheet">
+  <script defer src="../../dist/alpine-latest.min.js"></script>
+  <script src="../../src/renderer/js/utils.js" type="text/javascript"></script>
+  <script src="../../src/renderer/js/index.js" type="text/javascript"></script>
+</head>
+<body class="m-4" x-data="app" :class="{ 'disable': isDisabledBody }">
+  <div class="flex gap-4">
+    <label class="input grow">
+      项目路径:
+      <input type="text" class="grow" x-on:click="$event.target.value==='' ? selectProjectPath.call($data, $event) : null" x-model="projectPath" placeholder="" readonly />
+      <span class="cursor-pointer" x-on:click="selectProjectPath">选择...</span>
+    </label>
+    <label class="shrink-0 flex items-center input pr-0 w-auto">
+      <label for="branch" class="whitespace-nowrap">当前分支:</label>
+      <select x-model="currentBranch" x-on:change="switchBranch" class="select border-none bg-transparent w-auto">
+        <template x-for="branch in branches">
+          <option x-bind:value="branch.value" x-text="branch.label"></option>
+        </template>
+      </select>
+    </label>
+  </div>
+  <div class="mt-4 mb-4">
+    <textarea x-model="commitMessage" placeholder="提交消息" class="textarea w-full resize-none"></textarea>
+  </div>
+
+  <div class="file-list overflow-x-auto w-full">
+    <table class="table table-pin-rows">
+      <thead>
+        <tr>
+          <th class="col-checkbox" data-field="checkbox" width="32"><input type="checkbox" id="select-all" class="checkbox checkbox-sm" x-on:click="toggleSelectAll"></th>
+          <th data-field="file" x-on:click="sortFiles">文件</th>
+          <th data-field="time" order-by="timestamp" x-on:click="sortFiles">最后修改时间</th>
+          <th data-field="statusLabel" order-by="status" x-on:click="sortFiles">状态</th>
+          <th data-field="ext" x-on:click="sortFiles">文件类型</th>
+          <th data-field="fsize" order-by="size" x-on:click="sortFiles">大小</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="file in files">
+          <tr :class="file.status">
+            <td class="col-checkbox"><input type="checkbox" x-model="file.selected" class="checkbox checkbox-sm"></td>
+            <td x-text="file.file" x-on:contextmenu="window.electronAPI.showPathContextMenu(file.file, file.absPath)"></td>
+            <td x-text="file.time"></td>
+            <td x-text="file.statusLabel"></td>
+            <td x-text="file.ext"></td>
+            <td class="text-right" x-text="file.fsize"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+    <template x-if="files.length === 0">
+    <div class="py-4 text-center">没有需要提交的文件</div>
+    </template>
+  </div>
+  <div class="my-2">
+    <span class="cursor-pointer underline underline-offset-4" x-on:click="copySelectedFilesPath.call($data, false)">复制选中文件的相对路径</span>
+    <span class="cursor-pointer underline underline-offset-4" x-on:click="copySelectedFilesPath.call($data, true)">复制选中文件的绝对对路径</span>
+  </div>
+
+  <div class="mt-3">
+    <div class="flex items-center justify-between">
+      <div class="shrink-0">
+        <button class="btn" x-on:click="refresh">刷新</button>
+        <button class="btn" x-on:click="pull">拉取</button>
+      </div>
+      <div class="join" style="align-items:center;">
+        <span class="pr-4" x-text="processMessage"></span>
+        <button class="btn join-item" x-on:click="commit" data-action="commit">提交</button>
+        <button class="btn join-item" x-on:click="commit" data-action="commitAndPush">提交并推送</button>
+      </div>
+    </div>
+  </div>
+  <div class="body-mask"></div>
+  <div class="messages" id="messages"></div>
+  <dialog id="app-dialog" class="modal">
+    <div class="modal-box w-11/12 max-w-5xl">
+      <form method="dialog">
+        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+      </form>
+      <h3 class="text-lg font-bold" x-text="dialogTitle"></h3>
+      <div class="py-4" x-html="dialogBody"></div>
+    </div>
+  </dialog>
+</body>
+</html>

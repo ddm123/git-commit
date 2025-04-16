@@ -1,0 +1,23 @@
+{
+  "name": "git-commit",
+  "version": "1.0.0",
+  "description": "提交文件到Git版本控制仓库",
+  "main": "./src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:css": "npx tailwindcss -i ./src/renderer/css/input.css -o ./dist/tailwind.css  --minify",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "DDM",
+  "license": "MIT",
+  "devDependencies": {
+    "daisyui": "^5.0.9",
+    "electron": "^35.0.3",
+    "postcss-import": "^16.1.0",
+    "simple-git": "*",
+    "tailwindcss": "^3.4.1"
+  },
+  "dependencies": {
+    "caniuse-lite": "^1.0.30001707"
+  }
+}
