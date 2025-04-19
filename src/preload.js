@@ -5,9 +5,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   icpSend: (...args) => ipcRenderer.invoke(...args),
   openDirectory: (def) => ipcRenderer.invoke('dialog:openDirectory', def),
   getFileStat: (path, file) => ipcRenderer.invoke('fs:getFileStat', path, file),
-  showPathContextMenu: (relative, absolute) => ipcRenderer.invoke('show-path-context-menu', relative, absolute),
+  showPathContextMenu: (menus) => ipcRenderer.invoke('show-copy-context-menu', menus),
   writeClipboard: (text) => ipcRenderer.invoke('clipboard:write-text', text),
-  readClipboard: () => ipcRenderer.invoke('clipboard:read-text')
+  readClipboard: () => ipcRenderer.invoke('clipboard:read-text'),
+  onPaste: (closure) => ipcRenderer.on('clipboard:readText', closure)
 });
 contextBridge.exposeInMainWorld('gitAPI', {
   getRootPath: (path) => ipcRenderer.invoke('git:getRootPath', path),
@@ -19,5 +20,6 @@ contextBridge.exposeInMainWorld('gitAPI', {
   commit: (path, message) => ipcRenderer.invoke('git:commit', path, message),
   push: (path) => ipcRenderer.invoke('git:push', path),
   reset: (path, parameters) => ipcRenderer.invoke('git:reset', path, parameters),
-  onProgress: (eventName, closure) => ipcRenderer.on(eventName, closure)
+  onProgress: (eventName, closure) => ipcRenderer.on(eventName, closure),
+  showPasteContextMenu: (path) => ipcRenderer.invoke('git:showPasteContextMenu', path)
 });

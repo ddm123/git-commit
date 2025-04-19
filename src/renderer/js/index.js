@@ -4,6 +4,7 @@ document.addEventListener('alpine:init', () => {
     projectPath: '',
     branches: [],
     files: [],
+    canPush: false,
     selectedFilesCount: 0,
     currentBranch: '',
     commitMessage: '',
@@ -14,6 +15,11 @@ document.addEventListener('alpine:init', () => {
     init() {
       window.gitAPI.onProgress('git:progress', (event, data) => {
         this.processMessage = '正在拉取远程仓库最新代码... ' + data.method + '(' + data.stage + '): ' + data.progress + '%';
+      });
+      window.electronAPI.onPaste((e, type, text) => {
+        if(type==='gitMessagePaste'){
+          this.insertCommitMessage(text);
+        }
       });
     },
 
@@ -64,11 +70,11 @@ document.addEventListener('alpine:init', () => {
         window.gitAPI
           .getStatus(this.projectPath)
           .then(status => this.fillFileList(JSON.parse(status)))
-          .catch(error => showError(error.message))
+          .catch(error => this.showError(error.message))
           .finally(() => this.isDisabledBody = false);
       })
       .catch((error) => {
-        showError(error.message);
+        this.showError(error.message);
       })
       .finally(() => {
         this.isDisabledBody = false;
@@ -157,6 +163,32 @@ document.addEventListener('alpine:init', () => {
       return this.files.filter(file => file.selected);
     },
 
+    insertCommitMessage(text) {
+      const textareas = document.querySelectorAll('textarea[x-model="commitMessage"]');
+      if(textareas.length){
+        let startPos = 0, endPos = 0;
+        let beforeText = '', afterText = '';
+        for(const textarea of textareas){
+          // 获取当前光标位置或选中文本范围
+          startPos = textarea.selectionStart;
+          endPos = textarea.selectionEnd;
+          beforeText = this.commitMessage.substring(0, startPos);
+          afterText = this.commitMessage.substring(endPos);
+
+          this.commitMessage = beforeText + text + afterText;
+          textarea.focus();
+          textarea.setRangeText(
+            text,// 要插入的文本
+            textarea.selectionStart,
+            textarea.selectionEnd,
+            'end'// 可选: 'start'|'end'|'preserve'（光标位置）
+          );
+        }
+      }else{
+        this.commitMessage = text;
+      }
+    },
+
     switchBranch(event) {
       if(this.isDisabledBody) return;
 
@@ -172,7 +204,7 @@ document.addEventListener('alpine:init', () => {
           this.refresh();
           showSuccess('已成功切换到 '+ branch + ' 分支');
         })
-        .catch((error) => showError(error.message))
+        .catch((error) => this.showError(error.message))
         .finally(() => this.isDisabledBody = false);
     },
 
@@ -202,8 +234,24 @@ document.addEventListener('alpine:init', () => {
           this.commitMessage = '';
           this.processMessage = '';
         })
-        .catch((error) => showError(error.message))
+        .catch((error) => this.showError(error.message))
         .finally(() => {
+          this.isDisabledBody = false;
+        });
+    },
+
+    push() {
+      if(this.isDisabledBody) return;
+      clearMessages();
+      this.isDisabledBody = true;
+      this.processMessage = '正在推送代码...';
+      window.gitAPI.push(this.projectPath)
+        .then(() => {
+          showSuccess('已成功推送到远程仓库');
+          this.canPush = false;
+        })
+        .finally(() => {
+          this.processMessage = '';
           this.isDisabledBody = false;
         });
     },
@@ -245,7 +293,7 @@ document.addEventListener('alpine:init', () => {
           }
           this.processMessage = '';
         })
-        .catch((error) => showError(error.message))
+        .catch((error) => this.showError(error.message))
         .finally(() => this.isDisabledBody = false);
     },
 
@@ -255,19 +303,37 @@ document.addEventListener('alpine:init', () => {
       document.getElementById('app-dialog').showModal();
     },
 
-    copySelectedFilesPath(isAbsPath) {
-      let files = this.getSelectedFiles();
-      if(!files.length) {
-        showError('请选择需要复制的文件');
-        return;
+    showError(msg) {
+      if(!msg || msg.length<=128){
+        showError(msg);
+      }else{
+        this.openDialog('错误信息', '<div style="color:red;">'+msg+'</div>');
       }
+    },
 
-      let paths = files.map(file => isAbsPath ? file.absPath : file.file);
-      window.electronAPI.writeClipboard(paths.join("\n"))
-        .then(() => {
-          showSuccess('已成功复制到剪贴板');
-        })
-        .catch((error) => showError(error.message));
+    showPathContextMenu(currentFile) {
+      let files = this.getSelectedFiles();
+      let menus = [];
+
+      menus.push(
+        {label: '复制相对路径', text: currentFile.file},
+        {label: '复制绝对路径', text: currentFile.absPath}
+      );
+      if(files.length>0){
+        let absPaths = [];
+        let paths = [];
+        for(const file of files){
+          absPaths.push(file.absPath);
+          paths.push(file.file);
+        }
+
+        menus.push(
+          '-',
+          {label: '复制选中文件的相对路径', text: paths.join("\n")},
+          {label: '复制选中文件的绝对对路径', text: absPaths.join("\n")}
+        );
+      }
+      window.electronAPI.showPathContextMenu(menus);
     },
 
     async _commit(files, message, isPush) {
@@ -315,8 +381,11 @@ document.addEventListener('alpine:init', () => {
         if(isPush){
           this.processMessage = '正在推送代码...';
           const pushResult = await window.gitAPI.push(this.projectPath);
+          this.canPush = false;
           return pushResult;
         }
+
+        this.canPush = true;
         return commitResult;
       } catch (error) {
         // 错误处理（根据失败阶段精准回滚）

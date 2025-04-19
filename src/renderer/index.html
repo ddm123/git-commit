@@ -8,7 +8,7 @@
   <script src="../../src/renderer/js/utils.js" type="text/javascript"></script>
   <script src="../../src/renderer/js/index.js" type="text/javascript"></script>
 </head>
-<body class="m-4" x-data="app" :class="{ 'disable': isDisabledBody }">
+<body class="m-4 mb-0" x-data="app" :class="{ 'disable': isDisabledBody }">
   <div class="flex gap-4">
     <label class="input grow">
       项目路径:
@@ -25,7 +25,7 @@
     </label>
   </div>
   <div class="mt-4 mb-4">
-    <textarea x-model="commitMessage" placeholder="提交消息" class="textarea w-full resize-none"></textarea>
+    <textarea x-model="commitMessage" x-on:contextmenu="window.gitAPI.showPasteContextMenu(projectPath)" placeholder="提交消息" class="textarea w-full resize-none"></textarea>
   </div>
 
   <div class="file-list overflow-x-auto w-full">
@@ -44,7 +44,7 @@
         <template x-for="file in files">
           <tr :class="file.status">
             <td class="col-checkbox"><input type="checkbox" x-model="file.selected" class="checkbox checkbox-sm"></td>
-            <td x-text="file.file" x-on:contextmenu="window.electronAPI.showPathContextMenu(file.file, file.absPath)"></td>
+            <td x-text="file.file" x-on:contextmenu="showPathContextMenu.bind($data, file)"></td>
             <td x-text="file.time"></td>
             <td x-text="file.statusLabel"></td>
             <td x-text="file.ext"></td>
@@ -57,10 +57,6 @@
     <div class="py-4 text-center">没有需要提交的文件</div>
     </template>
   </div>
-  <div class="my-2">
-    <span class="cursor-pointer underline underline-offset-4" x-on:click="copySelectedFilesPath.call($data, false)">复制选中文件的相对路径</span>
-    <span class="cursor-pointer underline underline-offset-4" x-on:click="copySelectedFilesPath.call($data, true)">复制选中文件的绝对对路径</span>
-  </div>
 
   <div class="mt-3">
     <div class="flex items-center justify-between">
@@ -69,12 +65,15 @@
         <button class="btn" x-on:click="pull">拉取</button>
       </div>
       <div class="join" style="align-items:center;">
-        <span class="pr-4" x-text="processMessage"></span>
         <button class="btn join-item" x-on:click="commit" data-action="commit">提交</button>
+        <button class="btn join-item" x-show="canPush" x-on:click="push">推送</button>
         <button class="btn join-item" x-on:click="commit" data-action="commitAndPush">提交并推送</button>
       </div>
     </div>
   </div>
+
+  <div class="status-bar" x-text="processMessage"></div>
+
   <div class="body-mask"></div>
   <div class="messages" id="messages"></div>
   <dialog id="app-dialog" class="modal">
