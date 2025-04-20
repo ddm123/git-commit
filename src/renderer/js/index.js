@@ -16,7 +16,7 @@ document.addEventListener('alpine:init', () => {
       window.gitAPI.onProgress('git:progress', (event, data) => {
         this.processMessage = '正在拉取远程仓库最新代码... ' + data.method + '(' + data.stage + '): ' + data.progress + '%';
       });
-      window.electronAPI.onPaste((e, type, text) => {
+      window.electronAPI.onPaste((event, type, text) => {
         if(type==='gitMessagePaste'){
           this.insertCommitMessage(text);
         }

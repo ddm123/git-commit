@@ -38,6 +38,28 @@ async function handleGitPull(e, projectPath) {
   return await git(projectPath).pull();
 }
 
+function getUserLogs(projectPath){
+  const gitRepo = git(projectPath);
+  return gitRepo.raw(['config', '--get', 'user.email'])
+    .then(email => email ? email.trim() : '')
+    .then(email => email ? gitRepo.raw([
+      'log',
+      '--author='+email, // 按作者筛选
+      '--pretty=format:%h%x01%s%x00', // 只输出 hash 和提交信息
+      '-n', '10' // 限制 10 条
+    ]) : '')
+    .then(logs => {
+      const gitLogs = [];
+      for(const line of logs.trim().split('\x00')){
+        const [hash, message] = line.split('\x01');
+        if(hash && message){
+          gitLogs.push({hash, message});
+        }
+      }
+      return gitLogs;
+    });
+}
+
 async function showMessagePaste(event, projectPath) {
   // 创建菜单
   const menuTemplate = [];
@@ -50,28 +72,19 @@ async function showMessagePaste(event, projectPath) {
   }
 
   if(projectPath){
-    const gitRepo = git(projectPath);
-    const userEmail = (await gitRepo.raw(['config', '--get', 'user.email'])).trim();
-    const logs = await gitRepo.raw([
-      'log',
-      `--author=${userEmail}`, // 按作者筛选
-      '--pretty=format:%h%x01%s%x00', // 只输出 hash 和提交信息
-      '-n', '10' // 限制 10 条
-    ]);
-    logs.trim().split('\x00').map(line => {
-      const [hash, message] = line.split('\x01');
-
-      if(message){
-        menuTemplate.push({label: message, click: () => {
-          event.sender.send('clipboard:readText', 'gitMessagePaste', message);
+    try{
+      for(const log of await getUserLogs(projectPath)){
+        let label = log.message;
+        if(label.length>50){
+          label = label.substring(0, 50) + '...';
+        }
+        menuTemplate.push({label: label, click: () => {
+          event.sender.send('clipboard:readText', 'gitMessagePaste', log.message);
         }});
       }
-
-      return {
-        hash,
-        message: message
-      };
-    });
+    }catch(ex){
+      console.log(ex);
+    }
   }
 
   const menuCount = menuTemplate.length;

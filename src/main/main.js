@@ -12,9 +12,20 @@ const createWindow = function() {
   });
 
   win.loadFile('src/renderer/index.html');
-  //win.webContents.openDevTools();
-
   return win;
+};
+
+const registerWindowShortcut = function(win) {
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type==='keyUp' && input.key === 'F12') {
+      if(win.webContents.isDevToolsOpened()){
+        win.webContents.closeDevTools();
+      }else{
+        win.webContents.openDevTools({mode: 'undocked', title: 'Developer Tools', activate: true});
+      }
+      event.preventDefault();
+    }
+  });
 };
 
 Menu.setApplicationMenu(null);
@@ -33,6 +44,8 @@ app.whenReady().then(() => {
       mainWindow = createWindow();
     }
   });
+
+  registerWindowShortcut(mainWindow);
 });
 
 app.on('window-all-closed', () => {
