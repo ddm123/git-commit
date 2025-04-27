@@ -21,6 +21,16 @@ document.addEventListener('alpine:init', () => {
           this.insertCommitMessage(text);
         }
       });
+      window.electronAPI.onMenuClick('git:checkout', (event, path, file) => {
+        if(window.confirm('是否放弃对 "' + file + '" 的修改？')){
+          window.gitAPI.checkout(path, file).then(() => {
+            showSuccess('已还原 "' + file + '" 的修改');
+            this.refresh();
+          }).catch((error) => {
+            showError(error.message);
+          });
+        }
+      });
     },
 
     selectProjectPath() {
@@ -70,6 +80,15 @@ document.addEventListener('alpine:init', () => {
         window.gitAPI
           .getStatus(this.projectPath)
           .then(status => this.fillFileList(JSON.parse(status)))
+          .then((files) => {
+            const th = document.querySelector('th[x-on\\:click="sortFiles"][order-dir]');
+            if(th){
+              const orderDir = th.getAttribute('order-dir')==='asc' ? 'desc' : 'asc';
+              th.setAttribute('order-dir', orderDir);
+              this.sortFiles({target: th});
+            }
+            return files;
+          })
           .catch(error => this.showError(error.message))
           .finally(() => this.isDisabledBody = false);
       })
@@ -81,7 +100,7 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
-    fillFileList(status) {
+    async fillFileList(status) {
       this.files = [];
       this.selectedFiles = [];
       this.selectedFilesCount = 0;
@@ -92,24 +111,24 @@ document.addEventListener('alpine:init', () => {
 
       const types = {'M': 'modified', 'D': 'deleted', 'A': 'added', '?': 'untracked'};
       let typeLabels = {'M': '已修改', 'D': '已删除', 'A': '已添加', '?': '未跟踪'};
-      status.files.forEach(async (file) => {
+      await Promise.all(status.files.map(async (file) => {
         let path = file.path;
         let type = file.working_dir && file.working_dir!==' ' ? file.working_dir : file.index;
-        let fileStat = await window.electronAPI.getFileStat(status.projectPath, path);
+        let fileStat = type==='D' ? null : await window.electronAPI.getFileStat(status.projectPath, path);
 
-        if (fileStat.isDirectory) {
+        if (fileStat && fileStat.isDirectory) {
           return;
         }
         this.files.push({
           file: path,
-          absPath: fileStat.absPath,
+          absPath: fileStat ? fileStat.absPath : this.projectPath + (this.projectPath.includes('\\') ? '\\' : '/') + path,
           status: types[type] ?? type,
           statusLabel: typeLabels[type] ?? type,
-          size: fileStat.size,
+          size: fileStat ? fileStat.size : 0,
           ext: getExtname(path),
-          fsize: formatFileSize(fileStat.size),
-          timestamp: fileStat.mtimeMs,
-          time: new Date(fileStat.mtimeMs).toLocaleString('zh-CN', {
+          fsize: fileStat ? formatFileSize(fileStat.size) : '-',
+          timestamp: fileStat ? fileStat.mtimeMs : 0,
+          time: fileStat ? new Date(fileStat.mtimeMs).toLocaleString('zh-CN', {
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
@@ -117,10 +136,11 @@ document.addEventListener('alpine:init', () => {
             minute: '2-digit',
             second: '2-digit',
             hour12: false
-          }),
+          }) : '-',
           selected: false
         });
-      });
+      }));
+      return this.files;
     },
 
     sortFiles(event) {
@@ -333,6 +353,10 @@ document.addEventListener('alpine:init', () => {
           {label: '复制选中文件的绝对对路径', text: absPaths.join("\n")}
         );
       }
+      menus.push(
+        '-',
+        {label: '放弃修改', text: currentFile.file, handler:'git:checkout', args:[this.projectPath, currentFile.file]},
+      );
       window.electronAPI.showPathContextMenu(menus);
     },
 

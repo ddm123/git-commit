@@ -8,6 +8,13 @@ async function showCopyContextMenu(event, menus) {
     for(const menu of menus){
       if(menu==='-'){
         menuTemplate.push({ type: 'separator' });
+      }else if(menu.handler){
+        let args = menu.args ?? [];
+        if(typeof args === 'string'){
+          args = [args];
+        }
+
+        menuTemplate.push({label: menu.label, click: () => event.sender.send(menu.handler, ...args)});
       }else{
         menuTemplate.push({label: menu.label, click: () => {
           clipboard.writeText(menu.text);

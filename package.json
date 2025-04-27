@@ -8,16 +8,36 @@
     "build:css": "npx tailwindcss -i ./src/renderer/css/input.css -o ./dist/tailwind.css  --minify",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "DDM",
+  "author": {
+    "name": "DDM",
+    "email": "22308829@qq.com"
+  },
   "license": "MIT",
   "devDependencies": {
     "daisyui": "^5.0.9",
     "electron": "^35.0.3",
+    "electron-builder": "^26.0.12",
     "postcss-import": "^16.1.0",
-    "simple-git": "*",
     "tailwindcss": "^3.4.1"
   },
   "dependencies": {
+    "simple-git": "*",
     "caniuse-lite": "^1.0.30001707"
+  },
+  "build": {
+    "directories": {
+      "output": "out"
+    },
+    "win": {
+      "target": ["nsis", "zip"]
+    },
+    "mac": {
+      "target": ["dmg", "zip"]
+    },
+    "linux": {
+      "target": ["AppImage", "deb","zip"],
+      "category": "Development",
+      "executableArgs": ["--disable-gpu"]
+    }
   }
 }
