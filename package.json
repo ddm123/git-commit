@@ -29,7 +29,7 @@
       "output": "out"
     },
     "win": {
-      "target": ["nsis", "zip"]
+      "target": ["nsis", "portable", "zip"]
     },
     "mac": {
       "target": ["dmg", "zip"]

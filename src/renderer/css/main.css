@@ -29,7 +29,7 @@ body > .body-mask{
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: 16px;
   background-color: rgba(255, 255, 255, .5);
   display: none;
   z-index: 2;
@@ -150,6 +150,10 @@ body.disable > .body-mask{
 .file-list .table tbody td {
   padding-block: 5px;
   white-space: nowrap;
+}
+.file-list tbody > tr:has(.col-checkbox input[type="checkbox"]:focus) {
+  outline: 1px dotted #ccc;
+  outline-offset: -1px;
 }
 .status-bar{
   white-space: nowrap;

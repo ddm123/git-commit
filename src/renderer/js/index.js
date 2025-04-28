@@ -92,7 +92,7 @@ document.addEventListener('alpine:init', () => {
           .catch(error => this.showError(error.message))
           .finally(() => this.isDisabledBody = false);
       })
-      .catch((error) => {
+      .catch(error => {
         this.showError(error.message);
       })
       .finally(() => {
@@ -328,6 +328,13 @@ document.addEventListener('alpine:init', () => {
         showError(msg);
       }else{
         this.openDialog('错误信息', '<div style="color:red;">'+msg+'</div>');
+      }
+    },
+
+    clickRow(event, tr) {
+      const checkbox = tr.querySelector('.col-checkbox input[type="checkbox"]');
+      if (checkbox) {
+        checkbox.focus();
       }
     },
 

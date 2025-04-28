@@ -42,7 +42,7 @@
       </thead>
       <tbody>
         <template x-for="file in files">
-          <tr :class="file.status">
+          <tr :class="file.status" x-on:click="clickRow.bind($data, $event, $el, file)">
             <td class="col-checkbox"><input type="checkbox" x-model="file.selected" class="checkbox checkbox-sm"></td>
             <td x-text="file.file" x-on:contextmenu="showPathContextMenu.bind($data, file)"></td>
             <td x-text="file.time"></td>
