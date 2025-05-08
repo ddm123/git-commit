@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="../../dist/tailwind.css" rel="stylesheet">
+  <script defer src="../../dist/alpine-latest.min.js"></script>
+  <script src="../../src/renderer/js/utils.js" type="text/javascript"></script>
+  <script src="../../src/renderer/js/git-diff.js" type="text/javascript"></script>
+</head>
+<body class="m-4" x-data="gitDiff">
+  <div class="mockup-code w-full">
+    <h1 class="text-xl font-bold absolute left-24 top-3" x-text="file"></h1>
+    <template x-for="(changes, index) in diffChunks">
+      <div>
+        <pre data-prefix="" class="bg-local bg-warning text-warning-content text-center mt-1"><code class="min-w-full">第 <span class="font-bold" x-text="index+1"></span> 个差异</code></pre>
+      <template x-for="(code, line) in changes.code">
+        <pre x-bind:data-prefix="getLine(code, changes, line, $el)" class="bg-local" x-bind:class="getClass(code)"><code x-text="code" class="min-w-full"></code></pre>
+      </template>
+      </div>
+    </template>
+  </div>
+</body>
+</html>

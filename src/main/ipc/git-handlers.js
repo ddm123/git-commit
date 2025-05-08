@@ -1,4 +1,5 @@
 const { BrowserWindow, Menu, ipcMain, clipboard } = require('electron');
+const path = require('node:path');
 const git = require('simple-git');
 
 async function handleGitStatus(event, projectPath) {
@@ -36,6 +37,13 @@ async function handleGitPull(e, projectPath) {
     };
   }
   return await git(projectPath).pull();
+}
+
+async function handleGitDiff(event, projectPath, options) {
+  if(typeof options === 'string'){
+    options = [options];
+  }
+  return await git(projectPath).diff(options);
 }
 
 function getUserLogs(projectPath){
@@ -99,6 +107,24 @@ async function showMessagePaste(event, projectPath) {
   }
 }
 
+function handleShowDiff(event, file, diffChunks) {
+  const win = new BrowserWindow({
+    width: 1000,
+    height: 600,
+    webPreferences: {
+      preload: path.join(__dirname, '../../preload/git-diff.js')
+    }
+  });
+
+  win.loadFile('src/renderer/git-diff.html');
+  win.setTitle('查看 '+file+' 差异');
+  win.webContents.on('did-finish-load', () => {
+    //win.webContents.openDevTools();
+    win.webContents.send('show-diff-chunks', file, diffChunks);
+  });
+  return win.getTitle();
+};
+
 module.exports = function setupGitHandlers() {
   ipcMain.handle('git:getRootPath', async (event, projectPath) => await git(projectPath).revparse(['--show-toplevel']));
   ipcMain.handle('git:getBranches', async (event, projectPath) => await git(projectPath).branchLocal());
@@ -110,5 +136,7 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:push', async (event, projectPath) => await git(projectPath).push());
   ipcMain.handle('git:reset', async (event, projectPath, parameters) => await git(projectPath).reset(parameters));
   ipcMain.handle('git:checkout', async (event, projectPath, ...files) => await git(projectPath).checkout(['--', ...files]));
+  ipcMain.handle('git:diff', handleGitDiff);
   ipcMain.handle('git:showPasteContextMenu', showMessagePaste);
+  ipcMain.handle('git:showDiff', handleShowDiff);
 };

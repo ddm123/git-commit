@@ -101,7 +101,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     async fillFileList(status) {
-      this.files = [];
+      const files = [];
       this.selectedFiles = [];
       this.selectedFilesCount = 0;
 
@@ -119,7 +119,7 @@ document.addEventListener('alpine:init', () => {
         if (fileStat && fileStat.isDirectory) {
           return;
         }
-        this.files.push({
+        files.push({
           file: path,
           absPath: fileStat ? fileStat.absPath : this.projectPath + (this.projectPath.includes('\\') ? '\\' : '/') + path,
           status: types[type] ?? type,
@@ -140,7 +140,9 @@ document.addEventListener('alpine:init', () => {
           selected: false
         });
       }));
-      return this.files;
+
+      this.files = files;
+      return files;
     },
 
     sortFiles(event) {
@@ -225,6 +227,36 @@ document.addEventListener('alpine:init', () => {
           showSuccess('已成功切换到 '+ branch + ' 分支');
         })
         .catch((error) => this.showError(error.message))
+        .finally(() => this.isDisabledBody = false);
+    },
+
+    showDiff(file) {
+      if(this.isDisabledBody) return;
+
+      clearMessages();
+      if(file.status!=='modified'){
+        showError('当前文件不是已修改状态，无法查看差异');
+        return;
+      }
+
+      this.isDisabledBody = true;
+      window.gitAPI.diff(this.projectPath, [file.file])
+        .then(result => {
+          const chunks = result ? result.split(/\s*@@ -(\d+),?(\d*) \+(\d+),?(\d*) @@[\t ]*[^\r\n]*[\r\n]/) : [];
+          const changes = [];
+          const fileMatch = /a[/\\](.+?)\s+b[/\\]\1/gi.exec(chunks[0]);
+          for (let i = 1; i < chunks.length; i += 5) {
+            changes.push({
+              oldStart: parseInt(chunks[i]),
+              oldLines: parseInt(chunks[i+1] || 1),
+              newStart: parseInt(chunks[i+2]),
+              newLines: parseInt(chunks[i+3] || 1),
+              code: chunks[i+4].split(/[\r\n]/)
+            });
+          }
+          window.gitAPI.showDiff(fileMatch ? fileMatch[1] : null, changes);
+        })
+        .catch(error => this.showError(error.message))
         .finally(() => this.isDisabledBody = false);
     },
 

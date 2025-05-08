@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld('gitAPI', {
   push: (path) => ipcRenderer.invoke('git:push', path),
   reset: (path, parameters) => ipcRenderer.invoke('git:reset', path, parameters),
   checkout: (path, ...files) => ipcRenderer.invoke('git:checkout', path, ...files),
+  diff: (path, options) => ipcRenderer.invoke('git:diff', path, options),
+  showDiff: (file, diffChunks) => ipcRenderer.invoke('git:showDiff', file, diffChunks),
   onProgress: (eventName, closure) => ipcRenderer.on(eventName, closure),
   showPasteContextMenu: (path) => ipcRenderer.invoke('git:showPasteContextMenu', path)
 });

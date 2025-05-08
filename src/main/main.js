@@ -7,7 +7,7 @@ const createWindow = function() {
     height: 600,
     webPreferences: {
       textAreasAreResizable: false,
-      preload: path.join(__dirname, '../preload.js')
+      preload: path.join(__dirname, '../preload/main.js')
     }
   });
 
