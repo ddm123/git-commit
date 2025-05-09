@@ -11,13 +11,24 @@ document.addEventListener('alpine:init', () => {
     },
 
     getLine(code, change, line, elm) {
-      let el = elm.previousElementSibling;
+      let hasAddLine = false, el = elm.previousElementSibling;
       while(el){
-        if(el.classList.contains('bg-red-200')){
-          line--;
+        if(el.classList.contains('bg-green-200')){
+          hasAddLine = true;
+          break;
         }
         el = el.previousElementSibling;
       }
+      if(hasAddLine || !code.startsWith('-')){
+        let el = elm.previousElementSibling;
+        while(el){
+          if(el.classList.contains('bg-red-200')){
+            line--;
+          }
+          el = el.previousElementSibling;
+        }
+      }
+
       return change.newStart + line;
     },
 

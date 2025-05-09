@@ -11,10 +11,10 @@
   <div class="mockup-code w-full">
     <h1 class="text-xl font-bold absolute left-24 top-3" x-text="file"></h1>
     <template x-for="(changes, index) in diffChunks">
-      <div>
-        <pre data-prefix="" class="bg-local bg-warning text-warning-content text-center mt-1"><code class="min-w-full">第 <span class="font-bold" x-text="index+1"></span> 个差异</code></pre>
+      <div class="min-w-full table">
+        <pre x-init="changes.code.pop()" data-prefix="" class="bg-local bg-warning text-warning-content text-center mt-1 min-w-full"><code>第 <span class="font-bold" x-text="index+1"></span> 个差异</code></pre>
       <template x-for="(code, line) in changes.code">
-        <pre x-bind:data-prefix="getLine(code, changes, line, $el)" class="bg-local" x-bind:class="getClass(code)"><code x-text="code" class="min-w-full"></code></pre>
+        <pre x-bind:data-prefix="getLine(code, changes, line, $el)" class="bg-local min-w-full" x-bind:class="getClass(code)"><code x-text="code"></code></pre>
       </template>
       </div>
     </template>
