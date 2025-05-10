@@ -392,10 +392,13 @@ document.addEventListener('alpine:init', () => {
           {label: '复制选中文件的绝对对路径', text: absPaths.join("\n")}
         );
       }
-      menus.push(
-        '-',
-        {label: '放弃修改', text: currentFile.file, handler:'git:checkout', args:[this.projectPath, currentFile.file]},
-      );
+      if(currentFile.status!=='untracked'){
+        menus.push(
+          '-',
+          {label: '放弃修改', text: currentFile.file, handler:'git:checkout', args:[this.projectPath, currentFile.file]}
+        );
+      }
+
       window.electronAPI.showPathContextMenu(menus);
     },
 
