@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   icpSend: (...args) => ipcRenderer.invoke(...args),
   openDirectory: (def) => ipcRenderer.invoke('dialog:openDirectory', def),
   getFileStat: (path, file) => ipcRenderer.invoke('fs:getFileStat', path, file),
+  getStoreValue: (key) => ipcRenderer.invoke('store:get', key),
+  setStoreValue: (key, value) => ipcRenderer.invoke('store:set', key, value),
   showPathContextMenu: (menus) => ipcRenderer.invoke('show-copy-context-menu', menus),
   writeClipboard: (text) => ipcRenderer.invoke('clipboard:write-text', text),
   readClipboard: () => ipcRenderer.invoke('clipboard:read-text'),

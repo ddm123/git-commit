@@ -2,6 +2,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('app', () => ({
     isDisabledBody: false,
     projectPath: '',
+    historyProjectPaths: [],
     branches: [],
     files: [],
     canPush: false,
@@ -31,21 +32,56 @@ document.addEventListener('alpine:init', () => {
           });
         }
       });
+      window.electronAPI.getStoreValue('historyProjectPaths').then(paths => {
+        if(paths){
+          paths = paths.split(';');
+          this.historyProjectPaths = paths;
+        }
+
+        window.electronAPI.getStoreValue('projectPath').then(path => {
+          if(path || (path = this.historyProjectPaths[0] ?? '')){
+            this.projectPath = path;
+            this.refresh();
+          }
+        });
+      });
     },
 
-    selectProjectPath() {
-      if (this.isDisabledBody) return;
+    selectProjectPath(event) {
+      const lastSelectedValue = event.target.getAttribute('data-last-selected') || '';
+      if (this.isDisabledBody) {
+        this.projectPath = lastSelectedValue;
+        return;
+      }
 
-      this.isDisabledBody = true;
-      window.electronAPI.openDirectory(this.projectPath).then((result) => {
-        if (result) {
-          this.projectPath = result;
-          this.refresh();
-        }
-      })
-      .finally(() => {
-        this.isDisabledBody = false;
-      });
+      const selectedValue = event.target.value;
+
+      if (selectedValue === '%SELECT%') {
+        this.isDisabledBody = true;
+        window.electronAPI.openDirectory(lastSelectedValue).then((result) => {
+          if (result) {
+            if(!this.historyProjectPaths.includes(result)){
+              this.historyProjectPaths.unshift(result);
+            }
+
+            event.target.setAttribute('data-last-selected', result);
+            this.projectPath = result;
+            this.refresh();
+            window.electronAPI.setStoreValue('historyProjectPaths', this.historyProjectPaths.join(';'));
+          } else {
+            this.projectPath = lastSelectedValue;
+          }
+          window.electronAPI.setStoreValue('projectPath', this.projectPath);
+        })
+        .finally(() => {
+          this.isDisabledBody = false;
+        });
+      } else if (selectedValue) {
+        this.projectPath = selectedValue;
+        event.target.setAttribute('data-last-selected', selectedValue);
+        this.refresh();
+        window.electronAPI.setStoreValue('projectPath', this.projectPath);
+      }
     },
 
     refresh() {
@@ -60,6 +96,7 @@ document.addEventListener('alpine:init', () => {
           showError('没有找到任何分支');
           return;
         }
+
         if (result.current) {
           this.currentBranch = result.current;
         }else{

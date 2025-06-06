@@ -10,10 +10,17 @@
 </head>
 <body class="m-4 mb-0" x-data="app" :class="{ 'disable': isDisabledBody }">
   <div class="flex gap-4">
-    <label class="input grow">
-      项目路径:
-      <input type="text" class="grow" x-on:click="$event.target.value==='' ? selectProjectPath.call($data, $event) : null" x-model="projectPath" placeholder="" readonly />
-      <span class="cursor-pointer" x-on:click="selectProjectPath">选择...</span>
+    <label class="input grow flex items-center">
+      <label for="branch" class="whitespace-nowrap">项目路径:</label>
+      <select x-model="projectPath" x-on:change="selectProjectPath" class="select border-none bg-transparent grow">
+        <template x-if="!historyProjectPaths.length">
+          <option value="" selected></option>
+        </template>
+        <template x-for="path in historyProjectPaths">
+          <option x-bind:value="path" x-text="path"></option>
+        </template>
+        <option value="%SELECT%">选择项目文件夹...</option>
+      </select>
     </label>
     <label class="shrink-0 flex items-center input pr-0 w-auto">
       <label for="branch" class="whitespace-nowrap">当前分支:</label>
