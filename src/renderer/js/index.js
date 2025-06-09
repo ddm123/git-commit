@@ -283,13 +283,14 @@ document.addEventListener('alpine:init', () => {
           const changes = [];
           const fileMatch = /a[/\\](.+?)\s+b[/\\]\1/gi.exec(chunks[0]);
           for (let i = 1; i < chunks.length; i += 5) {
-            changes.push({
+            const len = changes.push({
               oldStart: parseInt(chunks[i]),
               oldLines: parseInt(chunks[i+1] || 1),
               newStart: parseInt(chunks[i+2]),
               newLines: parseInt(chunks[i+3] || 1),
               code: chunks[i+4].split(/[\r\n]/)
             });
+            changes[len - 1].diffCode = this._parseDiffCode(changes[len - 1]);
           }
           window.gitAPI.showDiff(fileMatch ? fileMatch[1] : null, changes);
         })
@@ -505,6 +506,63 @@ document.addEventListener('alpine:init', () => {
 
         throw error;
       }
+    },
+
+    _parseDiffCode(changes) {
+      const diffCode = [[], []];
+      changes.code.pop();//最后一行是多出来的
+
+      for(let lines = changes.code.length, i = 0; i<lines; i++){
+        if(changes.code[i] === '\\ No newline at end of file') break;
+
+        let len1 = diffCode[0].length, len2 = diffCode[1].length;
+        if(changes.code[i].startsWith('-')){
+          diffCode[0].push({
+            line: len1 ? diffCode[0][len1 - 1].line+1 : changes.oldStart+i,
+            code: changes.code[i],
+            change: '-'
+          });
+        }else if(changes.code[i].startsWith('+')){
+          diffCode[1].push({
+            line: len2 ? diffCode[1][len2 - 1].line+1 : changes.newStart+i,
+            code: changes.code[i],
+            change: '+'
+          });
+        }else{
+          let row = {
+            line: Math.max(
+              len1 ? diffCode[0][len1 - 1].line+1 : changes.oldStart+i,
+              len2 ? diffCode[1][len2 - 1].line+1 : changes.newStart+i
+            ),
+            code: changes.code[i],
+            change: ''
+          };
+          let noneLines = [0, 0];
+          if(len1){
+            for(let j = diffCode[0][len1 - 1].line + 1; j < row.line; j++){
+              diffCode[0].push({
+                line: '',
+                code: '',
+                change: 'none'
+              });
+              noneLines[0]++;
+            }
+          }
+          if(len2){
+            for(let j = diffCode[1][len2 - 1].line + 1; j < row.line; j++){
+              diffCode[1].push({
+                line: '',
+                code: '',
+                change: 'none'
+              });
+              noneLines[1]++;
+            }
+          }
+          diffCode[0].push(row);
+          diffCode[1].push(row);
+        }
+      }
+      return diffCode;
     }
   }));
 });

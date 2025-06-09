@@ -10,34 +10,15 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
-    getLine(code, change, line, elm) {
-      let hasAddLine = false, el = elm.previousElementSibling;
-      while(el){
-        if(el.classList.contains('bg-green-200')){
-          hasAddLine = true;
-          break;
-        }
-        el = el.previousElementSibling;
-      }
-      if(hasAddLine || !code.startsWith('-')){
-        let el = elm.previousElementSibling;
-        while(el){
-          if(el.classList.contains('bg-red-200')){
-            line--;
-          }
-          el = el.previousElementSibling;
-        }
-      }
-
-      return change.newStart + line;
-    },
-
-    getClass(code) {
-      if(code.startsWith('-')){
+    getClass(change) {
+      if(change.change==='-'){
         return 'bg-red-200 text-red-500';
       }
-      if(code.startsWith('+')){
+      if(change.change==='+'){
         return 'bg-green-200 text-green-600';
+      }
+      if(change.change==='none'){
+        return 'bg-checkered';
       }
       return '';
     }

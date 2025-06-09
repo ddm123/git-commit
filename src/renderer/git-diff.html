@@ -10,14 +10,27 @@
 <body class="m-4" x-data="gitDiff">
   <div class="mockup-code w-full">
     <h1 class="text-xl font-bold absolute left-24 top-3" x-text="file"></h1>
-    <template x-for="(changes, index) in diffChunks">
-      <div class="min-w-full table">
-        <pre x-init="changes.code.pop()" data-prefix="" class="bg-local bg-warning text-warning-content text-center mt-1 min-w-full"><code>第 <span class="font-bold" x-text="index+1"></span> 个差异</code></pre>
-      <template x-for="(code, line) in changes.code">
-        <pre x-bind:data-prefix="getLine(code, changes, line, $el)" class="bg-local min-w-full" x-bind:class="getClass(code)"><code x-text="code"></code></pre>
+    <table class="w-full">
+      <template x-for="(changes, index) in diffChunks">
+        <tbody>
+        <tr>
+          <td class="align-top" colspan="2"><pre data-prefix="" class="bg-local bg-warning text-warning-content text-center mt-1 min-w-full"><code>第 <span class="font-bold" x-text="index+1"></span> 个差异</code></pre></td>
+        </tr>
+        <tr>
+          <td class="align-top">
+            <template x-for="change in changes.diffCode[0]">
+              <pre x-bind:data-prefix="change.line" class="bg-local min-w-full" x-bind:class="getClass(change)"><code x-text="change.code"></code></pre>
+            </template>
+          </td>
+          <td class="align-top">
+            <template x-for="change in changes.diffCode[1]">
+              <pre x-bind:data-prefix="change.line" class="bg-local min-w-full" x-bind:class="getClass(change)"><code x-text="change.code"></code></pre>
+            </template>
+          </td>
+        </tr>
+        </tbody>
       </template>
-      </div>
-    </template>
+    </table>
   </div>
 </body>
 </html>
