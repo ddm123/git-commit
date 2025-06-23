@@ -47,7 +47,7 @@
           <th data-field="fsize" order-by="size" x-on:click="sortFiles">大小</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody x-on:keyup="keyboardSelectFile">
         <template x-for="file in files">
           <tr :class="file.status" x-on:click="clickRow.bind($data, $event, $el, file)">
             <td class="col-checkbox"><input type="checkbox" x-model="file.selected" class="checkbox checkbox-sm"></td>

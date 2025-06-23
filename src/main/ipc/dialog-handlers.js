@@ -11,6 +11,21 @@ async function handleDirectoryOpen(event, defaultPath) {
   return result.canceled ? null : result.filePaths[0];
 }
 
+async function handleShowSaveDialog(event, options) {
+  if(!options.defaultPath){
+    options.defaultPath = app.getPath('documents');
+  }
+
+  const result = await dialog.showSaveDialog(BrowserWindow.getFocusedWindow(), {
+    title: '保存文件',
+    properties: ['createDirectory'],
+    ...options
+  });
+
+  return result.canceled ? null : result.filePath;
+}
+
 module.exports = function setupDialogHandlers() {
   ipcMain.handle('dialog:openDirectory', handleDirectoryOpen);
+  ipcMain.handle('dialog:showSaveDialog', handleShowSaveDialog);
 };

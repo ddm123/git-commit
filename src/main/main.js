@@ -77,6 +77,7 @@ app.whenReady().then(() => {
   require('./ipc/action-handlers')();
   require('./ipc/file-handlers')();
   require('./ipc/git-handlers')();
+  require('./ipc/archiver-handlers')();
 
   mainWindow = createWindow();
 

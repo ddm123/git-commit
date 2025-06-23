@@ -1,6 +1,6 @@
 {
   "name": "git-commit",
-  "version": "1.1.4",
+  "version": "1.2.1",
   "description": "提交文件到Git版本控制仓库",
   "main": "./src/main/main.js",
   "scripts": {
@@ -18,27 +18,41 @@
     "electron": "^35.0.3",
     "electron-builder": "^26.0.12",
     "postcss-import": "^16.1.0",
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^3.4.1",
+    "caniuse-lite": "^1.0.30001707"
   },
   "dependencies": {
-    "simple-git": "*",
-    "caniuse-lite": "^1.0.30001707",
-    "electron-store": "^8.2.0"
+    "archiver": "^7.0.1",
+    "electron-store": "^8.2.0",
+    "simple-git": "*"
   },
   "build": {
     "directories": {
       "output": "out"
     },
     "win": {
-      "target": ["nsis", "portable", "zip"]
+      "target": [
+        "nsis",
+        "portable",
+        "zip"
+      ]
     },
     "mac": {
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "linux": {
-      "target": ["AppImage", "deb","zip"],
+      "target": [
+        "AppImage",
+        "deb",
+        "zip"
+      ],
       "category": "Development",
-      "executableArgs": ["--disable-gpu"]
+      "executableArgs": [
+        "--disable-gpu"
+      ]
     }
   }
 }

@@ -33,3 +33,9 @@ npx electron-builder -mwl #build for macOS, Windows and Linux
 # npx electron-builder --win --ia32
 # npx electron-builder --win --arm64
 ```
+
+# 测试运行
+``` bash
+./out/git-commit-1.0.0.AppImage --no-sandbox  --disable-gpu
+```
+

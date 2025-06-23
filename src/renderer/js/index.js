@@ -3,6 +3,7 @@ document.addEventListener('alpine:init', () => {
     isDisabledBody: false,
     projectPath: '',
     historyProjectPaths: [],
+    lastSaveArchiver: null,
     branches: [],
     files: [],
     canPush: false,
@@ -31,6 +32,27 @@ document.addEventListener('alpine:init', () => {
             showError(error.message);
           });
         }
+      });
+      window.electronAPI.onMenuClick('dialog:showSaveDialog', (event, path, ...files) => {
+        window.electronAPI.showSaveDialog({
+          title: '压缩文件保存到...',
+          filters: [{name: 'ZIP 文件', extensions: ['zip']}],
+          defaultPath: this.lastSaveArchiver || path
+        }).then((filePath) => {
+          if(filePath){
+            if(!filePath.toLowerCase().endsWith('.zip')){
+              filePath += '.zip';
+            }
+            this.lastSaveArchiver = filePath;
+            window.electronAPI.createArchiver(filePath, path, files, {zlib: {level: 6}}).then(() => {
+              showSuccess('已成功保存压缩文件到: ' + filePath);
+            }).catch((error) => {
+              showError('保存压缩文件失败: ' + error.message);
+            });
+          }
+        }).catch((error) => {
+          showError('保存压缩文件失败: ' + error.message);
+        });
       });
       window.electronAPI.getStoreValue('historyProjectPaths').then(paths => {
         if(paths){
@@ -427,7 +449,8 @@ document.addEventListener('alpine:init', () => {
         menus.push(
           '-',
           {label: '复制选中文件的相对路径', text: paths.join("\n")},
-          {label: '复制选中文件的绝对对路径', text: absPaths.join("\n")}
+          {label: '复制选中文件的绝对对路径', text: absPaths.join("\n")},
+          {label: '打包选中的文件', text: 'archiver', handler: 'dialog:showSaveDialog', args: [this.projectPath, ...paths]}
         );
       }
       if(currentFile.status!=='untracked'){
@@ -438,6 +461,22 @@ document.addEventListener('alpine:init', () => {
       }
 
       window.electronAPI.showPathContextMenu(menus);
+    },
+
+    keyboardSelectFile(event) {
+      if(event.target.tagName.toLowerCase()==='input' || event.target.type==='checkbox'){
+        let el = null;
+        if(event.keyCode === 38) {//上箭头
+          event.preventDefault();
+          el = event.target.closest('tr').previousElementSibling;
+        }else if(event.keyCode === 40){//下箭头
+          event.preventDefault();
+          el = event.target.closest('tr').nextElementSibling;
+        }
+        if(el){
+          el.querySelector('.col-checkbox input[type="checkbox"]').focus();
+        }
+      }
     },
 
     async _commit(files, message, isPush) {

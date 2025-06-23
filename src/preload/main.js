@@ -4,6 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron/renderer');
 contextBridge.exposeInMainWorld('electronAPI', {
   icpSend: (...args) => ipcRenderer.invoke(...args),
   openDirectory: (def) => ipcRenderer.invoke('dialog:openDirectory', def),
+  showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options),
   getFileStat: (path, file) => ipcRenderer.invoke('fs:getFileStat', path, file),
   getStoreValue: (key) => ipcRenderer.invoke('store:get', key),
   setStoreValue: (key, value) => ipcRenderer.invoke('store:set', key, value),
@@ -11,7 +12,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   writeClipboard: (text) => ipcRenderer.invoke('clipboard:write-text', text),
   readClipboard: () => ipcRenderer.invoke('clipboard:read-text'),
   onMenuClick: (handlerName, closure) => ipcRenderer.on(handlerName, closure),
-  onPaste: (closure) => ipcRenderer.on('clipboard:readText', closure)
+  onPaste: (closure) => ipcRenderer.on('clipboard:readText', closure),
+  createArchiver: (zipFile, filesPath, files, options) => ipcRenderer.invoke('archiver:create', zipFile, filesPath, files, options)
 });
 contextBridge.exposeInMainWorld('gitAPI', {
   getRootPath: (path) => ipcRenderer.invoke('git:getRootPath', path),
