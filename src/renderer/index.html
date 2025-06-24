@@ -47,7 +47,7 @@
           <th data-field="fsize" order-by="size" x-on:click="sortFiles">大小</th>
         </tr>
       </thead>
-      <tbody x-on:keyup="keyboardSelectFile">
+      <tbody x-on:keydown="keyboardSelectFile">
         <template x-for="file in files">
           <tr :class="file.status" x-on:click="clickRow.bind($data, $event, $el, file)">
             <td class="col-checkbox"><input type="checkbox" x-model="file.selected" class="checkbox checkbox-sm"></td>
@@ -79,7 +79,10 @@
     </div>
   </div>
 
-  <div class="status-bar" x-text="processMessage"></div>
+  <div class="status-bar flex items-center gap-2">
+    <div class="grow" x-text="processMessage"></div>
+    <div class="shrink-0" x-data="{version: 'v'+window.electronAPI.appVersion}" x-text="version"></div>
+  </div>
 
   <div class="body-mask"></div>
   <div class="messages" id="messages"></div>

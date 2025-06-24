@@ -86,27 +86,37 @@ document.addEventListener('alpine:init', () => {
               this.historyProjectPaths.unshift(result);
             }
 
-            event.target.setAttribute('data-last-selected', result);
             this.projectPath = result;
-            this.refresh();
-            window.electronAPI.setStoreValue('historyProjectPaths', this.historyProjectPaths.join(';'));
+
+            this.refresh(() => {
+              event.target.setAttribute('data-last-selected', result);
+              window.electronAPI.setStoreValue('projectPath', result);
+              window.electronAPI.getStoreValue('historyProjectPaths').then(paths => {
+                paths = paths ? paths.split(';') : [];
+                if(!paths.includes(result)){
+                  paths.unshift(result);
+                  window.electronAPI.setStoreValue('historyProjectPaths', paths.join(';'));
+                }
+              });
+            });
           } else {
             this.projectPath = lastSelectedValue;
+            window.electronAPI.setStoreValue('projectPath', lastSelectedValue);
           }
-          window.electronAPI.setStoreValue('projectPath', this.projectPath);
         })
         .finally(() => {
           this.isDisabledBody = false;
         });
       } else if (selectedValue) {
         this.projectPath = selectedValue;
-        event.target.setAttribute('data-last-selected', selectedValue);
-        this.refresh();
-        window.electronAPI.setStoreValue('projectPath', this.projectPath);
+        this.refresh(() => {
+          event.target.setAttribute('data-last-selected', selectedValue);
+          window.electronAPI.setStoreValue('projectPath', selectedValue);
+        });
       }
     },
 
-    refresh() {
+    refresh(succeedCallback) {
       if (!this.projectPath) return;
 
       clearMessages();
@@ -146,6 +156,11 @@ document.addEventListener('alpine:init', () => {
               th.setAttribute('order-dir', orderDir);
               this.sortFiles({target: th});
             }
+
+            if(typeof succeedCallback === 'function'){
+              succeedCallback(files);
+            }
+
             return files;
           })
           .catch(error => this.showError(error.message))
@@ -464,7 +479,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     keyboardSelectFile(event) {
-      if(event.target.tagName.toLowerCase()==='input' || event.target.type==='checkbox'){
+      if(event.target.type==='checkbox' && event.target.tagName.toLowerCase()==='input'){
         let el = null;
         if(event.keyCode === 38) {//上箭头
           event.preventDefault();
@@ -473,7 +488,7 @@ document.addEventListener('alpine:init', () => {
           event.preventDefault();
           el = event.target.closest('tr').nextElementSibling;
         }
-        if(el){
+        if(el && el.tagName?.toLowerCase()==='tr'){
           el.querySelector('.col-checkbox input[type="checkbox"]').focus();
         }
       }

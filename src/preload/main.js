@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron/renderer');
 //const { ipcMain } = require('electron/main');
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  appVersion: '1.2.2',
   icpSend: (...args) => ipcRenderer.invoke(...args),
   openDirectory: (def) => ipcRenderer.invoke('dialog:openDirectory', def),
   showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options),
