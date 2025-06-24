@@ -5,7 +5,7 @@
   "main": "./src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "build:css": "npx tailwindcss -i ./src/renderer/css/input.css -o ./dist/tailwind.css  --minify",
+    "build:css": "tailwindcss -i ./src/renderer/css/input.css -o ./dist/tailwind.css  --minify",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": {
@@ -14,12 +14,11 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@tailwindcss/cli": "^4.1.10",
     "daisyui": "^5.0.43",
-    "electron": "^35.0.3",
+    "electron": "^35.5.1",
     "electron-builder": "^26.0.12",
-    "postcss-import": "^16.1.1",
-    "tailwindcss": "^3.4.17",
-    "caniuse-lite": "^1.0.30001707"
+    "tailwindcss": "^4.1.10"
   },
   "dependencies": {
     "archiver": "^7.0.1",

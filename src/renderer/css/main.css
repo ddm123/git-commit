@@ -168,7 +168,7 @@ body.disable > .body-mask{
 }
 .bg-checkered {
   background-color: transparent;
-  background-image: url("data:image/svg+xml, <svg xmlns='http://www.w3.org/2000/svg'><path fill='#F0F0F0' fill-opacity='0.4' d='M0 0h8v8H0zm8 8h8v8H8z'/></svg>");
+  background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23F0F0F0' fill-opacity='0.4' d='M0 0h8v8H0zm8 8h8v8H8z'/%3E%3C/svg%3E");
   background-size: 16px 16px;
 }
 .mockup-code pre[data-prefix]:before{
