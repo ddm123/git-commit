@@ -1,0 +1,181 @@
+<script>
+  Alpine.data('buttons', () => ({
+    canPush: false,
+
+    commit(event) {
+      if(isDisabledBody()) return;
+
+      clearMessages();
+
+      const commitMessage = Alpine.store('commitMessage').message;
+
+      if(!commitMessage) {
+        showError('请输入提交信息');
+        return;
+      }
+
+      const files = this.getSelectedFiles().map(file => file.file);
+      if(!files.length) {
+        showError('请选择需要提交的文件');
+        return;
+      }
+      disableBody(true);
+
+      let isPush = event.target.getAttribute('data-action') === 'commitAndPush';
+      let commitResult = this._commit(files, commitMessage, isPush);
+      commitResult.then(() => {
+          this.refresh();
+          showSuccess(isPush ? '已成功提交并推送到远程仓库' : '已成功提交');
+
+          Alpine.store('commitMessage').message = '';
+          Alpine.store('statusBar').statusText = '';
+        })
+        .catch((error) => this.showError(error.message))
+        .finally(() => {
+          disableBody(false);
+        });
+    },
+
+    push() {
+      if(isDisabledBody()) return;
+      clearMessages();
+      disableBody(true);
+      Alpine.store('statusBar').statusText = '正在推送代码...';
+      window.gitAPI.push(Alpine.store('projectPath').path)
+        .then(() => {
+          showSuccess('已成功推送到远程仓库');
+          this.canPush = false;
+        })
+        .finally(() => {
+          Alpine.store('statusBar').statusText = '';
+          disableBody(false);
+        });
+    },
+
+    pull() {
+      if(isDisabledBody()) return;
+      clearMessages();
+      disableBody(true);
+      Alpine.store('statusBar').statusText = '正在拉取远程仓库最新代码...';
+      window.gitAPI.pull({
+        baseDir: Alpine.store('projectPath').path,
+        progress: 'git:progress'
+        //progress: (event) => Alpine.store('statusBar').statusText = '正在拉取远程仓库最新代码... ' + event.progress + '%'
+      })
+        .then((result) => {
+          if(result.files && result.files.length > 0){
+            let html = '';
+            for(let file of result.files){
+              let lines = '';
+              html += '<div>';
+              if(typeof result.insertions[file] !== 'undefined'){
+                lines += ` <span style="color:green;">+${result.insertions[file]}</span>`;
+              }
+              if(typeof result.deletions[file] !== 'undefined'){
+                lines += ` <span style="color:red;">-${result.deletions[file]}</span>`;
+              }
+              if(lines===''){
+                if(result.created && result.created.includes(file)){
+                  file = `<span style="color:green;">${file} 新增</span>`;
+                }else if(result.deleted && result.deleted.includes(file)){
+                  file = `<span style="color:red;">${file} 已删除</span>`;
+                }
+              }
+              html += file + lines;
+              html += '</div>';
+            }
+            this.openDialog('拉取远程仓库最新代码', html);
+          }else{
+            showSuccess('已成功拉取远程仓库最新代码');
+          }
+        })
+        .catch((error) => this.showError(error.message))
+        .finally(() => {
+          disableBody(false);
+          Alpine.store('statusBar').statusText = '';
+        });
+    },
+    async _commit(files, message, isPush) {
+      const projectPath = Alpine.store('projectPath').path;
+      Alpine.store('statusBar').statusText = '拉取最新代码...';
+
+      //失败无回滚
+      /*let result = window.gitAPI.pull(projectPath)//先拉取
+        .then((result) => {
+          Alpine.store('statusBar').statusText = '正在添加需要提交的文件..';
+          return window.gitAPI.add(projectPath, files);
+        })//再添加
+        .then((result) => {
+          Alpine.store('statusBar').statusText = '正在提交代码...';
+          return window.gitAPI.commit(projectPath, message);
+        });//然后提交
+
+        if(isPush){
+          return result.then((result) => {
+            Alpine.store('statusBar').statusText = '正在推送代码...';
+            return window.gitAPI.push(projectPath);
+          });//最后推送
+        }
+        return result;*/
+
+      //失败有回滚
+      let state = {
+        added: false,
+        committed: false
+      };
+
+      try {
+        await window.gitAPI.pull({baseDir: projectPath, progress: 'git:progress'});//先拉取
+
+        // 第一步：添加文件
+        Alpine.store('statusBar').statusText = '正在添加需要提交的文件..';
+        await window.gitAPI.add(projectPath, files);
+        state.added = true; // 标记已添加
+
+        // 第二步：提交
+        Alpine.store('statusBar').statusText = '正在提交代码...';
+        const commitResult = await window.gitAPI.commit(projectPath, message);
+        state.committed = true; // 标记已提交
+
+        // 第三步：推送
+        if(isPush){
+          Alpine.store('statusBar').statusText = '正在推送代码...';
+          const pushResult = await window.gitAPI.push(projectPath);
+          this.canPush = false;
+          return pushResult;
+        }
+
+        this.canPush = true;
+        return commitResult;
+      } catch (error) {
+        // 错误处理（根据失败阶段精准回滚）
+        if (state.committed) {
+          // 第三步失败：已提交但推送失败 → 撤销提交和添加
+          Alpine.store('statusBar').statusText = '推送失败，开始回滚提交和暂存';
+          await window.gitAPI.reset(projectPath, ['HEAD~1', '--mixed']); // 撤销提交（保留修改到工作区）
+          await window.gitAPI.reset(projectPath, ['HEAD', '--', ...files]); // 取消暂存
+        } else if (state.added) {
+          // 第二步失败：已添加但提交失败 → 仅取消暂存
+          Alpine.store('statusBar').statusText = '提交失败，取消暂存';
+          await window.gitAPI.reset(projectPath, ['HEAD', '--', ...files]);
+        }
+
+        throw error;
+      }
+    }
+  }));
+</script>
+<div class="mt-3" x-data="buttons">
+  <div class="flex items-center justify-between">
+    <div class="shrink-0 flex items-center">
+      <button class="btn" x-on:click="refresh">刷新</button>
+      <button class="btn" x-on:click="pull">拉取</button>
+      <div class="ml-4">共有 <span class="font-bold" x-text="files.length"></span> 个文件已变更，<span class="font-bold" x-text="$store.fileListing.selectedFilesCount"></span> 个文件被选中</div>
+    </div>
+    <div class="join" style="align-items:center;">
+      <button class="btn join-item" x-on:click="commit" data-action="commit">提交</button>
+      <button class="btn join-item" x-show="canPush" x-on:click="push">推送</button>
+      <button class="btn join-item" x-on:click="commit" data-action="commitAndPush">提交并推送</button>
+    </div>
+  </div>
+</div>

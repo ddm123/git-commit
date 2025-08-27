@@ -1,5 +1,34 @@
 const messages = new Map();
 var messagesTimeoutId = null;
+var disableBodyCounter = 0;
+
+function disableBody(flag, enforce) {
+    const body = document.body;
+    if (flag || flag === undefined) {
+        if (enforce) {
+            body.classList.add('disable');
+        } else {
+            if (disableBodyCounter === 0) {
+                body.classList.add('disable');
+            }
+            disableBodyCounter++;
+        }
+    } else {
+        if (enforce) {
+            body.classList.remove('disable');
+        }else if(disableBodyCounter<=1) {
+            body.classList.remove('disable');
+            disableBodyCounter = 0;
+        }else{
+            disableBodyCounter--;
+        }
+    }
+    return body;
+}
+
+function isDisabledBody() {
+    return document.body.classList.contains('disable');
+}
 
 function showError(message) {
     const messageElement = createMessageElement(message);
@@ -28,6 +57,34 @@ function formatFileSize(size) {
         index++;
     }
     return size.toFixed(2) + ' ' + units[index];
+}
+
+async function compileComponents() {
+    for(const component of document.querySelectorAll('component[src]')) {
+        await fetch(component.getAttribute('src'))
+        .then(response => response.text())
+        .then(html => {
+            html = html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (match, p1, p2) => {
+                const newScript = document.createElement('script');
+
+                if(p1) {
+                    const attrRegex = /([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^'"\s>]+)))?/g;
+                    let attrMatch;
+                    while ((attrMatch = attrRegex.exec(p1)) !== null) {
+                        newScript.setAttribute(attrMatch[1], attrMatch[2] || attrMatch[3] || attrMatch[4] || '');
+                    }
+                }
+                if (p2 && (p2 = p2.trim())) {
+                    newScript.textContent = p2;
+                }
+                document.head.appendChild(newScript);
+                return '';
+            });
+            component.insertAdjacentHTML('beforebegin', html);
+            component.remove();
+        })
+        .catch(error => console.error('Error loading component '+component.getAttribute('src')+':', error));
+    }
 }
 
 function createMessageElement(message) {

@@ -1,0 +1,115 @@
+<script>
+  Alpine.store('projectPath', {
+    path: '',
+    currentBranch: ''
+  });
+
+  Alpine.data('projectPath', () => ({
+    historyProjectPaths: [],
+    branches: [],
+
+    init() {
+      window.electronAPI.getStoreValue('historyProjectPaths').then(paths => {
+        if(paths){
+          paths = paths.split(';');
+          this.historyProjectPaths = paths;
+        }
+
+        window.electronAPI.getStoreValue('projectPath').then(path => {
+          if(path || (path = this.historyProjectPaths[0] ?? '')){
+            Alpine.store('projectPath').path = path;
+            this.refresh();
+          }
+        });
+      });
+    },
+
+    selectProjectPath(event) {
+      const lastSelectedValue = event.target.getAttribute('data-last-selected') || '';
+      if (isDisabledBody()) {
+        Alpine.store('projectPath').path = lastSelectedValue;
+        return;
+      }
+
+      const selectedValue = event.target.value;
+
+      if (selectedValue === '%SELECT%') {
+        disableBody(true);
+        window.electronAPI.openDirectory(lastSelectedValue).then((result) => {
+          if (result) {
+            if(!this.historyProjectPaths.includes(result)){
+              this.historyProjectPaths.unshift(result);
+            }
+
+            Alpine.store('projectPath').path = result;
+
+            this.refresh(() => {
+              event.target.setAttribute('data-last-selected', result);
+              window.electronAPI.setStoreValue('projectPath', result);
+              window.electronAPI.getStoreValue('historyProjectPaths').then(paths => {
+                paths = paths ? paths.split(';') : [];
+                if(!paths.includes(result)){
+                  paths.unshift(result);
+                  window.electronAPI.setStoreValue('historyProjectPaths', paths.join(';'));
+                }
+              });
+            });
+          } else {
+            Alpine.store('projectPath').path = lastSelectedValue;
+            window.electronAPI.setStoreValue('projectPath', lastSelectedValue);
+          }
+        })
+        .finally(() => {
+          disableBody(false);
+        });
+      } else if (selectedValue) {
+        Alpine.store('projectPath').path = selectedValue;
+        this.refresh(() => {
+          event.target.setAttribute('data-last-selected', selectedValue);
+          window.electronAPI.setStoreValue('projectPath', selectedValue);
+        });
+      }
+    },
+
+    switchBranch(event) {
+      if(isDisabledBody()) return;
+
+      clearMessages();
+      let branch = event.target.value;
+      if (!branch) {
+        showError('请选择分支');
+        return;
+      }
+      disableBody(true);
+      window.gitAPI.switchBranch(Alpine.store('projectPath').path, branch)
+        .then(() => {
+          this.refresh();
+          showSuccess('已成功切换到 '+ branch + ' 分支');
+        })
+        .catch((error) => this.showError(error.message))
+        .finally(() => disableBody(false));
+    }
+  }));
+</script>
+<div class="flex gap-4" x-data="projectPath">
+  <label class="input grow flex items-center">
+    <label for="branch" class="whitespace-nowrap">项目路径:</label>
+    <select x-model="$store.projectPath.path" x-on:change="selectProjectPath" class="select border-none bg-transparent grow">
+      <template x-if="!historyProjectPaths.length">
+        <option value="" selected></option>
+      </template>
+      <template x-for="path in historyProjectPaths">
+        <option x-bind:value="path" x-text="path"></option>
+      </template>
+      <option value="%SELECT%">选择项目文件夹...</option>
+    </select>
+  </label>
+  <label class="shrink-0 flex items-center input pr-0 w-auto">
+    <label for="branch" class="whitespace-nowrap">当前分支:</label>
+    <select x-model="$store.projectPath.currentBranch" x-on:change="switchBranch" class="select border-none bg-transparent w-auto">
+      <template x-for="branch in branches">
+        <option x-bind:value="branch.value" x-text="branch.label"></option>
+      </template>
+    </select>
+  </label>
+</div>

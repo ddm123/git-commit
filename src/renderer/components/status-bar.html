@@ -1,0 +1,6 @@
+<div class="status-bar flex items-center gap-2" x-data="{
+  version: 'v'+window.electronAPI.getArgument('app-version')
+}" x-init="Alpine.store('statusBar', { statusText: '' })">
+  <div class="grow" x-text="$store.statusBar.statusText"></div>
+  <div class="shrink-0" x-text="version"></div>
+</div>

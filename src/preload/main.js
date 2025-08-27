@@ -1,8 +1,25 @@
 const { contextBridge, ipcRenderer } = require('electron/renderer');
-//const { ipcMain } = require('electron/main');
+
+function getArgument(key)
+{
+  if(key===undefined) {
+    const args = new Map();
+    for(const argv of process.argv){
+      const arr = argv.replace(/^--/, '').split('=');
+      args.set(arr[0], arr[1] ?? true);
+    }
+    return args;
+  }
+  for(const argv of process.argv){
+    if(argv.startsWith(`--${key}=`)){
+      return argv.split('=')[1] ?? true;
+    }
+  }
+  return undefined;
+}
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  appVersion: '1.2.2',
+  getArgument: (key) => getArgument(key) ?? '',
   icpSend: (...args) => ipcRenderer.invoke(...args),
   openDirectory: (def) => ipcRenderer.invoke('dialog:openDirectory', def),
   showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options),

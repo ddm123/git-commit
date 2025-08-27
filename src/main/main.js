@@ -25,7 +25,10 @@ const createWindow = function() {
     height: windowBounds.get('height'),
     webPreferences: {
       textAreasAreResizable: false,
-      preload: path.join(__dirname, '../preload/main.js')
+      preload: path.join(__dirname, '../preload/main.js'),
+      additionalArguments: [
+        '--app-version=' + app.getVersion()
+      ]
     }
   });
 
@@ -69,6 +72,7 @@ const registerWindowShortcut = function(win) {
 };
 
 Menu.setApplicationMenu(null);
+app.disableHardwareAcceleration();
 app.whenReady().then(() => {
   let mainWindow;
 

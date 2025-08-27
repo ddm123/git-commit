@@ -1,0 +1,48 @@
+<script>
+  Alpine.data('commitMessage', () => ({
+    init() {
+      Alpine.store('commitMessage', { message: '' });
+
+      window.electronAPI.onPaste((event, type, text) => {
+        if(type==='gitMessagePaste'){
+          this.insertCommitMessage(text);
+        }
+      });
+    },
+
+    insertCommitMessage(text) {
+      const textarea = this.$refs.commitMessage;
+      const commitMessage = Alpine.store('commitMessage').message;
+      if(textarea){
+        let startPos = 0, endPos = 0;
+        let beforeText = '', afterText = '';
+
+        // 获取当前光标位置或选中文本范围
+        startPos = textarea.selectionStart;
+        endPos = textarea.selectionEnd;
+        beforeText = commitMessage.substring(0, startPos);
+        afterText = commitMessage.substring(endPos);
+
+        Alpine.store('commitMessage').message = beforeText + text + afterText;
+        textarea.focus();
+        textarea.setRangeText(
+          text,// 要插入的文本
+          textarea.selectionStart,
+          textarea.selectionEnd,
+          'end'// 可选: 'start'|'end'|'preserve'（光标位置）
+        );
+      }else{
+        Alpine.store('commitMessage').message = text;
+      }
+    }
+  }));
+</script>
+<div class="mt-4 mb-4" x-data="commitMessage">
+  <textarea
+    x-ref="commitMessage"
+    x-model="$store.commitMessage.message"
+    x-on:contextmenu="window.gitAPI.showPasteContextMenu($store.projectPath.path)"
+    placeholder="提交消息"
+    class="textarea w-full resize-none"
+  ></textarea>
+</div>
