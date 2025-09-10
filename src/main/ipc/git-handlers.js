@@ -1,6 +1,8 @@
 const { BrowserWindow, Menu, ipcMain, clipboard } = require('electron');
 const path = require('node:path');
+const fs = require('fs');
 const git = require('simple-git');
+const { diffLines } = require('diff');
 
 async function handleGitStatus(event, projectPath) {
   const gitRepo = git(projectPath);
@@ -44,6 +46,13 @@ async function handleGitDiff(event, projectPath, options) {
     options = [options];
   }
   return await git(projectPath).diff(options);
+}
+
+async function getDiffContent(projectPath, file) {
+  const gitRepo = git(projectPath);
+  const local = fs.readFileSync(path.join(projectPath, file), 'utf-8');
+  const head = await gitRepo.raw(['show', 'HEAD:'+file]);
+  return diffLines(head, local, { newlineIsToken: false, stripTrailingCr: true });
 }
 
 function getUserLogs(projectPath){
@@ -137,6 +146,7 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:reset', async (event, projectPath, parameters) => await git(projectPath).reset(parameters));
   ipcMain.handle('git:checkout', async (event, projectPath, ...files) => await git(projectPath).checkout(['--', ...files]));
   ipcMain.handle('git:diff', handleGitDiff);
+  ipcMain.handle('git:diffFile', (event, projectPath, file) => getDiffContent(projectPath, file));
   ipcMain.handle('git:showPasteContextMenu', showMessagePaste);
   ipcMain.handle('git:showDiff', handleShowDiff);
 };

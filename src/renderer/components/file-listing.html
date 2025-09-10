@@ -53,6 +53,12 @@
       }
 
       disableBody(true);
+      window.gitAPI.diffFile(Alpine.store('projectPath').path, file.file)
+        .then(result => window.gitAPI.showDiff(file.file, result))
+        .catch(error => this.showError(error.message))
+        .finally(() => disableBody(false));
+
+      /*
       window.gitAPI.diff(Alpine.store('projectPath').path, [file.file])
         .then(result => {
           const chunks = result ? result.split(/\s*@@ -(\d+),?(\d*) \+(\d+),?(\d*) @@[\t ]*[^\r\n]*[\r\n]/) : [];
@@ -71,7 +77,7 @@
           window.gitAPI.showDiff(fileMatch ? fileMatch[1] : null, changes);
         })
         .catch(error => this.showError(error.message))
-        .finally(() => disableBody(false));
+        .finally(() => disableBody(false));*/
     },
 
     clickRow(event, tr) {
