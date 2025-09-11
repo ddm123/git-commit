@@ -21,35 +21,45 @@ document.addEventListener('alpine:init', () => {
       const result = {oldFile: [], newFile: []};
       let oldLine = 0;
       let newLine = 0;
-      let prevChunk = null;
 
-      for (const chunk of diffChunks) {
+      let index = 0;
+      let chunkCount = diffChunks.length;
+      for (; index < chunkCount; index++) {
+        const chunk = diffChunks[index];
         chunk.value = chunk.value.split(/\r?\n/);
 
-        if (chunk.added && prevChunk && prevChunk.removed) {
-          result.newFile.splice(-prevChunk.count);
-        }
+        if (!chunk.added && !chunk.removed) {
+          for (let i = 0; i < chunk.count; i++) {
+            result.oldFile.push({ line: ++oldLine, code: chunk.value[i], change: '' });
+            result.newFile.push({ line: ++newLine, code: chunk.value[i], change: '' });
+          }
+        } else if (chunk.removed) {
+          const nextChunk = diffChunks[index + 1] ?? null;
+          let count = chunk.count;
 
-        for (let i = 0; i < chunk.count; i++) {
-          if (!chunk.added) {
-            oldLine++;
-            result.oldFile.push({ line: oldLine, code: chunk.value[i], change: chunk.removed ? '-' : ''});
-          } else {
+          if (nextChunk && nextChunk.added) {
+            nextChunk.value = nextChunk.value.split(/\r?\n/);
+            count = Math.max(chunk.count, nextChunk.count);
+            index++;
+          }
+          for (let i = 0; i < count; i++) {
+            result.oldFile.push(
+              i < chunk.count
+              ? { line: ++oldLine, code: chunk.value[i], change: '-' }
+              : { line: '', code: '', change: 'none' }
+            );
+            result.newFile.push(
+              nextChunk && nextChunk.added && i < nextChunk.count
+              ? { line: ++newLine, code: nextChunk.value[i], change: '+' }
+              : { line: '', code: '', change: 'none' }
+            );
+          }
+        } else if (chunk.added) {
+          for (let i = 0; i < chunk.count; i++) {
             result.oldFile.push({ line: '', code: '', change: 'none' });
-          }
-          if (!chunk.removed) {
-            newLine++;
-            result.newFile.push({ line: newLine, code: chunk.value[i], change: chunk.added ? '+' : '' });
-          } else {
-            result.newFile.push({ line: '', code: '', change: 'none' });
+            result.newFile.push({ line: ++newLine, code: chunk.value[i], change: '+' });
           }
         }
-
-        if (chunk.added && prevChunk && prevChunk.removed) {
-          result.oldFile.splice(-prevChunk.count);
-        }
-
-        prevChunk = chunk.added || chunk.removed ? chunk : null;
       }
       return result;
     },

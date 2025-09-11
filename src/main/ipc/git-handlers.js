@@ -120,6 +120,8 @@ function handleShowDiff(event, file, diffChunks) {
   const win = new BrowserWindow({
     width: 1000,
     height: 600,
+    minWidth: 600,
+    minHeight: 400,
     webPreferences: {
       preload: path.join(__dirname, '../../preload/git-diff.js')
     }
