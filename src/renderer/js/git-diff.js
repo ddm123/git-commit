@@ -1,6 +1,8 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('gitDiff', () => ({
     file: '',
+    oldLine: '',
+    newLine: '',
     diffChunks: { oldFile: [], newFile: [] },
 
     init() {
@@ -32,7 +34,7 @@ document.addEventListener('alpine:init', () => {
           if (!chunk.added) {
             oldLine++;
             result.oldFile.push({ line: oldLine, code: chunk.value[i], change: chunk.removed ? '-' : ''});
-          } else if (!prevChunk || !prevChunk.removed) {
+          } else {
             result.oldFile.push({ line: '', code: '', change: 'none' });
           }
           if (!chunk.removed) {
@@ -41,6 +43,10 @@ document.addEventListener('alpine:init', () => {
           } else {
             result.newFile.push({ line: '', code: '', change: 'none' });
           }
+        }
+
+        if (chunk.added && prevChunk && prevChunk.removed) {
+          result.oldFile.splice(-prevChunk.count);
         }
 
         prevChunk = chunk.added || chunk.removed ? chunk : null;
@@ -59,6 +65,39 @@ document.addEventListener('alpine:init', () => {
         return 'bg-checkered';
       }
       return '';
+    },
+
+    previewLine(event, type, index) {
+      let oldLine = typeof this.diffChunks.oldFile[index] !== 'undefined' ? this.diffChunks.oldFile[index].code : '';
+      let newLine = typeof this.diffChunks.newFile[index] !== 'undefined' ? this.diffChunks.newFile[index].code : '';
+      let oldLine2 = '';
+      let newLine2 = '';
+
+      if (oldLine!==newLine) {
+        if (oldLine !== '' && newLine !== '') {
+          for (const part of window.electronAPI.diffChars(oldLine, newLine)) {
+            if (part.added) {
+              newLine2 += `<span class="bg-green-300 text-green-800">${this.encodedHtml(part.value)}</span>`;
+            } else if (part.removed) {
+              oldLine2 += `<span class="bg-red-300 text-red-800">${this.encodedHtml(part.value)}</span>`;
+            } else {
+              oldLine2 += this.encodedHtml(part.value);
+              newLine2 += this.encodedHtml(part.value);
+            }
+          }
+        } else if (oldLine === '') {
+          newLine2 = `<span class="bg-green-300 text-green-800">${this.encodedHtml(newLine)}</span>`;
+        } else if (newLine === '') {
+          oldLine2 = `<span class="bg-red-300 text-red-800">${this.encodedHtml(oldLine)}</span>`;
+        }
+      }
+
+      this.oldLine = oldLine2==='' ? this.encodedHtml(oldLine) : oldLine2;
+      this.newLine = newLine2==='' ? this.encodedHtml(newLine) : newLine2;
+    },
+
+    encodedHtml(text) {
+      return text ? text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;') : text;
     }
   }));
 });

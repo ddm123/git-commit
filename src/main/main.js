@@ -23,6 +23,8 @@ const createWindow = function() {
     y: windowBounds.get('y'),
     width: windowBounds.get('width'),
     height: windowBounds.get('height'),
+    minWidth: 600,
+    minHeight: 400,
     webPreferences: {
       textAreasAreResizable: false,
       preload: path.join(__dirname, '../preload/main.js'),

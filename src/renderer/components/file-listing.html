@@ -3,6 +3,7 @@
     init() {
       Alpine.store('fileListing', { selectedFilesCount: 0 });
 
+      window.electronAPI.onMenuClick('showFileDiff', (event, file) => this.showDiff(file));
       window.electronAPI.onMenuClick('git:checkout', (event, path, file) => {
         if(window.confirm('是否放弃对 "' + file + '" 的修改？')){
           window.gitAPI.checkout(path, file).then(() => {
@@ -100,6 +101,8 @@
     showPathContextMenu(currentFile) {
       let files = this.getSelectedFiles();
       let menus = [];
+
+      menus.push({ label: '查看差异', text: currentFile.file, handler: 'showFileDiff', args: [{ file: currentFile.file, status: currentFile.status }], enabled: currentFile.status === 'modified' });
 
       menus.push(
         {label: '复制相对路径', text: currentFile.file},

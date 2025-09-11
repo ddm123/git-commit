@@ -7,24 +7,34 @@
   <script src="../../src/renderer/js/utils.js" type="text/javascript"></script>
   <script src="../../src/renderer/js/git-diff.js" type="text/javascript"></script>
 </head>
-<body class="m-4" x-data="gitDiff">
-  <div class="mockup-code w-full">
+<body class="m-4 overflow-hidden" x-data="gitDiff">
+  <div class="mockup-code w-full diff-preview">
     <h1 class="text-xl font-bold absolute left-24 top-3" x-text="file"></h1>
     <table class="w-full">
-        <tbody>
+      <tbody>
         <tr>
           <td class="align-top">
-            <template x-for="change in diffChunks.oldFile">
-              <pre x-bind:data-prefix="change.line" class="bg-local min-w-full" x-bind:class="getClass(change)"><code x-text="(change.change==='none' ? '' : change.change)+change.code"></code></pre>
+            <template x-for="(change, index) in diffChunks.oldFile">
+              <pre x-bind:data-prefix="change.line" class="bg-local min-w-full" x-bind:class="getClass(change)" x-on:click="previewLine.bind($data, $event, 'old', index)"><code x-text="(change.change==='none' ? '' : change.change)+change.code"></code></pre>
             </template>
           </td>
           <td class="align-top">
-            <template x-for="change in diffChunks.newFile">
-              <pre x-bind:data-prefix="change.line" class="bg-local min-w-full" x-bind:class="getClass(change)"><code x-text="(change.change==='none' ? '' : change.change)+change.code"></code></pre>
+            <template x-for="(change, index) in diffChunks.newFile">
+              <pre x-bind:data-prefix="change.line" class="bg-local min-w-full" x-bind:class="getClass(change)" x-on:click="previewLine.bind($data, $event, 'new', index)"><code x-text="(change.change==='none' ? '' : change.change)+change.code"></code></pre>
             </template>
           </td>
         </tr>
-        </tbody>
+      </tbody>
+    </table>
+  </div>
+  <div class="line-preview">
+    <table class="w-full">
+      <tr>
+        <td><pre><code x-html="oldLine==='' ? '&nbsp;' : oldLine"></code></pre></td>
+      </tr>
+      <tr>
+        <td><pre><code x-html="newLine==='' ? '&nbsp;' : newLine"></code></pre></td>
+      </tr>
     </table>
   </div>
 </body>

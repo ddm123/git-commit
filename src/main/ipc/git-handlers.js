@@ -2,7 +2,7 @@ const { BrowserWindow, Menu, ipcMain, clipboard } = require('electron');
 const path = require('node:path');
 const fs = require('fs');
 const git = require('simple-git');
-const { diffLines } = require('diff');
+const { diffLines, diffChars } = require('diff');
 
 async function handleGitStatus(event, projectPath) {
   const gitRepo = git(projectPath);
@@ -149,4 +149,5 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:diffFile', (event, projectPath, file) => getDiffContent(projectPath, file));
   ipcMain.handle('git:showPasteContextMenu', showMessagePaste);
   ipcMain.handle('git:showDiff', handleShowDiff);
+  ipcMain.on('diff-chars', (event, oldStr, newStr) => event.returnValue = diffChars(oldStr, newStr));
 };

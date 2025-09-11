@@ -6,6 +6,7 @@ async function showCopyContextMenu(event, menus) {
     const menuTemplate = [];
 
     for(const menu of menus){
+      const isEnabled = typeof menu.enabled === 'boolean' ? menu.enabled : true;
       if(menu==='-'){
         menuTemplate.push({ type: 'separator' });
       }else if(menu.handler){
@@ -14,9 +15,9 @@ async function showCopyContextMenu(event, menus) {
           args = [args];
         }
 
-        menuTemplate.push({label: menu.label, click: () => event.sender.send(menu.handler, ...args)});
+        menuTemplate.push({label: menu.label, enabled: isEnabled, click: () => event.sender.send(menu.handler, ...args)});
       }else{
-        menuTemplate.push({label: menu.label, click: () => {
+        menuTemplate.push({label: menu.label, enabled: isEnabled, click: () => {
           clipboard.writeText(menu.text);
           resolve(menu.text);
         }});

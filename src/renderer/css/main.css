@@ -177,3 +177,24 @@ body.disable > .body-mask{
   padding-right: 6px;
   color: #888;
 }
+.diff-preview {
+  height: calc(100vh - 6.3rem);
+  overflow: auto;
+}
+.line-preview {
+  width: 100%;
+  overflow: auto;
+}
+.line-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  height: 100%;
+}
+.line-preview table td {
+  border: 1px solid #ccc;
+  padding: 4px;
+  vertical-align: top;
+}
+.line-preview {
+  margin-top: .5rem;
+}
