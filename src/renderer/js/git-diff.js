@@ -8,7 +8,7 @@ document.addEventListener('alpine:init', () => {
     init() {
       window.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
-          window.close();
+          window.electronAPI.closeWindow();
         }
       });
       window.electronAPI.receive('show-diff-chunks', (event, file, diffChunks) => {

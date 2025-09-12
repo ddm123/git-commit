@@ -11,18 +11,12 @@ const Store = require('electron-store');
 // };
 
 const createWindow = function() {
-  const windowBounds = new Store({schema: {
-    x: {type: 'number', default: 183, minimum: 0},
-    y: {type: 'number', default: 66, minimum: 10},
-    width: {type: 'number', default: 1000, minimum: 600},
-    height: {type: 'number', default: 600, minimum: 300},
-    isMaximized: {type: 'boolean', default: false}
-  }});
+  const windowBounds = new Store();
   const win = new BrowserWindow({
-    x: windowBounds.get('x'),
-    y: windowBounds.get('y'),
-    width: windowBounds.get('width'),
-    height: windowBounds.get('height'),
+    x: windowBounds.get('mainWin.x', 183),
+    y: windowBounds.get('mainWin.y', 66),
+    width: windowBounds.get('mainWin.width', 1000),
+    height: windowBounds.get('mainWin.height', 600),
     minWidth: 600,
     minHeight: 400,
     webPreferences: {
@@ -39,20 +33,20 @@ const createWindow = function() {
     if (!win.isDestroyed()) {
       const bounds = win.getBounds();
       if(win.isMaximized()){
-        windowBounds.set('isMaximized', true);
+        windowBounds.set('mainWin.isMaximized', true);
       }else{
-        windowBounds.set('isMaximized', false);
+        windowBounds.set('mainWin.isMaximized', false);
         if(!win.isMinimized()){
-          windowBounds.set('x', bounds.x);
-          windowBounds.set('y', bounds.y);
-          windowBounds.set('width', bounds.width);
-          windowBounds.set('height', bounds.height);
+          windowBounds.set('mainWin.x', bounds.x);
+          windowBounds.set('mainWin.y', bounds.y);
+          windowBounds.set('mainWin.width', bounds.width);
+          windowBounds.set('mainWin.height', bounds.height);
         }
       }
     }
   });
 
-  if(windowBounds.get('isMaximized')){
+  if(windowBounds.get('mainWin.isMaximized', false)){
     win.maximize();
   }
 

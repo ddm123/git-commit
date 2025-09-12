@@ -3,6 +3,14 @@
     init() {
       Alpine.store('fileListing', { selectedFilesCount: 0 });
 
+      this.$watch('$store.fileListing.selectedFilesCount', value => {
+        const selectAllCheckbox = document.getElementById('select-all');
+        if (selectAllCheckbox) {
+          const totalFiles = this.files.length;
+          selectAllCheckbox.indeterminate = value > 0 && value < totalFiles;
+          selectAllCheckbox.checked = value === totalFiles;
+        }
+      });
       window.electronAPI.onMenuClick('showFileDiff', (event, file) => this.showDiff(file));
       window.electronAPI.onMenuClick('git:checkout', (event, path, file) => {
         if(window.confirm('是否放弃对 "' + file + '" 的修改？')){

@@ -3,6 +3,7 @@ const path = require('node:path');
 const fs = require('fs');
 const git = require('simple-git');
 const { diffLines, diffChars } = require('diff');
+const Store = require('electron-store');
 
 async function handleGitStatus(event, projectPath) {
   const gitRepo = git(projectPath);
@@ -117,9 +118,12 @@ async function showMessagePaste(event, projectPath) {
 }
 
 function handleShowDiff(event, file, diffChunks) {
+  const windowBounds = new Store();
   const win = new BrowserWindow({
-    width: 1000,
-    height: 600,
+    x: windowBounds.get('diffWin.x', 183),
+    y: windowBounds.get('diffWin.y', 66),
+    width: windowBounds.get('diffWin.width', 1000),
+    height: windowBounds.get('diffWin.height', 600),
     minWidth: 600,
     minHeight: 400,
     webPreferences: {
@@ -127,14 +131,40 @@ function handleShowDiff(event, file, diffChunks) {
     }
   });
 
+  win.on('close', (event) => {
+    if (!win.isDestroyed()) {
+      const bounds = win.getBounds();
+      if(win.isMaximized()){
+        windowBounds.set('diffWin.isMaximized', true);
+      }else{
+        windowBounds.set('diffWin.isMaximized', false);
+        if(!win.isMinimized()){
+          windowBounds.set('diffWin.x', bounds.x);
+          windowBounds.set('diffWin.y', bounds.y);
+          windowBounds.set('diffWin.width', bounds.width);
+          windowBounds.set('diffWin.height', bounds.height);
+        }
+      }
+    }
+  });
+  if (windowBounds.get('diffWin.isMaximized', false)) {
+    win.maximize();
+  }
+
   win.loadFile('src/renderer/git-diff.html');
   win.setTitle('查看 '+file+' 差异');
   win.webContents.on('did-finish-load', () => {
     //win.webContents.openDevTools();
     win.webContents.send('show-diff-chunks', file, diffChunks);
   });
+
   return win.getTitle();
-};
+}
+
+function closeDiffWindow(event) {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) win.close();
+}
 
 module.exports = function setupGitHandlers() {
   ipcMain.handle('git:getRootPath', async (event, projectPath) => await git(projectPath).revparse(['--show-toplevel']));
@@ -152,4 +182,5 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:showPasteContextMenu', showMessagePaste);
   ipcMain.handle('git:showDiff', handleShowDiff);
   ipcMain.on('diff-chars', (event, oldStr, newStr) => event.returnValue = diffChars(oldStr, newStr));
+  ipcMain.on('close-diff-window', closeDiffWindow);
 };
