@@ -177,9 +177,28 @@ body.disable > .body-mask{
   padding-right: 6px;
   color: #888;
 }
-.diff-preview {
+.mockup-code pre.active {
+  outline: 1px dotted #ff9a3b;
+  outline-offset: -1px;
+}
+.mockup-code pre.active:before {
+  color: #f00;
+}
+.diff-preview, .lines-thumbnail {
   height: calc(100vh - 6.3rem);
+}
+.diff-preview {
   overflow: auto;
+}
+.lines-thumbnail {
+  width: 32px;
+  margin-right: 4px;
+  border: 1px solid #ccc;
+  display: flex;
+  flex-direction: column;
+}
+.lines-thumbnail > div {
+  flex-grow: 1;
 }
 .line-preview {
   width: 100%;

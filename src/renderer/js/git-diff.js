@@ -9,6 +9,8 @@ document.addEventListener('alpine:init', () => {
       window.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
           window.electronAPI.closeWindow();
+        } else if (e.key === 'F12') {
+          window.electronAPI.toggleDevTools();
         }
       });
       window.electronAPI.receive('show-diff-chunks', (event, file, diffChunks) => {
@@ -77,7 +79,25 @@ document.addEventListener('alpine:init', () => {
       return '';
     },
 
-    previewLine(event, type, index) {
+    scrollIntoView(event, row, index) {
+      this.previewLine(event, row.change==='none' ? 'new' : 'old', index, false);
+
+      const selectors = row.change==='none'
+        ? '.diff-preview table tr td:last-child pre:nth-child(' + (index + 2) + ')'
+        : '.diff-preview table tr td:first-child pre:nth-child(' + (index + 2) + ')';
+      const lineElement = document.querySelector(selectors);
+      const activeElement = document.querySelector('.diff-preview pre.active');
+
+      if (activeElement) {
+        activeElement.classList.remove('active');
+      }
+      if (lineElement) {
+        lineElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'start' });
+        lineElement.classList.add('active');
+      }
+    },
+
+    previewLine(event, type, index, setMarker = true) {
       let oldLine = typeof this.diffChunks.oldFile[index] !== 'undefined' ? this.diffChunks.oldFile[index].code : '';
       let newLine = typeof this.diffChunks.newFile[index] !== 'undefined' ? this.diffChunks.newFile[index].code : '';
       let oldLine2 = '';
@@ -104,6 +124,21 @@ document.addEventListener('alpine:init', () => {
 
       this.oldLine = oldLine2==='' ? this.encodedHtml(oldLine) : oldLine2;
       this.newLine = newLine2==='' ? this.encodedHtml(newLine) : newLine2;
+
+      if (setMarker) {
+        const selectors = type === 'new'
+          ? '.diff-preview table tr td:last-child pre:nth-child(' + (index + 2) + ')'
+          : '.diff-preview table tr td:first-child pre:nth-child(' + (index + 2) + ')';
+        const lineElement = document.querySelector(selectors);
+        const activeElement = document.querySelector('.diff-preview pre.active');
+
+        if (activeElement) {
+          activeElement.classList.remove('active');
+        }
+        if (lineElement) {
+          lineElement.classList.add('active');
+        }
+      }
     },
 
     encodedHtml(text) {

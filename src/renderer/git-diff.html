@@ -8,6 +8,12 @@
   <script src="../../src/renderer/js/git-diff.js" type="text/javascript"></script>
 </head>
 <body class="m-4 overflow-hidden" x-data="gitDiff">
+  <div class="flex">
+  <div class="lines-thumbnail">
+    <template x-for="(row, index) in diffChunks.oldFile">
+      <div x-bind:class="row.change==='-' ? 'bg-red-200 cursor-pointer' : (row.change==='none' ? 'bg-green-200 cursor-pointer' : '')" x-on:click="scrollIntoView.bind($data, $event, row, index)"></div>
+    </template>
+  </div>
   <div class="mockup-code w-full diff-preview">
     <h1 class="text-xl font-bold absolute left-24 top-3" x-text="file"></h1>
     <table class="w-full">
@@ -26,6 +32,7 @@
         </tr>
       </tbody>
     </table>
+  </div>
   </div>
   <div class="line-preview">
     <table class="w-full">

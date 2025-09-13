@@ -162,8 +162,19 @@ function handleShowDiff(event, file, diffChunks) {
 }
 
 function closeDiffWindow(event) {
+  //event.sender is webContents
+  /** @var {BrowserWindow} win */
   const win = BrowserWindow.fromWebContents(event.sender);
   if (win) win.close();
+}
+
+function toggleDevTools(event) {
+  //event.sender is webContents
+  if (event.sender.isDevToolsOpened()) {
+    event.sender.closeDevTools();
+  } else {
+    event.sender.openDevTools({ mode: 'undocked', title: 'Developer Tools', activate: true });
+  }
 }
 
 module.exports = function setupGitHandlers() {
@@ -183,4 +194,5 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:showDiff', handleShowDiff);
   ipcMain.on('diff-chars', (event, oldStr, newStr) => event.returnValue = diffChars(oldStr, newStr));
   ipcMain.on('close-diff-window', closeDiffWindow);
+  ipcMain.on('toggle-dev-tools', toggleDevTools);
 };

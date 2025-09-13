@@ -8,7 +8,7 @@
         if (selectAllCheckbox) {
           const totalFiles = this.files.length;
           selectAllCheckbox.indeterminate = value > 0 && value < totalFiles;
-          selectAllCheckbox.checked = value === totalFiles;
+          selectAllCheckbox.checked = totalFiles > 0 && value >= totalFiles;
         }
       });
       window.electronAPI.onMenuClick('showFileDiff', (event, file) => this.showDiff(file));

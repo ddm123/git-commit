@@ -112,6 +112,7 @@ document.addEventListener('alpine:init', () => {
       }));
 
       this.files = files;
+      Alpine.store('fileListing').selectedFilesCount = 0;
       return files;
     },
 
