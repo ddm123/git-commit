@@ -1,5 +1,7 @@
 <script>
   Alpine.data('fileListing', () => ({
+    lastSaveArchiver: null,
+
     init() {
       Alpine.store('fileListing', { selectedFilesCount: 0 });
 
@@ -228,7 +230,7 @@
       </tr>
     </thead>
     <tbody x-on:keydown="keyboardSelectFile">
-      <template x-for="file in files">
+      <template x-for="file in files" :key="file.key">
         <tr :class="file.status" x-on:click="clickRow.bind($data, $event, $el, file)">
           <td class="col-checkbox"><input type="checkbox" x-model="file.selected" class="checkbox checkbox-sm"></td>
           <td x-text="file.file" x-on:contextmenu="showPathContextMenu.bind($data, file)" x-on:dblclick="showDiff.bind($data, file)"></td>

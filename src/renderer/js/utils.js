@@ -64,6 +64,12 @@ async function compileComponents() {
         await fetch(component.getAttribute('src'))
         .then(response => response.text())
         .then(html => {
+            let attributes = {};
+            for (const attr of component.attributes) {
+                attributes[attr.name] = attr.value;
+            }
+            attributes = JSON.stringify(attributes);
+
             html = html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (match, p1, p2) => {
                 const newScript = document.createElement('script');
 
@@ -75,7 +81,7 @@ async function compileComponents() {
                     }
                 }
                 if (p2 && (p2 = p2.trim())) {
-                    newScript.textContent = p2;
+                    newScript.textContent = `(function(props) { ${p2} })(${attributes});`;
                 }
                 document.head.appendChild(newScript);
                 return '';

@@ -1,6 +1,5 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('app', () => ({
-    lastSaveArchiver: null,
     branches: [],
     files: [],
 
@@ -81,7 +80,7 @@ document.addEventListener('alpine:init', () => {
 
       const types = {'M': 'modified', 'D': 'deleted', 'A': 'added', '?': 'untracked'};
       let typeLabels = {'M': '已修改', 'D': '已删除', 'A': '已添加', '?': '未跟踪'};
-      await Promise.all(status.files.map(async (file) => {
+      await Promise.all(status.files.map(async (file, key) => {
         let path = file.path;
         let type = file.working_dir && file.working_dir!==' ' ? file.working_dir : file.index;
         let fileStat = type==='D' ? null : await window.electronAPI.getFileStat(status.projectPath, path);
@@ -90,6 +89,7 @@ document.addEventListener('alpine:init', () => {
           return;
         }
         files.push({
+          key: key,
           file: path,
           absPath: fileStat ? fileStat.absPath : projectPath + (projectPath.includes('\\') ? '\\' : '/') + path,
           status: types[type] ?? type,

@@ -9,9 +9,9 @@
 </head>
 <body class="m-4 overflow-hidden" x-data="gitDiff">
   <div class="flex">
-  <div class="lines-thumbnail">
-    <template x-for="(row, index) in diffChunks.oldFile">
-      <div x-bind:class="row.change==='-' ? 'bg-red-200 cursor-pointer' : (row.change==='none' ? 'bg-green-200 cursor-pointer' : '')" x-on:click="scrollIntoView.bind($data, $event, row, index)"></div>
+  <div class="lines-thumbnail" x-on:mouseover="showLineNumber" x-on:mouseleave="hideLineNumber">
+    <template x-for="(row, index) in diffChunks.oldFile" :key="row.key">
+      <div x-bind:data-key="index" x-bind:class="row.change==='-' ? 'bg-red-200 cursor-pointer' : (row.change==='none' ? 'bg-green-200 cursor-pointer' : '')" x-on:click="scrollIntoView.bind($data, $event, row, index)"></div>
     </template>
   </div>
   <div class="mockup-code w-full diff-preview">
@@ -20,12 +20,12 @@
       <tbody>
         <tr>
           <td class="align-top">
-            <template x-for="(change, index) in diffChunks.oldFile">
+            <template x-for="(change, index) in diffChunks.oldFile" :key="change.key">
               <pre x-bind:data-prefix="change.line" class="bg-local min-w-full" x-bind:class="getClass(change)" x-on:click="previewLine.bind($data, $event, 'old', index)"><code x-text="(change.change==='none' ? '' : change.change)+change.code"></code></pre>
             </template>
           </td>
           <td class="align-top">
-            <template x-for="(change, index) in diffChunks.newFile">
+            <template x-for="(change, index) in diffChunks.newFile" :key="change.key">
               <pre x-bind:data-prefix="change.line" class="bg-local min-w-full" x-bind:class="getClass(change)" x-on:click="previewLine.bind($data, $event, 'new', index)"><code x-text="(change.change==='none' ? '' : change.change)+change.code"></code></pre>
             </template>
           </td>
@@ -44,5 +44,6 @@
       </tr>
     </table>
   </div>
+  <div class="line-number-tooltip" x-ref="lineNumberTooltip" x-text="lineNumberTooltip.line" style="display:none;" x-bind:style="{ left: lineNumberTooltip.x + 'px', top: lineNumberTooltip.y + 'px' }"></div>
 </body>
 </html>

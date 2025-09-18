@@ -4,6 +4,7 @@ document.addEventListener('alpine:init', () => {
     oldLine: '',
     newLine: '',
     diffChunks: { oldFile: [], newFile: [] },
+    lineNumberTooltip: {line: 0, x: 0, y: 0},
 
     init() {
       window.addEventListener('keydown', function (e) {
@@ -15,7 +16,13 @@ document.addEventListener('alpine:init', () => {
       });
       window.electronAPI.receive('show-diff-chunks', (event, file, diffChunks) => {
         this.file = file;
-        ({ oldFile: this.diffChunks.oldFile, newFile: this.diffChunks.newFile } = this.parseDiffChunks(diffChunks));
+
+        //使用一次性渲染
+        //({ oldFile: this.diffChunks.oldFile, newFile: this.diffChunks.newFile } = this.parseDiffChunks(diffChunks));
+
+        //使用渐进式渲染
+        diffChunks = this.parseDiffChunks(diffChunks);
+        this.renderFileCode(diffChunks.oldFile, diffChunks.newFile, 0);
       });
     },
 
@@ -23,6 +30,8 @@ document.addEventListener('alpine:init', () => {
       const result = {oldFile: [], newFile: []};
       let oldLine = 0;
       let newLine = 0;
+      let oldFileKey = 0;
+      let newFileKey = 0;
 
       let index = 0;
       let chunkCount = diffChunks.length;
@@ -32,8 +41,8 @@ document.addEventListener('alpine:init', () => {
 
         if (!chunk.added && !chunk.removed) {
           for (let i = 0; i < chunk.count; i++) {
-            result.oldFile.push({ line: ++oldLine, code: chunk.value[i], change: '' });
-            result.newFile.push({ line: ++newLine, code: chunk.value[i], change: '' });
+            result.oldFile.push({ key: ++oldFileKey, line: ++oldLine, code: chunk.value[i], change: '' });
+            result.newFile.push({ key: ++newFileKey, line: ++newLine, code: chunk.value[i], change: '' });
           }
         } else if (chunk.removed) {
           const nextChunk = diffChunks[index + 1] ?? null;
@@ -47,23 +56,45 @@ document.addEventListener('alpine:init', () => {
           for (let i = 0; i < count; i++) {
             result.oldFile.push(
               i < chunk.count
-              ? { line: ++oldLine, code: chunk.value[i], change: '-' }
-              : { line: '', code: '', change: 'none' }
+              ? { key: ++oldFileKey, line: ++oldLine, code: chunk.value[i], change: '-' }
+              : { key: ++oldFileKey, line: '', code: '', change: 'none' }
             );
             result.newFile.push(
               nextChunk && nextChunk.added && i < nextChunk.count
-              ? { line: ++newLine, code: nextChunk.value[i], change: '+' }
-              : { line: '', code: '', change: 'none' }
+              ? { key: ++newFileKey, line: ++newLine, code: nextChunk.value[i], change: '+' }
+              : { key: ++newFileKey, line: '', code: '', change: 'none' }
             );
           }
         } else if (chunk.added) {
           for (let i = 0; i < chunk.count; i++) {
-            result.oldFile.push({ line: '', code: '', change: 'none' });
-            result.newFile.push({ line: ++newLine, code: chunk.value[i], change: '+' });
+            result.oldFile.push({ key: ++oldFileKey, line: '', code: '', change: 'none' });
+            result.newFile.push({ key: ++newFileKey, line: ++newLine, code: chunk.value[i], change: '+' });
           }
         }
       }
       return result;
+    },
+
+    renderFileCode(oldCode, newCode, start) {
+      const limit = 5;
+      const oldCodeLength = oldCode.length;
+      const newCodeLength = newCode.length;
+      const maxLength = Math.max(oldCodeLength, newCodeLength);
+
+      let index = null;
+      for (let i = 0; i < limit && index < maxLength; i++) {
+        index = start + i;
+        if (index < oldCodeLength) {
+          this.diffChunks.oldFile.push(oldCode[index]);
+        }
+        if (index < newCodeLength) {
+          this.diffChunks.newFile.push(newCode[index]);
+        }
+      }
+
+      if (index && (++index < oldCodeLength || index < newCodeLength)) {
+        window.requestAnimationFrame(() => this.renderFileCode(oldCode, newCode, index));
+      }
     },
 
     getClass(change) {
@@ -95,6 +126,30 @@ document.addEventListener('alpine:init', () => {
         lineElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'start' });
         lineElement.classList.add('active');
       }
+    },
+
+    showLineNumber(event) {
+      if (!event.target.hasAttribute('data-key')) {
+        return;
+      }
+
+      const index = parseInt(event.target.getAttribute('data-key'), 10);
+      if (isNaN(index) || typeof this.diffChunks.oldFile[index] === 'undefined') {
+        return;
+      }
+      this.lineNumberTooltip.line = this.diffChunks.oldFile[index].line || this.diffChunks.newFile[index].line;
+
+      this.$nextTick(() => {
+        this.$refs.lineNumberTooltip.style.removeProperty('display');
+        const rect = event.target.getBoundingClientRect();
+        const tipRect = this.$refs.lineNumberTooltip.getBoundingClientRect();
+        this.lineNumberTooltip.x = rect.right + 8;
+        this.lineNumberTooltip.y = rect.top + (rect.height - tipRect.height) / 2;
+      });
+    },
+
+    hideLineNumber(event) {
+      this.$refs.lineNumberTooltip.style.setProperty('display', 'none');
     },
 
     previewLine(event, type, index, setMarker = true) {
