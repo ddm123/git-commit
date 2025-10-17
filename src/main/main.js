@@ -1,6 +1,6 @@
 const { app, BrowserWindow, Menu } = require('electron');
 const path = require('node:path');
-const Store = require('electron-store');
+const Store = require('../modules/electron-store.js');
 
 // const debounce = function(func, wait) {
 //   let timeout;
@@ -11,12 +11,12 @@ const Store = require('electron-store');
 // };
 
 const createWindow = function() {
-  const windowBounds = new Store();
+  const windowBounds = Store.singleton;
   const win = new BrowserWindow({
-    x: windowBounds.get('mainWin.x', 183),
-    y: windowBounds.get('mainWin.y', 66),
-    width: windowBounds.get('mainWin.width', 1000),
-    height: windowBounds.get('mainWin.height', 600),
+    x: windowBounds.getIntValue('mainWin.x') || 183,
+    y: windowBounds.getIntValue('mainWin.y') || 66,
+    width: windowBounds.getIntValue('mainWin.width') || 1000,
+    height: windowBounds.getIntValue('mainWin.height') || 600,
     minWidth: 600,
     minHeight: 400,
     webPreferences: {
@@ -78,6 +78,7 @@ app.whenReady().then(() => {
   require('./ipc/file-handlers')();
   require('./ipc/git-handlers')();
   require('./ipc/archiver-handlers')();
+  require('./ipc/ftp-handlers')();
 
   mainWindow = createWindow();
 

@@ -76,7 +76,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     renderFileCode(oldCode, newCode, start) {
-      const limit = 5;
+      const limit = 10;
       const oldCodeLength = oldCode.length;
       const newCodeLength = newCode.length;
       const maxLength = Math.max(oldCodeLength, newCodeLength);

@@ -3,11 +3,12 @@ const path = require('node:path');
 const fs = require('fs');
 const git = require('simple-git');
 const { diffLines, diffChars } = require('diff');
-const Store = require('electron-store');
+const Store = require('../../modules/electron-store.js');
 
 async function handleGitStatus(event, projectPath) {
   const gitRepo = git(projectPath);
   const gitStatus = await gitRepo.status(['--porcelain', projectPath]);
+  //const gitDiff = await gitRepo.diffSummary(['--numstat']);//可以查看有改动文件的被删除行数和增加行数，但无法查看未跟踪的文件
 
   gitStatus.projectPath = await gitRepo.revparse(['--show-toplevel']);
   gitStatus.selectedPath = projectPath;
@@ -36,7 +37,7 @@ async function handleGitPull(e, projectPath) {
          total: 100
        }
        */
-      BrowserWindow.fromWebContents(e.sender).webContents.send(eventName, event);
+      e.sender.send(eventName, event);
     };
   }
   return await git(projectPath).pull();
@@ -118,12 +119,12 @@ async function showMessagePaste(event, projectPath) {
 }
 
 function handleShowDiff(event, file, diffChunks) {
-  const windowBounds = new Store();
+  const windowBounds = Store.singleton;
   const win = new BrowserWindow({
-    x: windowBounds.get('diffWin.x', 183),
-    y: windowBounds.get('diffWin.y', 66),
-    width: windowBounds.get('diffWin.width', 1000),
-    height: windowBounds.get('diffWin.height', 600),
+    x: windowBounds.getIntValue('diffWin.x') || 183,
+    y: windowBounds.getIntValue('diffWin.y') || 66,
+    width: windowBounds.getIntValue('diffWin.width') || 1000,
+    height: windowBounds.getIntValue('diffWin.height') || 600,
     minWidth: 600,
     minHeight: 400,
     webPreferences: {

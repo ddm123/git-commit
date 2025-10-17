@@ -24,14 +24,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openDirectory: (def) => ipcRenderer.invoke('dialog:openDirectory', def),
   showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options),
   getFileStat: (path, file) => ipcRenderer.invoke('fs:getFileStat', path, file),
-  getStoreValue: (key) => ipcRenderer.invoke('store:get', key),
-  setStoreValue: (key, value) => ipcRenderer.invoke('store:set', key, value),
   showPathContextMenu: (menus) => ipcRenderer.invoke('show-copy-context-menu', menus),
   writeClipboard: (text) => ipcRenderer.invoke('clipboard:write-text', text),
   readClipboard: () => ipcRenderer.invoke('clipboard:read-text'),
   onMenuClick: (handlerName, closure) => ipcRenderer.on(handlerName, closure),
   onPaste: (closure) => ipcRenderer.on('clipboard:readText', closure),
-  createArchiver: (zipFile, filesPath, files, options) => ipcRenderer.invoke('archiver:create', zipFile, filesPath, files, options)
+  createArchiver: (zipFile, filesPath, files, options) => ipcRenderer.invoke('archiver:create', zipFile, filesPath, files, options),
+  ftpUploadFile: (projectPath, files, progressChannel) => ipcRenderer.invoke('ftp:upload', projectPath, files, progressChannel)
 });
 contextBridge.exposeInMainWorld('gitAPI', {
   getRootPath: (path) => ipcRenderer.invoke('git:getRootPath', path),
@@ -49,4 +48,13 @@ contextBridge.exposeInMainWorld('gitAPI', {
   showDiff: (file, diffChunks) => ipcRenderer.invoke('git:showDiff', file, diffChunks),
   onProgress: (eventName, closure) => ipcRenderer.on(eventName, closure),
   showPasteContextMenu: (path) => ipcRenderer.invoke('git:showPasteContextMenu', path)
+});
+contextBridge.exposeInMainWorld('electronStore', {
+  get: (key, defaultValue = undefined) => ipcRenderer.sendSync('store:get', key, defaultValue),
+  set: (key, value) => ipcRenderer.invoke('store:set', key, value),
+  getIntValue: (key, defaultValue = undefined) => ipcRenderer.sendSync('store:getIntValue', key, defaultValue),
+  setIntValue: (key, value) => ipcRenderer.invoke('store:setIntValue', key, value),
+  getFloatValue: (key, defaultValue = undefined) => ipcRenderer.sendSync('store:getFloatValue', key, defaultValue),
+  setFloatValue: (key, value) => ipcRenderer.invoke('store:setFloatValue', key, value),
+  setJSON: (key, value) => ipcRenderer.invoke('store:setJSON', key, value)
 });

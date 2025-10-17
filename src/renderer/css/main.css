@@ -105,11 +105,6 @@ body.disable > .body-mask{
 .message.error .close{
   border-color: red;
 }
-.border-none:focus, .select:focus-within {
-  border: none;
-  box-shadow: none;
-  outline: none;
-}
 .file-list {
   --input-color: color-mix(in oklab, var(--color-base-content) 20%, #0000);
   height: calc(100vh - 242px);

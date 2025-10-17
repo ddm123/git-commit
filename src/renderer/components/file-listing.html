@@ -45,6 +45,40 @@
           this.showError('保存压缩文件失败: ' + error.message);
         });
       });
+
+      const failedFiles = [];
+      window.electronAPI.onMenuClick('ftp:upload', (event, path, ...files) => {
+        window.electronAPI.ftpUploadFile(path, files, 'ftp:progress').then(succeedCount => {
+          showSuccess(`已上传完选中的文件 ${files.length} 个。<br>成功：${succeedCount} 个，失败：${files.length - succeedCount} 个。`);
+        }).catch((error) => {
+          this.showError('文件上传失败: ' + error.message);
+        })
+        .finally(() => {
+          Alpine.store('statusBar').statusText = '';
+          if (failedFiles.length > 0) {
+            this.openDialog('以下文件上传失败', '<div style="color:red;">' + failedFiles.join('<br>') + '</div>');
+            failedFiles.length = 0;
+          }
+        });
+      });
+      window.gitAPI.onProgress('ftp:progress', (event, data) => {
+        console.log(data);
+        let statusText = '';
+        if (data.message) {
+          if (data.type === 'error' && data.file) {
+            statusText += '上传文件 ' + data.file + ' 失败: ' + data.message;
+            failedFiles.push(data.file);
+          } else {
+            statusText += data.message;
+          }
+        } else if (data.type === 'upload') {
+          statusText += '上传文件 ' + data.file + '... ' + data.progress + '%';
+        }
+        if (data.fileCount) {
+          statusText += ` (${data.fileIndex + 1} / ${data.fileCount})`;
+        }
+        Alpine.store('statusBar').statusText = statusText;
+      });
     },
 
     toggleSelectAll(event) {
@@ -132,6 +166,12 @@
           {label: '复制选中文件的绝对对路径', text: absPaths.join("\n")},
           {label: '打包选中的文件', text: 'archiver', handler: 'dialog:showSaveDialog', args: [Alpine.store('projectPath').path, ...paths]}
         );
+
+        if (this.getFtpConfig()) {
+          menus.push(
+            {label: '上传选中的文件', text: 'ftp-upload', handler: 'ftp:upload', args: [Alpine.store('projectPath').path, ...paths]}
+          );
+        }
       }
       if(currentFile.status!=='untracked'){
         menus.push(
@@ -157,6 +197,14 @@
           el.querySelector('.col-checkbox input[type="checkbox"]').focus();
         }
       }
+    },
+
+    getFtpConfig() {
+      const path = Alpine.store('projectPath').path;
+      if(!path) return null;
+
+      let config = window.electronStore.get('ftp');
+      return (config && typeof config[path] === 'object') ? config[path] : null;
     },
 
     _parseDiffCode(changes) {

@@ -7,21 +7,34 @@
   Alpine.data('projectPath', () => ({
     historyProjectPaths: [],
     branches: [],
+    ftpConfig: {},
+    ftpDefaultPort: 21,
+    savedFtpConfig: null,
 
-    init() {
-      window.electronAPI.getStoreValue('historyProjectPaths').then(paths => {
-        if(paths){
-          paths = paths.split(';');
-          this.historyProjectPaths = paths;
+    async init() {
+      this.savedFtpConfig = window.electronStore.get('ftp');
+
+      this.$watch('$store.projectPath.path', path => {
+        if(path){
+          this.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? this.savedFtpConfig[path] : {};
         }
-
-        window.electronAPI.getStoreValue('projectPath').then(path => {
-          if(path || (path = this.historyProjectPaths[0] ?? '')){
-            Alpine.store('projectPath').path = path;
-            this.refresh();
-          }
-        });
       });
+      this.$watch('ftpConfig.protocol', protocol => {
+        this.ftpDefaultPort = protocol === 'sftp' ? 22 : 21;
+      });
+
+      let paths = window.electronStore.get('historyProjectPaths');
+      if(paths){
+        paths = paths.split(';');
+        this.historyProjectPaths = paths;
+        await this.$nextTick();// 等待渲染好 DOM 后再继续
+      }
+
+      let path = window.electronStore.get('projectPath');
+      if(path || (path = this.historyProjectPaths[0] ?? '')){
+        Alpine.store('projectPath').path = path;
+        this.refresh();
+      }
     },
 
     selectProjectPath(event) {
@@ -45,18 +58,18 @@
 
             this.refresh(() => {
               event.target.setAttribute('data-last-selected', result);
-              window.electronAPI.setStoreValue('projectPath', result);
-              window.electronAPI.getStoreValue('historyProjectPaths').then(paths => {
-                paths = paths ? paths.split(';') : [];
-                if(!paths.includes(result)){
-                  paths.unshift(result);
-                  window.electronAPI.setStoreValue('historyProjectPaths', paths.join(';'));
-                }
-              });
+              window.electronStore.set('projectPath', result);
+
+              let paths = window.electronStore.get('historyProjectPaths');
+              paths = paths ? paths.split(';') : [];
+              if(!paths.includes(result)){
+                paths.unshift(result);
+                window.electronStore.set('historyProjectPaths', paths.join(';'));
+              }
             });
           } else {
             Alpine.store('projectPath').path = lastSelectedValue;
-            window.electronAPI.setStoreValue('projectPath', lastSelectedValue);
+            window.electronStore.set('projectPath', lastSelectedValue);
           }
         })
         .finally(() => {
@@ -66,7 +79,7 @@
         Alpine.store('projectPath').path = selectedValue;
         this.refresh(() => {
           event.target.setAttribute('data-last-selected', selectedValue);
-          window.electronAPI.setStoreValue('projectPath', selectedValue);
+          window.electronStore.set('projectPath', selectedValue);
         });
       }
     },
@@ -88,28 +101,109 @@
         })
         .catch((error) => this.showError(error.message))
         .finally(() => disableBody(false));
-    }
+    },
+
+    showFtpConfig() {
+      const path = Alpine.store('projectPath').path;
+      if (!path) {
+        showError('项目路径不能为空');
+        return;
+      }
+
+      this.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? this.savedFtpConfig[path] : {};
+      document.getElementById('ftp-config-dialog').showModal();
+    },
+
+    saveFtpConfig() {
+      const path = Alpine.store('projectPath').path;
+      if(!path){
+        showError('项目路径不能为空');
+        return;
+      }
+
+      let savedConfig = window.electronStore.get('ftp');
+      if (this.ftpConfig.host) {
+        savedConfig = (savedConfig && typeof savedConfig === 'object') ? savedConfig : {};
+        savedConfig[path] = this.ftpConfig;
+      } else if (savedConfig && typeof savedConfig === 'object' && typeof savedConfig[path] !== 'undefined') {
+        delete savedConfig[path];
+      }
+
+      this.savedFtpConfig = savedConfig;
+      window.electronStore.setJSON('ftp', JSON.stringify(savedConfig));
+      showSuccess('已成功保存FTP设置');
+
+      document.getElementById('ftp-config-dialog').close();
+    },
+
+    closeFtpConfig() {
+      const path = Alpine.store('projectPath').path;
+      this.ftpConfig = (path && this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? this.savedFtpConfig[path] : {};
+      document.getElementById('ftp-config-dialog').close();
+    },
   }));
 </script>
-<div class="flex gap-4" x-data="projectPath">
-  <label class="input grow flex items-center">
-    <label for="branch" class="whitespace-nowrap">项目路径:</label>
-    <select x-model="$store.projectPath.path" x-on:change="selectProjectPath" class="select border-none bg-transparent grow">
-      <template x-if="!historyProjectPaths.length">
-        <option value="" selected></option>
-      </template>
-      <template x-for="path in historyProjectPaths">
-        <option x-bind:value="path" x-text="path"></option>
-      </template>
-      <option value="%SELECT%">选择项目文件夹...</option>
-    </select>
-  </label>
-  <label class="shrink-0 flex items-center input pr-0 w-auto">
-    <label for="branch" class="whitespace-nowrap">当前分支:</label>
-    <select x-model="$store.projectPath.currentBranch" x-on:change="switchBranch" class="select border-none bg-transparent w-auto">
-      <template x-for="branch in branches">
-        <option x-bind:value="branch.value" x-text="branch.label"></option>
-      </template>
-    </select>
-  </label>
+<div x-data="projectPath">
+  <div class="flex gap-2">
+    <label class="select grow">
+      <span class="label whitespace-nowrap">项目路径</span>
+      <select x-model="$store.projectPath.path" x-on:change="selectProjectPath">
+        <template x-if="!historyProjectPaths.length">
+          <option value="" selected></option>
+        </template>
+        <template x-for="path in historyProjectPaths">
+          <option x-bind:value="path" x-text="path"></option>
+        </template>
+        <option value="%SELECT%">选择项目文件夹...</option>
+      </select>
+    </label>
+    <label class="shrink-0 select w-auto">
+      <span class="label whitespace-nowrap">当前分支</span>
+      <select x-model="$store.projectPath.currentBranch" x-on:change="switchBranch" class="w-auto">
+        <template x-for="branch in branches">
+          <option x-bind:value="branch.value" x-text="branch.label"></option>
+        </template>
+      </select>
+    </label>
+    <button class="btn shrink-0" x-on:click="showFtpConfig" x-bind:class="ftpConfig.host ? 'btn-success' : ''">远程服务器</button>
+  </div>
+
+  <dialog id="ftp-config-dialog" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box">
+      <h3 class="text-lg font-bold">FTP设置</h3>
+      <div class="py-4">
+        <label class="select my-1 w-auto">
+          <span class="label">协议</span>
+          <select class="select w-auto border" x-model="ftpConfig.protocol">
+            <option value="ftp">FTP</option>
+            <option value="sftp">SFTP</option>
+          </select>
+        </label>
+        <label class="input my-1 w-full">
+          <span class="label">主机</span>
+          <input type="text" placeholder="127.0.0.1" x-model="ftpConfig.host" />
+        </label>
+        <label class="input my-1 w-35">
+          <span class="label">端口</span>
+          <input type="text" :placeholder="ftpDefaultPort" x-model.number="ftpConfig.port" />
+        </label>
+        <label class="input my-1 w-full">
+          <span class="label">用户名</span>
+          <input type="text" x-model="ftpConfig.username" />
+        </label>
+        <label class="input my-1 w-full">
+          <span class="label">密码</span>
+          <input type="password" x-model="ftpConfig.password" />
+        </label>
+        <label class="input my-1 w-full">
+          <span class="label">远程路径</span>
+          <input type="text" placeholder="/" x-model="ftpConfig.remotePath" />
+        </label>
+      </div>
+      <div class="modal-action">
+        <button class="btn" x-on:click="closeFtpConfig">取消</button>
+        <button class="btn btn-primary" x-on:click="saveFtpConfig">保存</button>
+      </div>
+    </div>
+  </dialog>
 </div>
