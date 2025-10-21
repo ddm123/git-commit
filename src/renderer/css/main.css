@@ -161,6 +161,13 @@ body.disable > .body-mask{
   font-size: 11px;
   margin-top: 5px;
 }
+.percent-bg {
+  color: #fff;
+  background-image: linear-gradient(#4caf50, #4caf50);
+  background-size: 0% 100%;
+  background-repeat: no-repeat;
+  background-position: left center;
+}
 .bg-checkered {
   background-color: transparent;
   background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23F0F0F0' fill-opacity='0.4' d='M0 0h8v8H0zm8 8h8v8H8z'/%3E%3C/svg%3E");

@@ -20,7 +20,7 @@ function getArgument(key)
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getArgument: (key) => getArgument(key) ?? '',
-  icpSend: (...args) => ipcRenderer.invoke(...args),
+  ipcInvoke: (...args) => ipcRenderer.invoke(...args),
   openDirectory: (def) => ipcRenderer.invoke('dialog:openDirectory', def),
   showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options),
   getFileStat: (path, file) => ipcRenderer.invoke('fs:getFileStat', path, file),

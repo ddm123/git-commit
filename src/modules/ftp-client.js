@@ -67,7 +67,7 @@ class FtpClient {
     return result;
   }
 
-  uploadFile(localFile, remoteFile) {
+  async uploadFile(localFile, remoteFile) {
     if (!this.client) {
       return Promise.reject(new Error('FTP客户端未连接'));
     }
@@ -96,18 +96,15 @@ class FtpClient {
         rs.pipe(ps);
       }
 
-      return this.client.exists(dir).then(exists => {
-        if ('d' === exists) {
-          return this.client.put(ps ?? rs, remoteFile);
-        } else {
-          return this.client.mkdir(dir, true).then(
-            () => this.client.put(ps ?? rs, remoteFile)
-          ); 
+      try {
+        if (await this.client.exists(dir) !== 'd') {
+          await this.client.mkdir(dir, true);
         }
-      })
-      .finally(() => {
+
+        return this.client.put(ps ?? rs, remoteFile);
+      } finally {
         rs.destroy();
-      });
+      }
     }
 
     return this.client

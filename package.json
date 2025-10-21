@@ -1,6 +1,6 @@
 {
   "name": "git-commit",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "提交文件到Git版本控制仓库",
   "main": "./src/main/main.js",
   "scripts": {
@@ -34,6 +34,7 @@
       "output": "out"
     },
     "win": {
+      "icon": "icon.png",
       "target": [
         "nsis",
         "portable",
@@ -41,12 +42,14 @@
       ]
     },
     "mac": {
+      "icon": "icon.png",
       "target": [
         "dmg",
         "zip"
       ]
     },
     "linux": {
+      "icon": "icon.png",
       "target": [
         "AppImage",
         "deb",

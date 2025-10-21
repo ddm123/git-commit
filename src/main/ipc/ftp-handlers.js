@@ -11,6 +11,9 @@ async function uploadFiles(event, projectPath, files, progressChannel) {
   if (!ftpConfig || typeof ftpConfig[projectPath] !== 'object' || !ftpConfig[projectPath].host) {
     throw new Error('未配置FTP连接信息');
   }
+  if (typeof files === 'string') {
+    files = [files];
+  }
 
   let fileIndex = 0;
   const fileCount = files.length;
@@ -30,9 +33,6 @@ async function uploadFiles(event, projectPath, files, progressChannel) {
   }
   await client.connect();
 
-  if (typeof files === 'string') {
-    files = [files];
-  }
   if (progressChannel) {
     client.trackProgress(info => {
       info.file = files[fileIndex];

@@ -79,6 +79,7 @@
         }
         Alpine.store('statusBar').statusText = statusText;
       });
+      window.electronAPI.onMenuClick('shell:showItemInFolder', (event, fullPath) => window.electronAPI.ipcInvoke('shell:showItemInFolder', fullPath));
     },
 
     toggleSelectAll(event) {
@@ -146,12 +147,22 @@
       let files = this.getSelectedFiles();
       let menus = [];
 
-      menus.push({ label: '查看差异', text: currentFile.file, handler: 'showFileDiff', args: [{ file: currentFile.file, status: currentFile.status }], enabled: currentFile.status === 'modified' });
+      menus.push({label: '查看差异', text: currentFile.file, handler: 'showFileDiff', args: [{ file: currentFile.file, status: currentFile.status }], enabled: currentFile.status === 'modified'});
 
       menus.push(
         {label: '复制相对路径', text: currentFile.file},
         {label: '复制绝对路径', text: currentFile.absPath}
       );
+      menus.push(
+        {label: '打开所在文件夹', text: 'showItemInFolder', handler: 'shell:showItemInFolder', args: [currentFile.absPath]}
+      );
+
+      if (currentFile.status !== 'untracked') {
+        menus.push(
+          {label: '放弃修改', text: currentFile.file, handler: 'git:checkout', args: [Alpine.store('projectPath').path, currentFile.file]}
+        );
+      }
+
       if(files.length>0){
         let absPaths = [];
         let paths = [];
@@ -169,15 +180,9 @@
 
         if (this.getFtpConfig()) {
           menus.push(
-            {label: '上传选中的文件', text: 'ftp-upload', handler: 'ftp:upload', args: [Alpine.store('projectPath').path, ...paths]}
+            {label: '上传选中的文件', text: 'ftpUpload', handler: 'ftp:upload', args: [Alpine.store('projectPath').path, ...paths]}
           );
         }
-      }
-      if(currentFile.status!=='untracked'){
-        menus.push(
-          '-',
-          {label: '放弃修改', text: currentFile.file, handler:'git:checkout', args:[Alpine.store('projectPath').path, currentFile.file]}
-        );
       }
 
       window.electronAPI.showPathContextMenu(menus);

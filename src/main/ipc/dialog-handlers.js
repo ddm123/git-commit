@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 
 async function handleDirectoryOpen(event, defaultPath) {
   const result = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
@@ -28,4 +28,5 @@ async function handleShowSaveDialog(event, options) {
 module.exports = function setupDialogHandlers() {
   ipcMain.handle('dialog:openDirectory', handleDirectoryOpen);
   ipcMain.handle('dialog:showSaveDialog', handleShowSaveDialog);
+  ipcMain.handle('shell:showItemInFolder', (event, fullPath) => shell.showItemInFolder(fullPath));
 };
