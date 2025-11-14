@@ -18,8 +18,9 @@
         let statusText = '';
         if (data.type === 'connected') {
           statusText = '';
-        } else if (data.type === 'error' && data.sourcePath) {
-          statusText += '同步 ' + data.sourcePath + ' 出错: ' + data.message;
+        } else if (data.type === 'error') {
+          if (data.sourcePath) statusText += '同步 ' + data.sourcePath + ' 出错: ';
+          statusText += data.message;
           this.showError(statusText);
         } else if (data.message) {
           statusText += data.message;
@@ -50,7 +51,7 @@
         this.refresh();
       }
 
-      document.addEventListener('DOMContentLoaded', () => {
+      document.addEventListener('componentsLoaded', () => {
         if (path && this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object' && this.savedFtpConfig[path].autoSync) {
           window.electronAPI.startSyncFiles(path, 'files.sync.progress');
         } else {

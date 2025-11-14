@@ -20,9 +20,7 @@
   <div class="messages" id="messages"></div>
 
 <script>
-compileComponents().then(() => {
-  document.dispatchEvent(new CustomEvent('DOMContentLoaded'));
-});
+compileComponents().then(() => document.dispatchEvent(new CustomEvent('componentsLoaded')));
 </script>
 </body>
 </html>

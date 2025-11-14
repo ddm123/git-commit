@@ -45,7 +45,7 @@ function startSyncFiles(event, projectPath, progressChannel) {
         targetPath
       });
     };
-    syncWatcherOptions.onError = (err, sourcePath, action) => {
+    syncWatcherOptions.onError = (err, sourcePath = '', action = '') => {
       event.sender.send(progressChannel, { type: 'error', message: err.message, sourcePath, action });
     };
   }

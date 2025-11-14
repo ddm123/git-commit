@@ -70,8 +70,10 @@ class SyncWatcher {
 
     // if FTP mode and no client injected, connect
     if (this.isFtp && !this.#ftpClient) {
+      this.#processing = true;
       this.#ftpClient = this.#getFtpClient(this.options.ftp);
       await this.#connectFtp(this.#ftpClient);
+      this.#processing = false;
     }
   }
 
@@ -124,16 +126,10 @@ class SyncWatcher {
     if (this.#processing) return;
     this.#processing = true;
 
-    // ensure FTP connection
-    if (this.isFtp && this.#ftpClient && !this.#ftpClient.isConnected()) {
-      this.#ftpClient.client = null;
-      await this.#connectFtp(this.#ftpClient);
-    }
-
     // process all queued batches in order
-    while (this.#processQueue.length) {
-      const batchEntries = this.#processQueue.shift();
-      for (const [local, action] of batchEntries) {
+    let attempt = 0;
+    restartQueue: while (this.#processQueue.length) {
+      for (const [local, action] of this.#processQueue[0]) {
         try {
           let result = await this.#handleEntry(local, action);
 
@@ -141,6 +137,16 @@ class SyncWatcher {
             this.options.onProgress(...result);
           }
         } catch (e) {
+          if (this.isFtp && this.#isConnectionError(e)) {
+            if (attempt < 3){
+              attempt++;
+              await this.#connectFtp(this.#ftpClient);
+              continue restartQueue;
+            } else {
+              throw e;
+            }
+          }
+
           console.error(e);
           try {
             this.options.onError && this.options.onError(e, local, action);
@@ -149,6 +155,7 @@ class SyncWatcher {
           }
         }
       }
+      this.#processQueue.shift();
     }
 
     this.#processing = false;
@@ -258,6 +265,19 @@ class SyncWatcher {
     }
 
     return true;
+  }
+
+  #isConnectionError(err) {
+    if (!err || typeof err !== 'object') {
+      return false;
+    }
+    if (err.code && ['ERR_NOT_CONNECTED', 'ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'EAI_AGAIN'].includes(err.code)) {
+      return true;
+    }
+    if (err.message && /(?:Connection closed|Not connected|No SFTP connection)/i.test(err.message)) {
+      return true;
+    }
+    return false;
   }
 }
 

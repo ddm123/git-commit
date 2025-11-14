@@ -28,7 +28,11 @@ class FtpClient {
       return Promise.reject(new Error('FTP主机地址不能为空'));
     }
     if (this.client) {
-      await this.close();
+      try {
+        await this.close();
+      } catch (e) {
+        console.error('Closing existing FTP connection error:', e);
+      }
     }
 
     let connectResult = null;
