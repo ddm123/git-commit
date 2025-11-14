@@ -1,6 +1,6 @@
 {
   "name": "git-commit",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "提交文件到Git版本控制仓库",
   "main": "./src/main/main.js",
   "scripts": {
@@ -23,6 +23,7 @@
   "dependencies": {
     "archiver": "^7.0.1",
     "basic-ftp": "^5.0.5",
+    "chokidar": "^4.0.3",
     "diff": "^8.0.2",
     "electron-store": "^8.2.0",
     "progress-stream": "^2.0.0",

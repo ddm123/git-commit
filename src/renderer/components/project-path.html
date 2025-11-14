@@ -14,9 +14,23 @@
     async init() {
       this.savedFtpConfig = window.electronStore.get('ftp');
 
+      window.gitAPI.onProgress('files.sync.progress', (event, data) => {
+        let statusText = '';
+        if (data.type === 'connected') {
+          statusText = '';
+        } else if (data.type === 'error' && data.sourcePath) {
+          statusText += '同步 ' + data.sourcePath + ' 出错: ' + data.message;
+          this.showError(statusText);
+        } else if (data.message) {
+          statusText += data.message;
+        } else if (data.sourcePath) {
+          statusText += '文件 ' + data.sourcePath + ' 已同步';
+        }
+        Alpine.store('statusBar').statusText = statusText;
+      });
       this.$watch('$store.projectPath.path', path => {
         if(path){
-          this.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? this.savedFtpConfig[path] : {};
+          this.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? Object.assign({}, this.savedFtpConfig[path]) : {};
         }
       });
       this.$watch('ftpConfig.protocol', protocol => {
@@ -35,6 +49,14 @@
         Alpine.store('projectPath').path = path;
         this.refresh();
       }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        if (path && this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object' && this.savedFtpConfig[path].autoSync) {
+          window.electronAPI.startSyncFiles(path, 'files.sync.progress');
+        } else {
+          window.electronAPI.stopSyncFiles();
+        }
+      });
     },
 
     selectProjectPath(event) {
@@ -110,7 +132,9 @@
         return;
       }
 
-      this.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? this.savedFtpConfig[path] : {};
+      this.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? Object.assign({}, this.savedFtpConfig[path]) : {};
+      this.ftpConfig.autoSync ??= false;
+      this.ftpConfig.ignoredPaths ??= '**/node_modules/**\n**/.git/**\n**/.DS_Store**';
       document.getElementById('ftp-config-dialog').showModal();
     },
 
@@ -124,8 +148,15 @@
       let savedConfig = window.electronStore.get('ftp');
       if (this.ftpConfig.host) {
         savedConfig = (savedConfig && typeof savedConfig === 'object') ? savedConfig : {};
-        savedConfig[path] = this.ftpConfig;
+        savedConfig[path] = Object.assign({}, this.ftpConfig);
+
+        if (savedConfig[path].autoSync) {
+          window.electronAPI.startSyncFiles(path, 'files.sync.progress');
+        } else {
+          window.electronAPI.stopSyncFiles();
+        }
       } else if (savedConfig && typeof savedConfig === 'object' && typeof savedConfig[path] !== 'undefined') {
+        window.electronAPI.stopSyncFiles();
         delete savedConfig[path];
       }
 
@@ -138,7 +169,7 @@
 
     closeFtpConfig() {
       const path = Alpine.store('projectPath').path;
-      this.ftpConfig = (path && this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? this.savedFtpConfig[path] : {};
+      this.ftpConfig = (path && this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? Object.assign({}, this.savedFtpConfig[path]) : {};
       document.getElementById('ftp-config-dialog').close();
     },
   }));
@@ -199,6 +230,15 @@
           <span class="label">远程路径</span>
           <input type="text" placeholder="/" x-model="ftpConfig.remotePath" />
         </label>
+        <label class="label my-1">
+          <input type="checkbox" x-model="ftpConfig.autoSync" class="toggle toggle-primary" />
+          自动同步到远程服务器
+        </label>
+        <fieldset class="fieldset my-1 w-full" x-show="ftpConfig.autoSync">
+          <legend class="fieldset-legend">以下路径不自动同步</legend>
+          <textarea class="textarea w-full h-21" x-model="ftpConfig.ignoredPaths"></textarea>
+          <div class="label">多个路径请用换行分隔</div>
+        </fieldset>
       </div>
       <div class="modal-action">
         <button class="btn" x-on:click="closeFtpConfig">取消</button>

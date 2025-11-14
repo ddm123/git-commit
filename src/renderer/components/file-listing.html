@@ -62,7 +62,6 @@
         });
       });
       window.gitAPI.onProgress('ftp:progress', (event, data) => {
-        console.log(data);
         let statusText = '';
         if (data.message) {
           if (data.type === 'error' && data.file) {

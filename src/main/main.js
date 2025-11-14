@@ -70,17 +70,15 @@ const registerWindowShortcut = function(win) {
 Menu.setApplicationMenu(null);
 app.disableHardwareAcceleration();
 app.whenReady().then(() => {
-  let mainWindow;
+  let mainWindow = createWindow();
 
   require('./ipc/store-handlers')();
   require('./ipc/dialog-handlers')();
   require('./ipc/action-handlers')();
-  require('./ipc/file-handlers')();
+  require('./ipc/file-handlers')(mainWindow);
   require('./ipc/git-handlers')();
   require('./ipc/archiver-handlers')();
   require('./ipc/ftp-handlers')();
-
-  mainWindow = createWindow();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

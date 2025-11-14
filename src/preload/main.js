@@ -30,7 +30,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onMenuClick: (handlerName, closure) => ipcRenderer.on(handlerName, closure),
   onPaste: (closure) => ipcRenderer.on('clipboard:readText', closure),
   createArchiver: (zipFile, filesPath, files, options) => ipcRenderer.invoke('archiver:create', zipFile, filesPath, files, options),
-  ftpUploadFile: (projectPath, files, progressChannel) => ipcRenderer.invoke('ftp:upload', projectPath, files, progressChannel)
+  ftpUploadFile: (projectPath, files, progressChannel) => ipcRenderer.invoke('ftp:upload', projectPath, files, progressChannel),
+  startSyncFiles: (projectPath, progressChannel) => ipcRenderer.invoke('fs:startSyncFiles', projectPath, progressChannel),
+  stopSyncFiles: () => ipcRenderer.invoke('fs:stopSyncFiles')
 });
 contextBridge.exposeInMainWorld('gitAPI', {
   getRootPath: (path) => ipcRenderer.invoke('git:getRootPath', path),
