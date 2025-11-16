@@ -52,8 +52,10 @@
       }
 
       document.addEventListener('componentsLoaded', () => {
-        if (path && this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object' && this.savedFtpConfig[path].autoSync) {
-          window.electronAPI.startSyncFiles(path, 'files.sync.progress');
+        if (path && this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object' && this.savedFtpConfig[path].autoSync && this.savedFtpConfig[path].host) {
+          window.electronAPI.startSyncFiles(path, 'files.sync.progress').then(result => {
+            Alpine.store('statusBar').statusText = result ? '正在监听文件变更并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
+          });
         } else {
           window.electronAPI.stopSyncFiles();
         }
@@ -152,12 +154,18 @@
         savedConfig[path] = Object.assign({}, this.ftpConfig);
 
         if (savedConfig[path].autoSync) {
-          window.electronAPI.startSyncFiles(path, 'files.sync.progress');
+          window.electronAPI.startSyncFiles(path, 'files.sync.progress').then(result => {
+            Alpine.store('statusBar').statusText = result ? '正在监听文件变更并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
+          });
         } else {
-          window.electronAPI.stopSyncFiles();
+          window.electronAPI.stopSyncFiles().then(result => {
+            Alpine.store('statusBar').statusText = result ? '已停止文件自动同步' : '';
+          });
         }
       } else if (savedConfig && typeof savedConfig === 'object' && typeof savedConfig[path] !== 'undefined') {
-        window.electronAPI.stopSyncFiles();
+        window.electronAPI.stopSyncFiles().then(result => {
+          Alpine.store('statusBar').statusText = result ? '已停止文件自动同步' : '';
+        });
         delete savedConfig[path];
       }
 

@@ -1,10 +1,9 @@
 <script>
+  Alpine.store('fileListing', { selectedFilesCount: 0 });
   Alpine.data('fileListing', () => ({
     lastSaveArchiver: null,
 
     init() {
-      Alpine.store('fileListing', { selectedFilesCount: 0 });
-
       this.$watch('$store.fileListing.selectedFilesCount', value => {
         const selectAllCheckbox = document.getElementById('select-all');
         if (selectAllCheckbox) {
@@ -98,13 +97,14 @@
       }
 
       disableBody(true);
-      window.gitAPI.diffFile(Alpine.store('projectPath').path, file.file)
-        .then(result => window.gitAPI.showDiff(file.file, result))
+      const projectPath = Alpine.store('projectPath').path;
+      window.gitAPI.diffFile(projectPath, file.file)
+        .then(result => window.gitAPI.showDiff(projectPath, file.file, result))
         .catch(error => this.showError(error.message))
         .finally(() => disableBody(false));
 
       /*
-      window.gitAPI.diff(Alpine.store('projectPath').path, [file.file])
+      window.gitAPI.diff(projectPath, [file.file])
         .then(result => {
           const chunks = result ? result.split(/\s*@@ -(\d+),?(\d*) \+(\d+),?(\d*) @@[\t ]*[^\r\n]*[\r\n]/) : [];
           const changes = [];

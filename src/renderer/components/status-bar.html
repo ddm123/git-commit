@@ -3,4 +3,5 @@
 }" x-init="Alpine.store('statusBar', { statusText: '' })">
   <div class="grow" x-text="$store.statusBar.statusText"></div>
   <div class="shrink-0" x-text="version"></div>
+  <div class="shrink-0">By <span onclick="window.electronAPI.ipcInvoke('shell:openExternal', 'https://github.com/ddm123/git-commit/releases')" class="cursor-pointer underline">DDM</span></div>
 </div>

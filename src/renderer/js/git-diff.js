@@ -1,6 +1,8 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('gitDiff', () => ({
     file: '',
+    oldFile: null,
+    isImage: false,
     oldLine: '',
     newLine: '',
     diffChunks: { oldFile: [], newFile: [] },
@@ -16,13 +18,18 @@ document.addEventListener('alpine:init', () => {
       });
       window.electronAPI.receive('show-diff-chunks', (event, file, diffChunks) => {
         this.file = file;
+        this.isImage = typeof diffChunks === 'string' && diffChunks.startsWith('data:image/');
 
-        //使用一次性渲染
-        //({ oldFile: this.diffChunks.oldFile, newFile: this.diffChunks.newFile } = this.parseDiffChunks(diffChunks));
+        if (this.isImage) {
+          this.oldFile = diffChunks;
+        } else {
+          //使用一次性渲染
+          //({ oldFile: this.diffChunks.oldFile, newFile: this.diffChunks.newFile } = this.parseDiffChunks(diffChunks));
 
-        //使用渐进式渲染
-        diffChunks = this.parseDiffChunks(diffChunks);
-        this.renderFileCode(diffChunks.oldFile, diffChunks.newFile, 0);
+          //使用渐进式渲染
+          diffChunks = this.parseDiffChunks(diffChunks);
+          this.renderFileCode(diffChunks.oldFile, diffChunks.newFile, 0);
+        }
       });
     },
 
@@ -198,6 +205,11 @@ document.addEventListener('alpine:init', () => {
 
     encodedHtml(text) {
       return text ? text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;') : text;
+    },
+
+    getImageSrc(file) {
+      let absPath = window.electronAPI.getArgument('project-path') + '/' + file;
+      return 'file://' + absPath.replaceAll('..', '').replace(/(?:\\|\/)+/g, '/');
     }
   }));
 });

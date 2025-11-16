@@ -29,4 +29,5 @@ module.exports = function setupDialogHandlers() {
   ipcMain.handle('dialog:openDirectory', handleDirectoryOpen);
   ipcMain.handle('dialog:showSaveDialog', handleShowSaveDialog);
   ipcMain.handle('shell:showItemInFolder', (event, fullPath) => shell.showItemInFolder(fullPath));
+  ipcMain.handle('shell:openExternal', (event, url) => shell.openExternal(url));
 };

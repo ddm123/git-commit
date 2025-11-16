@@ -6,13 +6,15 @@ const SyncWatcher = require('../../modules/sync-watcher.js');
 
 let syncWatcher = null;
 
-function getFileStat(event, dir, file){
-  let filePath = path.join(dir, file);
-  let stat = fs.statSync(filePath);
-  stat.isDirectory = stat.isDirectory();
-  stat.isFile = stat.isFile();
-  stat.absPath = filePath;
-  return stat;
+function getFileStat(event, dir, file) {
+  const filePath = path.join(dir, file);
+
+  return fs.promises.stat(filePath).then(stat => {
+    stat.isDirectory = stat.isDirectory();
+    stat.isFile = stat.isFile();
+    stat.absPath = filePath;
+    return stat;
+  });
 }
 
 function startSyncFiles(event, projectPath, progressChannel) {
@@ -56,13 +58,14 @@ function startSyncFiles(event, projectPath, progressChannel) {
   }
 
   syncWatcher = new SyncWatcher(projectPath, ftpConfig[projectPath].remotePath || '/', syncWatcherOptions);
-  syncWatcher.start();
+  return syncWatcher.start();
 }
 
 async function stopSyncFiles() {
-  if (!syncWatcher) return;
+  if (!syncWatcher) return null;
   await syncWatcher.stop();
   syncWatcher = null;
+  return true;
 }
 
 module.exports = function setupFileHandlers(win) {
@@ -70,5 +73,19 @@ module.exports = function setupFileHandlers(win) {
   ipcMain.handle('fs:startSyncFiles', startSyncFiles);
   ipcMain.handle('fs:stopSyncFiles', stopSyncFiles);
 
-  win.on('close', stopSyncFiles);
+  win.on('close', async (event) => {
+    // stop the sync watcher before closing the window
+    event.preventDefault();
+
+    try {
+      await stopSyncFiles();
+    } catch (e) {
+      console.error('Error stopping SyncWatcher on window close:', e);
+    }
+
+    // now close the window (if not already closed)
+    if (!win.isDestroyed()) {
+      win.destroy();
+    }
+  });
 };

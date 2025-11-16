@@ -1,23 +1,23 @@
 @keyframes slideIn {
   0% {
-    transform: translateX(-50%) translateY(-100%);
+    transform: translate(0, -100%);
   }
   80% {
-    transform: translateX(-50%) translateY(10%);
+    transform: translate(0, 10%);
   }
   100% {
-    transform: translateX(-50%) translateY(0);
+    transform: translate(0, 0);
   }
 }
 @keyframes slideOut {
   0% {
-    transform: translateX(-50%) translateY(0);
+    transform: translate(0, 0);
   }
   80% {
-    transform: translateX(-50%) translateY(10%);
+    transform: translate(0, 10%);
   }
   100% {
-    transform: translateX(-50%) translateY(-100%);
+    transform: translate(0, -100%);
   }
 }
 
@@ -44,23 +44,19 @@ body.disable > .body-mask{
 .messages{
   position: fixed;
   top: .7rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: auto;
-  max-width: calc(100vw - 2rem);
-  max-height: calc(100vh - 2rem);
-  overflow: auto;
+  left: 0;
+  width: 100%;
   z-index: 9999;
-  display: none;
+  display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: .5rem;
 }
-.messages.slide-in{
+.messages .message.slide-in{
   animation: slideIn 0.5s ease-out forwards;
-  display: flex;
 }
-.messages.slide-out{
-  display: flex;
+.messages .message.slide-out{
   animation: slideOut 0.5s ease-out forwards;
 }
 .message{

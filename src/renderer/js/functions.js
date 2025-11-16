@@ -60,7 +60,7 @@ function formatFileSize(size) {
 }
 
 async function compileComponents() {
-    for(const component of document.querySelectorAll('component[src]')) {
+    for (const component of document.querySelectorAll('component[src]')) {
         await fetch(component.getAttribute('src'))
         .then(response => response.text())
         .then(html => {
@@ -73,7 +73,7 @@ async function compileComponents() {
             html = html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (match, p1, p2) => {
                 const newScript = document.createElement('script');
 
-                if(p1) {
+                if (p1) {
                     const attrRegex = /([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^'"\s>]+)))?/g;
                     let attrMatch;
                     while ((attrMatch = attrRegex.exec(p1)) !== null) {
@@ -97,18 +97,29 @@ function createMessageElement(message) {
     const messageElement = document.createElement('div');
     const textElement = document.createElement('div');
     const closeElement = document.createElement('div');
-    messageElement.classList.add('message');
+    const classList = messageElement.classList;
+
     textElement.classList.add('text');
     textElement.innerHTML = message;
     closeElement.classList.add('close');
     closeElement.innerHTML = '&times;';
     closeElement.msgIndex = messages.size;
     closeElement.addEventListener('click', (event) => {
-        messages.get(event.target.msgIndex)?.remove();
-        messages.delete(event.target.msgIndex);
+        classList.remove('slide-in');
+        classList.add('slide-out');
+    });
+    messageElement.addEventListener('animationend', event => {
+        if (event.animationName === 'slideOut') {
+            messageElement.remove();
+            messages.delete(closeElement.msgIndex);
+        }
     });
     messageElement.appendChild(textElement);
     messageElement.appendChild(closeElement);
+    classList.add('message');
+    classList.add('slide-in');
+    window.setTimeout(() => closeElement.click(), 8000);
+
     messages.set(closeElement.msgIndex, messageElement);
     return messageElement;
 }
@@ -116,28 +127,7 @@ function createMessageElement(message) {
 function insertMessageElement(messageElement) {
     const messagesElement = document.getElementById('messages');
     if (messagesElement) {
-        let classList = messagesElement.classList;
-        if(!messagesElement.getAttribute('has-listener-animationend')){
-            messagesElement.setAttribute('has-listener-animationend', 'true');
-            messagesElement.addEventListener('animationend', function(event){
-                if (event.animationName === 'slideOut') {
-                    this.classList.remove('slide-out');
-                    this.innerHTML = '';
-                    messages.clear();
-                }
-            });
-        }
         messagesElement.appendChild(messageElement);
-        classList.remove('slide-out');
-        classList.add('slide-in');
-        if(messagesTimeoutId) {
-            window.clearTimeout(messagesTimeoutId);
-        }
-        messagesTimeoutId = window.setTimeout(() => {
-            classList.remove('slide-in');
-            classList.add('slide-out');
-            messagesTimeoutId = null;
-        }, 8000);
         return messageElement;
     }
 

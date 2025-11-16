@@ -35,7 +35,21 @@ class SyncWatcher {
   }
 
   async start() {
-    if (this.#watcher) return;
+    if (this.#watcher) return true;
+
+    // Try connecting to the FTP first
+    if (this.isFtp && !this.#ftpClient) {
+      this.#processing = true;
+      try {
+        this.#ftpClient = this.#getFtpClient(this.options.ftp);
+        await this.#connectFtp(this.#ftpClient);
+        this.#processing = false;
+      } catch (e) {
+        this.#callErrorHandler(e);
+        this.#processing = false;
+        return false;
+      }
+    }
 
     this.options.persistent ??= true;
     this.options.ignoreInitial ??= true;
@@ -60,21 +74,13 @@ class SyncWatcher {
     this.#watcher.on('unlink', p => enqueue(p, 'unlink'));
     this.#watcher.on('addDir', p => enqueue(p, 'addDir'));
     this.#watcher.on('unlinkDir', p => enqueue(p, 'unlinkDir'));
-    this.#watcher.on('error', err => {
-      try { this.options.onError(err); } catch (e) { console.error(e); }
-    });
+    this.#watcher.on('error', this.#callErrorHandler.bind(this));
 
     if (this.options.onReady) {
       this.#watcher.once('ready', () => this.options.onReady());
     }
 
-    // if FTP mode and no client injected, connect
-    if (this.isFtp && !this.#ftpClient) {
-      this.#processing = true;
-      this.#ftpClient = this.#getFtpClient(this.options.ftp);
-      await this.#connectFtp(this.#ftpClient);
-      this.#processing = false;
-    }
+    return true;
   }
 
   async stop() {
@@ -100,6 +106,8 @@ class SyncWatcher {
       }
       this.#ftpClient = null;
     }
+
+    console.log('SyncWatcher stopped.');
 
     return result;
   }
@@ -138,21 +146,20 @@ class SyncWatcher {
           }
         } catch (e) {
           if (this.isFtp && this.#isConnectionError(e)) {
-            if (attempt < 3){
+            if (attempt < 3) {
               attempt++;
               await this.#connectFtp(this.#ftpClient);
               continue restartQueue;
             } else {
-              throw e;
+              console.error(e);
+              this.stop();// Because the connection failed, so we stop the sync watcher
+              this.#callErrorHandler(e, local, action);
+              break restartQueue;
             }
           }
 
           console.error(e);
-          try {
-            this.options.onError && this.options.onError(e, local, action);
-          } catch (ee) {
-            console.error(ee);
-          }
+          this.#callErrorHandler(e, local, action);
         }
       }
       this.#processQueue.shift();
@@ -278,6 +285,14 @@ class SyncWatcher {
       return true;
     }
     return false;
+  }
+
+  #callErrorHandler(...args) {
+    try {
+      this.options.onError(...args);
+    } catch (e) {
+      console.error(e);
+    }
   }
 }
 

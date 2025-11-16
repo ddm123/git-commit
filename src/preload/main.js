@@ -1,25 +1,13 @@
 const { contextBridge, ipcRenderer } = require('electron/renderer');
 
-function getArgument(key)
-{
-  if(key===undefined) {
-    const args = new Map();
-    for(const argv of process.argv){
-      const arr = argv.replace(/^--/, '').split('=');
-      args.set(arr[0], arr[1] ?? true);
-    }
-    return args;
-  }
-  for(const argv of process.argv){
-    if(argv.startsWith(`--${key}=`)){
-      return argv.split('=')[1] ?? true;
-    }
-  }
-  return undefined;
+const argumentsMap = new Map();
+for (const argv of process.argv) {
+  const arr = argv.replace(/^--/, '').split('=');
+  argumentsMap.set(arr[0], arr[1] ?? true);
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  getArgument: (key) => getArgument(key) ?? '',
+  getArgument: (key) => key === undefined ? argumentsMap : argumentsMap.get(key),
   ipcInvoke: (...args) => ipcRenderer.invoke(...args),
   openDirectory: (def) => ipcRenderer.invoke('dialog:openDirectory', def),
   showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options),
@@ -47,7 +35,7 @@ contextBridge.exposeInMainWorld('gitAPI', {
   checkout: (path, ...files) => ipcRenderer.invoke('git:checkout', path, ...files),
   diff: (path, options) => ipcRenderer.invoke('git:diff', path, options),
   diffFile: (path, file) => ipcRenderer.invoke('git:diffFile', path, file),
-  showDiff: (file, diffChunks) => ipcRenderer.invoke('git:showDiff', file, diffChunks),
+  showDiff: (path, file, diffChunks) => ipcRenderer.invoke('git:showDiff', path, file, diffChunks),
   onProgress: (eventName, closure) => ipcRenderer.on(eventName, closure),
   showPasteContextMenu: (path) => ipcRenderer.invoke('git:showPasteContextMenu', path)
 });

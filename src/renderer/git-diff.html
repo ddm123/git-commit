@@ -4,35 +4,45 @@
   <meta charset="UTF-8">
   <link href="../../dist/tailwind.css" rel="stylesheet">
   <script defer src="../../dist/alpine-latest.min.js"></script>
-  <script src="../../src/renderer/js/utils.js" type="text/javascript"></script>
+  <script src="../../src/renderer/js/functions.js" type="text/javascript"></script>
   <script src="../../src/renderer/js/git-diff.js" type="text/javascript"></script>
 </head>
 <body class="m-4 overflow-hidden" x-data="gitDiff">
   <div class="flex">
-  <div class="lines-thumbnail" x-on:mouseover="showLineNumber" x-on:mouseleave="hideLineNumber">
-    <template x-for="(row, index) in diffChunks.oldFile" :key="row.key">
-      <div x-bind:data-key="index" x-bind:class="row.change==='-' ? 'bg-red-200 cursor-pointer' : (row.change==='none' ? 'bg-green-200 cursor-pointer' : '')" x-on:click="scrollIntoView.bind($data, $event, row, index)"></div>
+    <template x-if="!isImage">
+      <div class="lines-thumbnail" x-on:mouseover="showLineNumber" x-on:mouseleave="hideLineNumber">
+        <template x-for="(row, index) in diffChunks.oldFile" :key="row.key">
+          <div x-bind:data-key="index" x-bind:class="row.change==='-' ? 'bg-red-200 cursor-pointer' : (row.change==='none' ? 'bg-green-200 cursor-pointer' : '')" x-on:click="scrollIntoView.bind($data, $event, row, index)"></div>
+        </template>
+      </div>
     </template>
-  </div>
-  <div class="mockup-code w-full diff-preview">
-    <h1 class="text-xl font-bold absolute left-24 top-3" x-text="file"></h1>
-    <table class="w-full">
-      <tbody>
-        <tr>
-          <td class="align-top">
-            <template x-for="(change, index) in diffChunks.oldFile" :key="change.key">
-              <pre x-bind:data-prefix="change.line" class="bg-local min-w-full" x-bind:class="getClass(change)" x-on:click="previewLine.bind($data, $event, 'old', index)"><code x-text="(change.change==='none' ? '' : change.change)+change.code"></code></pre>
-            </template>
-          </td>
-          <td class="align-top">
-            <template x-for="(change, index) in diffChunks.newFile" :key="change.key">
-              <pre x-bind:data-prefix="change.line" class="bg-local min-w-full" x-bind:class="getClass(change)" x-on:click="previewLine.bind($data, $event, 'new', index)"><code x-text="(change.change==='none' ? '' : change.change)+change.code"></code></pre>
-            </template>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+    <div class="mockup-code w-full diff-preview">
+      <h1 class="text-xl font-bold absolute left-24 top-3" x-text="file"></h1>
+      <table class="w-full">
+        <tbody>
+          <template x-if="isImage">
+            <tr>
+              <td class="align-top"><img x-bind:src="oldFile" alt=""></td>
+              <td class="align-top"><img x-bind:src="getImageSrc(file)" alt=""></td>
+            </tr>
+          </template>
+          <template x-if="!isImage">
+            <tr>
+              <td class="align-top">
+                <template x-for="(change, index) in diffChunks.oldFile" :key="change.key">
+                  <pre x-bind:data-prefix="change.line" class="bg-local min-w-full" x-bind:class="getClass(change)" x-on:click="previewLine.bind($data, $event, 'old', index)"><code x-text="(change.change==='none' ? '' : change.change)+change.code"></code></pre>
+                </template>
+              </td>
+              <td class="align-top">
+                <template x-for="(change, index) in diffChunks.newFile" :key="change.key">
+                  <pre x-bind:data-prefix="change.line" class="bg-local min-w-full" x-bind:class="getClass(change)" x-on:click="previewLine.bind($data, $event, 'new', index)"><code x-text="(change.change==='none' ? '' : change.change)+change.code"></code></pre>
+                </template>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
   </div>
   <div class="line-preview">
     <table class="w-full">

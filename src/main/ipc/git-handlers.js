@@ -51,10 +51,18 @@ async function handleGitDiff(event, projectPath, options) {
 }
 
 async function getDiffContent(projectPath, file) {
-  const gitRepo = git(projectPath);
-  const local = fs.readFileSync(path.join(projectPath, file), 'utf-8');
-  const head = await gitRepo.raw(['show', 'HEAD:'+file]);
-  return diffLines(head, local, { newlineIsToken: false, stripTrailingCr: true });
+  //const { execFileSync } = require('node:child_process');
+  //const head = execFileSync('git', ['show', 'HEAD:' + file], { cwd: projectPath, encoding: null });
+  //const head = await git(projectPath).raw(['show', 'HEAD:' + file]);//这种方式无法读取二进制文件
+  const head = await git(projectPath).showBuffer('HEAD:' + file);
+
+  const imageExt = isImageFile(file);
+  if (imageExt) {
+    return 'data:image/' + imageExt + ';base64,' + Buffer.from(head, 'binary').toString('base64');
+  }
+
+  const local = await fs.promises.readFile(path.join(projectPath, file), 'utf-8');
+  return diffLines(head.toString(), local, { newlineIsToken: false, stripTrailingCr: true });
 }
 
 function getUserLogs(projectPath){
@@ -118,7 +126,7 @@ async function showMessagePaste(event, projectPath) {
   }
 }
 
-function handleShowDiff(event, file, diffChunks) {
+function handleShowDiff(event, projectPath, file, diffChunks) {
   const windowBounds = Store.singleton;
   const win = new BrowserWindow({
     x: windowBounds.getIntValue('diffWin.x') || 183,
@@ -128,7 +136,10 @@ function handleShowDiff(event, file, diffChunks) {
     minWidth: 600,
     minHeight: 400,
     webPreferences: {
-      preload: path.join(__dirname, '../../preload/git-diff.js')
+      preload: path.join(__dirname, '../../preload/git-diff.js'),
+      additionalArguments: [
+        '--project-path=' + projectPath
+      ]
     }
   });
 
@@ -160,6 +171,52 @@ function handleShowDiff(event, file, diffChunks) {
   });
 
   return win.getTitle();
+}
+
+/**
+ * @param {string} filePath 文件路径
+ * @returns {string|boolean} 返回图片格式扩展名（不含点），如果不是图片则返回 false
+ */
+function isImageFile(filePath) {
+  const lastDotIndex = filePath.lastIndexOf('.');
+  const ext = lastDotIndex === -1 ? '' : filePath.substring(lastDotIndex + 1).toLowerCase();
+  return ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'tiff', 'ico'].includes(ext) ? ext : false;
+}
+
+async function isBinaryFile(filePath, maxBytes = 8192) {
+  return new Promise((resolve, reject) => {
+    const stream = fs.createReadStream(filePath, { highWaterMark: 64 * 1024 });
+    let read = 0;
+    let checkedBOM = false;
+
+    const done = (isBinary) => {
+      stream.destroy();
+      resolve(isBinary);
+    };
+
+    stream.on('data', (chunk) => {
+      if (!checkedBOM) {
+        checkedBOM = true;
+        if (chunk.length >= 3 && chunk[0] === 0xEF && chunk[1] === 0xBB && chunk[2] === 0xBF) {
+          return done(false); // UTF-8 BOM -> 文本
+        }
+      }
+
+      read += chunk.length;
+      // 逐字节检查（你的策略：遇到 >127 就判为二进制并立即返回）
+      for (let i = 0; i < chunk.length; i++) {
+        if (chunk[i] > 127) return done(true);
+      }
+
+      if (read >= maxBytes) return done(false); // 达到上限仍未判二进制，认为文本
+    });
+
+    stream.on('end', () => done(false));
+    stream.on('error', (err) => {
+      stream.destroy();
+      reject(err);
+    });
+  });
 }
 
 function closeDiffWindow(event) {
