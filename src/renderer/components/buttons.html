@@ -2,7 +2,25 @@
   Alpine.data('buttons', () => ({
     canPush: false,
 
-    commit(event) {
+    init() {
+      window.addEventListener('keydown', event => {
+        // 如果事件已经在进行中，则不做任何事。
+        if (event.defaultPrevented) return;
+
+        if (event.key === 'F5') {
+          event.preventDefault();
+          this.refresh();
+        } else if (event.key === 'F6') {
+          event.preventDefault();
+          this.pull();
+        } else if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+          event.preventDefault();
+          this.commit(event, event.shiftKey);
+        }
+      });
+    },
+
+    commit(event, isPush) {
       if(isDisabledBody()) return;
 
       clearMessages();
@@ -21,7 +39,7 @@
       }
       disableBody(true);
 
-      let isPush = event.target.getAttribute('data-action') === 'commitAndPush';
+      isPush ??= event.target?.getAttribute('data-action') === 'commitAndPush';
       let commitResult = this._commit(files, commitMessage, isPush);
       commitResult.then(() => {
           this.refresh();
@@ -95,6 +113,7 @@
           Alpine.store('statusBar').statusText = '';
         });
     },
+
     async _commit(files, message, isPush) {
       const projectPath = Alpine.store('projectPath').path;
       Alpine.store('statusBar').statusText = '拉取最新代码...';
@@ -119,10 +138,7 @@
         return result;*/
 
       //失败有回滚
-      let state = {
-        added: false,
-        committed: false
-      };
+      let state = {added: false, committed: false};
 
       try {
         await window.gitAPI.pull({baseDir: projectPath, progress: 'git:progress'});//先拉取
@@ -168,14 +184,14 @@
 <div class="mt-3" x-data="buttons">
   <div class="flex items-center justify-between">
     <div class="shrink-0 flex items-center">
-      <button class="btn" x-on:click="refresh">刷新</button>
-      <button class="btn" x-on:click="pull">拉取</button>
+      <button class="btn" x-on:click="refresh">刷新(F5)</button>
+      <button class="btn" x-on:click="pull">拉取(F6)</button>
       <div class="ml-4">共有 <span class="font-bold" x-text="files.length"></span> 个文件已变更，<span class="font-bold" x-text="$store.fileListing.selectedFilesCount"></span> 个文件被选中</div>
     </div>
     <div class="join" style="align-items:center;">
-      <button class="btn join-item" x-on:click="commit" data-action="commit">提交</button>
+      <button class="btn join-item" x-on:click="commit" data-action="commit" title="Ctrl + Enter">提交</button>
       <button class="btn join-item" x-show="canPush" x-on:click="push">推送</button>
-      <button class="btn join-item" x-on:click="commit" data-action="commitAndPush">提交并推送</button>
+      <button class="btn join-item" x-on:click="commit" data-action="commitAndPush" title="Ctrl + Shift + Enter">提交并推送</button>
     </div>
   </div>
 </div>

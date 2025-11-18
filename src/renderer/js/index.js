@@ -11,7 +11,7 @@ document.addEventListener('alpine:init', () => {
 
     refresh(succeedCallback) {
       const projectPath = Alpine.store('projectPath').path;
-      if (!projectPath) return;
+      if (!projectPath || isDisabledBody()) return;
 
       clearMessages();
       disableBody(true);
