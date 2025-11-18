@@ -53,7 +53,7 @@ class SyncWatcher {
 
     this.options.persistent ??= true;
     this.options.ignoreInitial ??= true;
-    this.options.ignored ??= ['**/node_modules/**', '**/.git/**', '**/.DS_Store'];
+    this.options.ignored ??= /(^|[\\\/])(node_modules|\.git|\.DS_Store)($|[\\\/])/i; // ignore ['**/node_modules/**', '**/.git/**', '**/.DS_Store']
     this.options.awaitWriteFinish ??= {};
     this.options.awaitWriteFinish.stabilityThreshold ??= 500;
     this.options.awaitWriteFinish.pollInterval ??= 100;

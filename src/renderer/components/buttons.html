@@ -21,7 +21,12 @@
     },
 
     commit(event, isPush) {
-      if(isDisabledBody()) return;
+      if (this.isRenderingFiles) {
+        showError('正在加载文件列表，请稍后...');
+        return;
+      }
+
+      if (isDisabledBody()) return;
 
       clearMessages();
 
@@ -42,16 +47,19 @@
       isPush ??= event.target?.getAttribute('data-action') === 'commitAndPush';
       let commitResult = this._commit(files, commitMessage, isPush);
       commitResult.then(() => {
-          this.refresh();
-          showSuccess(isPush ? '已成功提交并推送到远程仓库' : '已成功提交');
+        disableBody(false);
+        this.refresh();
+        showSuccess(isPush ? '已成功提交并推送到远程仓库' : '已成功提交');
 
-          Alpine.store('commitMessage').message = '';
-          Alpine.store('statusBar').statusText = '';
-        })
-        .catch((error) => this.showError(error.message))
-        .finally(() => {
-          disableBody(false);
-        });
+        Alpine.store('commitMessage').message = '';
+        Alpine.store('statusBar').statusText = '';
+      })
+      .catch((error) => {
+        disableBody(false);
+        this.showError(error.message);
+      });
+
+      return commitResult;
     },
 
     push() {

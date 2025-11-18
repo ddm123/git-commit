@@ -2,6 +2,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('app', () => ({
     branches: [],
     files: [],
+    isRenderingFiles: false,
 
     init() {
       window.gitAPI.onProgress('git:progress', (event, data) => {
@@ -15,6 +16,8 @@ document.addEventListener('alpine:init', () => {
 
       clearMessages();
       disableBody(true);
+      this.isRenderingFiles = false;
+
       window.gitAPI.getBranches(projectPath).then((result) => {
         Alpine.store('projectPath').currentBranch = '';
         this.branches = [];
@@ -42,7 +45,10 @@ document.addEventListener('alpine:init', () => {
         disableBody(true);
         window.gitAPI
           .getStatus(projectPath)
-          .then(status => this.fillFileList(JSON.parse(status)))
+          .then(status => {
+            disableBody(false);
+            return this.fillFileList(JSON.parse(status));
+          })
           .then((files) => {
             const th = document.querySelector('th[x-on\\:click="sortFiles"][order-dir]');
             if(th){
@@ -57,8 +63,10 @@ document.addEventListener('alpine:init', () => {
 
             return files;
           })
-          .catch(error => this.showError(error.message))
-          .finally(() => disableBody(false));
+          .catch(error => {
+            disableBody(false);
+            this.showError(error.message);
+          });
       })
       .catch(error => {
         this.showError(error.message);
@@ -69,54 +77,83 @@ document.addEventListener('alpine:init', () => {
     },
 
     async fillFileList(status) {
-      const projectPath = Alpine.store('projectPath').path;
-      const files = [];
-
+      this.files = [];
       Alpine.store('fileListing').selectedFilesCount = 0;
 
       if(status.current){
         Alpine.store('projectPath').currentBranch = status.current;
       }
 
-      const types = {'M': 'modified', 'D': 'deleted', 'A': 'added', '?': 'untracked'};
-      let typeLabels = {'M': '已修改', 'D': '已删除', 'A': '已添加', '?': '未跟踪'};
-      await Promise.all(status.files.map(async (file, key) => {
-        let path = file.path;
-        let type = file.working_dir && file.working_dir!==' ' ? file.working_dir : file.index;
-        let fileStat = type==='D' ? null : await window.electronAPI.getFileStat(status.projectPath, path);
-
-        if (fileStat && fileStat.isDirectory) {
-          return;
-        }
-        files.push({
-          key: key,
-          file: path,
-          absPath: fileStat ? fileStat.absPath : projectPath + (projectPath.includes('\\') ? '\\' : '/') + path,
-          status: types[type] ?? type,
-          statusLabel: typeLabels[type] ?? type,
-          size: fileStat ? fileStat.size : 0,
-          ext: getExtname(path),
-          fsize: fileStat ? formatFileSize(fileStat.size) : '-',
-          timestamp: fileStat ? fileStat.mtimeMs : 0,
-          time: fileStat ? new Date(fileStat.mtimeMs).toLocaleString('zh-CN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-          }) : '-',
-          selected: false
-        });
-      }));
-
-      this.files = files;
+      this.isRenderingFiles = true;
+      await this.renderFiles(Alpine.store('projectPath').path, status.files);
+      this.isRenderingFiles = false;
       Alpine.store('fileListing').selectedFilesCount = 0;
-      return files;
+      return this.files;
+    },
+
+    renderFiles(projectPath, files, start = 0) {
+      if (!this.isRenderingFiles) {
+        return Promise.resolve(false);
+      }
+
+      return new Promise((resolve, reject) => {
+        const limit = 10;
+        const fileCount = files.length;
+        const types = { 'M': 'modified', 'D': 'deleted', 'A': 'added', '?': 'untracked' };
+        const typeLabels = { 'M': '已修改', 'D': '已删除', 'A': '已添加', '?': '未跟踪' };
+
+        window.requestAnimationFrame(() => {
+          let index = null;
+          for (let i = 0; i < limit && index < fileCount; i++) {
+            index = start + i;
+            if (index < fileCount) {
+              const file = files[index];
+              const type = file.working_dir && file.working_dir !== ' ' ? file.working_dir : file.index;
+              const fileStat = type === 'D' ? null : window.electronAPI.getFileStatSync(projectPath, file.path);
+
+              if (fileStat && fileStat.isDirectory) {
+                continue;
+              }
+
+              this.files.push({
+                key: index,
+                file: file.path,
+                absPath: fileStat ? fileStat.absPath : projectPath + (projectPath.includes('\\') ? '\\' : '/') + file.path,
+                status: types[type] ?? type,
+                statusLabel: typeLabels[type] ?? type,
+                size: fileStat ? fileStat.size : 0,
+                ext: getExtname(file.path),
+                fsize: fileStat ? formatFileSize(fileStat.size) : '-',
+                timestamp: fileStat ? fileStat.mtimeMs : 0,
+                time: fileStat ? new Date(fileStat.mtimeMs).toLocaleString('zh-CN', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+                }) : '-',
+                selected: false
+              });
+            }
+          }
+
+          if (index && (++index < fileCount)) {
+            this.renderFiles(projectPath, files, index).then(() => resolve(true)).catch(err => reject(err));
+          } else {
+            resolve(true);
+          }
+        });
+      });
     },
 
     sortFiles(event) {
+      if (this.isRenderingFiles) {
+        showError('正在加载文件列表，请稍后...');
+        return;
+      }
+
       let th = event.target;
       let field = th.getAttribute('data-field');
       let orderBy = th.getAttribute('order-by') || field;

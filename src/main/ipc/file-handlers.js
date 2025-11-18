@@ -6,18 +6,36 @@ const SyncWatcher = require('../../modules/sync-watcher.js');
 
 let syncWatcher = null;
 
+function parseFileStat(filePath, stat) {
+  stat.isDirectory = stat.isDirectory();
+  stat.isFile = stat.isFile();
+  stat.absPath = filePath;
+  return stat;
+}
+
 function getFileStat(event, dir, file) {
   const filePath = path.join(dir, file);
 
-  return fs.promises.stat(filePath).then(stat => {
-    stat.isDirectory = stat.isDirectory();
-    stat.isFile = stat.isFile();
-    stat.absPath = filePath;
-    return stat;
-  });
+  return fs.promises.stat(filePath).then(stat => parseFileStat(filePath, stat));
+}
+
+function getFileStatSync(event, dir, file) {
+  const filePath = path.join(dir, file);
+
+  try {
+    const stat = fs.statSync(filePath);
+    return parseFileStat(filePath, stat);
+  } catch (e) {
+    console.error('getFileStatSync error:', e);
+    return null;
+  }
 }
 
 function startSyncFiles(event, projectPath, progressChannel) {
+  if (syncWatcher) {
+    return Promise.resolve(true);
+  }
+
   const store = Store.singleton;
   const ftpConfig = store.get('ftp');
   if (!ftpConfig || typeof ftpConfig[projectPath] !== 'object' || !ftpConfig[projectPath].host) {
@@ -27,38 +45,73 @@ function startSyncFiles(event, projectPath, progressChannel) {
   const syncWatcherOptions = {
     ftp: {...ftpConfig[projectPath]}
   };
+  const sender = (event && event.sender) || {send: () => {}};
+
   if (progressChannel) {
     syncWatcherOptions.ftp.onInit = () => {
-      event.sender.send(progressChannel, {
+      sender.send(progressChannel, {
         type: 'connect',
         message: `正在连接到FTP服务器(${ftpConfig[projectPath].host})...`
       });
     };
     syncWatcherOptions.ftp.onConnected = () => {
-      event.sender.send(progressChannel, {
+      sender.send(progressChannel, {
         type: 'connected',
         message: `已成功连接到FTP服务器(${ftpConfig[projectPath].host})`
       });
     };
     syncWatcherOptions.onProgress = (sourcePath, targetPath, action) => {
-      event.sender.send(progressChannel, {
+      sender.send(progressChannel, {
         type: action,
         sourcePath,
         targetPath
       });
     };
     syncWatcherOptions.onError = (err, sourcePath = '', action = '') => {
-      event.sender.send(progressChannel, { type: 'error', message: err.message, sourcePath, action });
+      sender.send(progressChannel, { type: 'error', message: err.message, sourcePath, action });
     };
   }
-  if (typeof syncWatcherOptions.ftp.ignoredPaths === 'string') {
-    syncWatcherOptions.ignored = syncWatcherOptions.ftp.ignoredPaths.split(/(?:\r\n|\n|\r)/);
-  } else if (Array.isArray(syncWatcherOptions.ftp.ignoredPaths)) {
-    syncWatcherOptions.ignored = syncWatcherOptions.ftp.ignoredPaths;
+  if (typeof syncWatcherOptions.ftp.ignoredPaths === 'string' && syncWatcherOptions.ftp.ignoredPaths.trim() !== '') {
+    const ignoredPaths = syncWatcherOptions.ftp.ignoredPaths.split(/\r\n|\n|\r/).map(item => item.trim().replaceAll('\\', '/')).filter(item => item !== '');
+    syncWatcherOptions.ignored = function (relPath){
+      const normalizedPath = relPath.replaceAll('\\', '/');
+
+      for (const pattern of ignoredPaths) {
+        // 处理通配符
+        if (pattern.includes('*') || pattern.includes('?')) {
+          try {
+            const reg = new RegExp(wildcardToRegex(pattern), 'i');
+            if (reg.test(normalizedPath)) return true;
+          } catch (e) {
+            // 正则表达式错误，回退到字符串匹配
+            if (normalizedPath.includes(pattern)) return true;
+          }
+        } else {
+          // 精确匹配或目录匹配
+          if (normalizedPath === pattern || normalizedPath.startsWith(pattern + '/')
+            || (pattern.endsWith('/') && normalizedPath.startsWith(pattern))
+          ) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
   }
 
   syncWatcher = new SyncWatcher(projectPath, ftpConfig[projectPath].remotePath || '/', syncWatcherOptions);
-  return syncWatcher.start();
+  return syncWatcher.start().catch(err => {
+    syncWatcher = null;
+    throw err;
+  });
+}
+
+function wildcardToRegex(pattern) {
+  return '^' + pattern
+    .replace(/[.+?^${}()|\[\]\/\\]/g, '\\$&')
+    .replace(/\*\*/g, '.*') // ** 匹配多级目录
+    .replace(/\*/g, '[^/]*') // * 不匹配路径分隔符
+    .replace(/\?/g, '[^/]') + '$'; // ? 匹配单个字符（不包括路径分隔符）
 }
 
 async function stopSyncFiles() {
@@ -70,6 +123,7 @@ async function stopSyncFiles() {
 
 module.exports = function setupFileHandlers(win) {
   ipcMain.handle('fs:getFileStat', getFileStat);
+  ipcMain.on('fs:getFileStatSync', (event, dir, file) => event.returnValue = getFileStatSync(event, dir, file));
   ipcMain.handle('fs:startSyncFiles', startSyncFiles);
   ipcMain.handle('fs:stopSyncFiles', stopSyncFiles);
 

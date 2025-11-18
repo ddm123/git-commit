@@ -81,6 +81,7 @@
 
             Alpine.store('projectPath').path = result;
 
+            disableBody(false);
             this.refresh(() => {
               event.target.setAttribute('data-last-selected', result);
               window.electronStore.set('projectPath', result);
@@ -121,11 +122,14 @@
       disableBody(true);
       window.gitAPI.switchBranch(Alpine.store('projectPath').path, branch)
         .then(() => {
+          disableBody(false);
           this.refresh();
           showSuccess('已成功切换到 '+ branch + ' 分支');
         })
-        .catch((error) => this.showError(error.message))
-        .finally(() => disableBody(false));
+        .catch((error) => {
+          disableBody(false);
+          this.showError(error.message);
+        });
     },
 
     showFtpConfig() {
