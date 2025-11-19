@@ -1,4 +1,5 @@
 const messages = new Map();
+const loadJsFileCache = new Map();
 var messagesTimeoutId = null;
 var disableBodyCounter = 0;
 
@@ -61,7 +62,7 @@ function formatFileSize(size) {
 
 async function compileComponents() {
     for (const component of document.querySelectorAll('component[src]')) {
-        await fetch(component.getAttribute('src'))
+        await fetch(component.getAttribute('src'), {cache: 'no-store', headers: {'Cache-Control': 'no-cache'}})
         .then(response => response.text())
         .then(html => {
             let attributes = {};
@@ -91,6 +92,30 @@ async function compileComponents() {
         })
         .catch(error => console.error('Error loading component '+component.getAttribute('src')+':', error));
     }
+}
+
+function loadJsFile(url) {
+    if (loadJsFileCache.has(url)) {
+        return loadJsFileCache.get(url);
+    }
+
+    const promise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = url;
+        script.async = true;
+
+        script.addEventListener('load', (event) => resolve(event));
+        script.addEventListener('error', (event) => {
+            loadJsFileCache.delete(url); // 失败时清除缓存，允许重试
+            reject(new Error(`Failed to load script: ${url}`));
+        });
+
+        (document.head || document.body).appendChild(script);
+    });
+
+    loadJsFileCache.set(url, promise);
+    return promise;
 }
 
 function createMessageElement(message) {

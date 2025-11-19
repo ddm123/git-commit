@@ -16,7 +16,7 @@
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.10",
     "daisyui": "^5.0.43",
-    "electron": "^35.5.1",
+    "electron": "^39.2.2",
     "electron-builder": "^26.0.12",
     "tailwindcss": "^4.1.10"
   },
