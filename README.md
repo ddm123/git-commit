@@ -29,9 +29,13 @@ npx electron-builder -mwl #build for macOS, Windows and Linux
 # 打包指定平台
 # npx electron-builder --linux
 # npx electron-builder --mac
+# npx electron-builder --win portable
 # npx electron-builder --win --x64
 # npx electron-builder --win --ia32
 # npx electron-builder --win --arm64
+
+# 禁用签名
+# npx electron-builder --win portable --x64 --config.forceCodeSigning=false
 ```
 
 # 测试运行

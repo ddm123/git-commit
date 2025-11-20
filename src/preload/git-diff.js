@@ -8,6 +8,7 @@ for (const argv of process.argv) {
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getArgument: (key) => key === undefined ? argumentsMap : argumentsMap.get(key),
+  isDevelopment: () => argumentsMap.get('is-packaged') === 'false',
   send: (channel, data) => ipcRenderer.send(channel, data),
   receive: (channel, func) => ipcRenderer.on(channel, func),
   diffChars: (oldStr, newStr) => ipcRenderer.sendSync('diff-chars', oldStr, newStr),

@@ -12,7 +12,7 @@ document.addEventListener('alpine:init', () => {
       window.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
           window.electronAPI.closeWindow();
-        } else if (e.key === 'F12') {
+        } else if (e.key === 'F12' && window.electronAPI.isDevelopment()) {
           window.electronAPI.toggleDevTools();
         }
       });

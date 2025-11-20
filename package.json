@@ -5,7 +5,7 @@
   "main": "./src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "build:css": "tailwindcss -i ./src/renderer/css/input.css -o ./dist/tailwind.css  --minify",
+    "build:css": "tailwindcss -i ./src/renderer/css/input.css -o ./dist/tailwind.css --minify",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": {
@@ -15,10 +15,10 @@
   "license": "MIT",
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.10",
-    "daisyui": "^5.0.43",
+    "daisyui": "^5.5.5",
     "electron": "^39.2.2",
     "electron-builder": "^26.0.12",
-    "tailwindcss": "^4.1.10"
+    "tailwindcss": "^4.1.17"
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -27,7 +27,7 @@
     "diff": "^8.0.2",
     "electron-store": "^8.2.0",
     "progress-stream": "^2.0.0",
-    "simple-git": "*",
+    "simple-git": "^3.30.0",
     "ssh2-sftp-client": "^12.0.1"
   },
   "build": {
@@ -37,9 +37,18 @@
     "win": {
       "icon": "icon.png",
       "target": [
-        "nsis",
-        "portable",
-        "zip"
+        {
+          "target": "portable",
+          "arch": ["x64", "ia32", "arm64"]
+        },
+        {
+          "target": "nsis",
+          "arch": ["x64", "ia32", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "ia32", "arm64"]
+        }
       ]
     },
     "mac": {

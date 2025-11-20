@@ -6,10 +6,15 @@
 
   Alpine.data('projectPath', () => ({
     historyProjectPaths: [],
+    lastSelectedPath: '',
     branches: [],
     ftpConfig: {},
     ftpDefaultPort: 21,
     savedFtpConfig: null,
+
+    get selectProjectPathFlag() {
+      return '%SELECT%';
+    },
 
     async init() {
       this.savedFtpConfig = window.electronStore.get('ftp');
@@ -40,15 +45,17 @@
 
       let paths = window.electronStore.get('historyProjectPaths');
       if(paths){
-        paths = paths.split(';');
+        paths = paths.split(';').filter(p => p && p !== this.selectProjectPathFlag);
         this.historyProjectPaths = paths;
         await this.$nextTick();// 等待渲染好 DOM 后再继续
       }
 
-      let path = window.electronStore.get('projectPath');
-      if(path || (path = this.historyProjectPaths[0] ?? '')){
-        Alpine.store('projectPath').path = path;
-        this.refresh();
+      let path = window.electronStore.get('projectPath') || (this.historyProjectPaths[0] ?? '');
+      if (path === this.selectProjectPathFlag) path = '';
+
+      Alpine.store('projectPath').path = path;
+      if(path){
+        this.refresh(() => this.lastSelectedPath = path);
       }
 
       document.addEventListener('componentsLoaded', () => {
@@ -63,17 +70,16 @@
     },
 
     selectProjectPath(event) {
-      const lastSelectedValue = event.target.getAttribute('data-last-selected') || '';
       if (isDisabledBody()) {
-        Alpine.store('projectPath').path = lastSelectedValue;
+        Alpine.store('projectPath').path = this.lastSelectedPath;
         return;
       }
 
       const selectedValue = event.target.value;
 
-      if (selectedValue === '%SELECT%') {
+      if (selectedValue === this.selectProjectPathFlag) {
         disableBody(true);
-        window.electronAPI.openDirectory(lastSelectedValue).then((result) => {
+        window.electronAPI.openDirectory(this.lastSelectedPath).then((result) => {
           if (result) {
             if(!this.historyProjectPaths.includes(result)){
               this.historyProjectPaths.unshift(result);
@@ -83,7 +89,8 @@
 
             disableBody(false);
             this.refresh(() => {
-              event.target.setAttribute('data-last-selected', result);
+              // 提供的路径如果是有效的，则更新这次选择的路径
+              this.lastSelectedPath = result;
               window.electronStore.set('projectPath', result);
 
               let paths = window.electronStore.get('historyProjectPaths');
@@ -94,8 +101,8 @@
               }
             });
           } else {
-            Alpine.store('projectPath').path = lastSelectedValue;
-            window.electronStore.set('projectPath', lastSelectedValue);
+            Alpine.store('projectPath').path = this.lastSelectedPath;
+            window.electronStore.set('projectPath', this.lastSelectedPath);
           }
         })
         .finally(() => {
@@ -104,7 +111,8 @@
       } else if (selectedValue) {
         Alpine.store('projectPath').path = selectedValue;
         this.refresh(() => {
-          event.target.setAttribute('data-last-selected', selectedValue);
+          // 提供的路径如果是有效的，则更新这次选择的路径
+          this.lastSelectedPath = selectedValue;
           window.electronStore.set('projectPath', selectedValue);
         });
       }
@@ -198,7 +206,7 @@
         <template x-for="path in historyProjectPaths">
           <option x-bind:value="path" x-text="path"></option>
         </template>
-        <option value="%SELECT%">选择项目文件夹...</option>
+        <option x-bind:value="selectProjectPathFlag">选择项目文件夹...</option>
       </select>
     </label>
     <label class="shrink-0 select w-auto">

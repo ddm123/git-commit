@@ -23,7 +23,8 @@ const createWindow = function() {
       textAreasAreResizable: false,
       preload: path.join(__dirname, '../preload/main.js'),
       additionalArguments: [
-        '--app-version=' + app.getVersion()
+        '--app-version=' + app.getVersion(),
+        '--is-packaged=' + (app.isPackaged ? 'true' : 'false')
       ]
     }
   });
@@ -55,16 +56,18 @@ const createWindow = function() {
 };
 
 const registerWindowShortcut = function(win) {
-  win.webContents.on('before-input-event', (event, input) => {
-    if (input.type==='keyUp' && input.key === 'F12') {
-      if(win.webContents.isDevToolsOpened()){
-        win.webContents.closeDevTools();
-      }else{
-        win.webContents.openDevTools({mode: 'undocked', title: 'Developer Tools', activate: true});
+  if (!app.isPackaged) {
+    win.webContents.on('before-input-event', (event, input) => {
+      if (input.type==='keyUp' && input.key === 'F12') {
+        if(win.webContents.isDevToolsOpened()){
+          win.webContents.closeDevTools();
+        }else{
+          win.webContents.openDevTools({mode: 'undocked', title: 'Developer Tools', activate: true});
+        }
+        event.preventDefault();
       }
-      event.preventDefault();
-    }
-  });
+    });
+  }
 };
 
 Menu.setApplicationMenu(null);

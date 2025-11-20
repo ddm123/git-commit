@@ -1,4 +1,4 @@
-const { BrowserWindow, Menu, ipcMain, clipboard } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, clipboard } = require('electron');
 const path = require('node:path');
 const fs = require('fs');
 const git = require('simple-git');
@@ -138,7 +138,8 @@ function handleShowDiff(event, projectPath, file, diffChunks) {
     webPreferences: {
       preload: path.join(__dirname, '../../preload/git-diff.js'),
       additionalArguments: [
-        '--project-path=' + projectPath
+        '--project-path=' + projectPath,
+        '--is-packaged=' + (app.isPackaged ? 'true' : 'false')
       ]
     }
   });
