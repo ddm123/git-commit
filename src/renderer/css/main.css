@@ -42,6 +42,7 @@ body.disable > .body-mask{
   display: block;
 }
 .messages{
+  pointer-events: none;
   position: fixed;
   top: .7rem;
   left: 0;
@@ -60,6 +61,7 @@ body.disable > .body-mask{
   animation: slideOut 0.5s ease-out forwards;
 }
 .message{
+  pointer-events: auto;
   padding: 10px 1rem;
   border-radius: 10px;
   display: flex;
@@ -97,9 +99,11 @@ body.disable > .body-mask{
 }
 .message.success .close{
   border-color: green;
+  background-color: #d4edda;
 }
 .message.error .close{
   border-color: red;
+  background-color: #f8d7da;
 }
 .file-list {
   --input-color: color-mix(in oklab, var(--color-base-content) 20%, #0000);
