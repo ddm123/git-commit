@@ -90,20 +90,37 @@ body.disable > .body-mask{
 }
 .message .close{
   cursor: pointer;
-  font-weight: bold;
+  width: 1rem;
+  height: 1rem;
   line-height: 100%;
-  flex-shrink: 0;
-  border-radius: 100%;
-  padding: 0 3px;
-  border: 1px solid #666;
+  display: block;
 }
-.message.success .close{
-  border-color: green;
-  background-color: #d4edda;
+.message .close svg .circle-bg {
+  stroke: #f2f2f2;
 }
-.message.error .close{
-  border-color: red;
-  background-color: #f8d7da;
+.message .close svg .circle-fill {
+  stroke: gray;
+  stroke-linecap: butt;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+.message .close svg .icon{
+  stroke:gray;
+  stroke-linecap: round;
+}
+.message .close svg .circle-bg,
+.message .close svg .circle-fill,
+.message .close svg .icon {
+  stroke-width:18;
+  fill:transparent;
+}
+.message.success .close svg .circle-fill,
+.message.success .close svg .icon{
+  stroke: green;
+}
+.message.error .close svg .circle-fill,
+.message.error .close svg .icon{
+  stroke: red;
 }
 .file-list {
   --input-color: color-mix(in oklab, var(--color-base-content) 20%, #0000);

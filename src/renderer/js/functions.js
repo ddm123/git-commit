@@ -123,11 +123,19 @@ function createMessageElement(message) {
     const textElement = document.createElement('div');
     const closeElement = document.createElement('div');
     const classList = messageElement.classList;
+    const duration = 8;//单位：秒
 
     textElement.classList.add('text');
     textElement.innerHTML = message;
     closeElement.classList.add('close');
-    closeElement.innerHTML = '&times;';
+    closeElement.innerHTML =
+     '<svg class="circle-progress" viewBox="0 0 200 200">' +
+       '<circle class="circle-bg" cx="100" cy="100" r="95"></circle>' +
+       '<circle class="circle-fill" cx="100" cy="100" r="95" stroke-dasharray="596.9">' +
+         '<animate attributeName="stroke-dashoffset" from="0" to="596.9" dur="' + duration + 's" fill="freeze"/>' +
+       '</circle>' +
+       '<path class="icon" d="M70 70 L130 130 M130 70 L70 130" fill="none"/>' +
+     '</svg>';
     closeElement.msgIndex = messages.size;
     closeElement.addEventListener('click', (event) => {
         classList.remove('slide-in');
@@ -143,7 +151,7 @@ function createMessageElement(message) {
     messageElement.appendChild(closeElement);
     classList.add('message');
     classList.add('slide-in');
-    window.setTimeout(() => closeElement.click(), 8000);
+    window.setTimeout(() => closeElement.click(), duration * 1000);
 
     messages.set(closeElement.msgIndex, messageElement);
     return messageElement;
