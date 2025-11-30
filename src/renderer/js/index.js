@@ -19,6 +19,7 @@ document.addEventListener('alpine:init', () => {
       if (!projectPath || isDisabledBody()) return;
       if (this._rafId!==null) {
         window.cancelAnimationFrame(this._rafId);
+        this._rafId = null;
       }
 
       clearMessages();
@@ -58,7 +59,7 @@ document.addEventListener('alpine:init', () => {
             return this.fillFileList(JSON.parse(status));
           })
           .then((files) => {
-            const th = document.querySelector('th[x-on\\:click="sortFiles"][order-dir]');
+            const th = document.querySelector('.file-list thead :where(td, th)[order-dir]');
             if(th){
               const orderDir = th.getAttribute('order-dir')==='asc' ? 'desc' : 'asc';
               th.setAttribute('order-dir', orderDir);
