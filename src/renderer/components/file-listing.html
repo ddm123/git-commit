@@ -270,21 +270,21 @@
   }));
 </script>
 <div class="file-list overflow-x-auto w-full" x-data="fileListing">
-  <table class="table table-pin-rows">
+  <table class="table table-pin-rows table-pin-cols">
     <thead>
       <tr>
         <th class="col-checkbox" data-field="checkbox" width="32"><input type="checkbox" id="select-all" class="checkbox checkbox-sm" x-on:click="toggleSelectAll"></th>
-        <th data-field="file" x-on:click="sortFiles">文件</th>
-        <th data-field="time" order-by="timestamp" x-on:click="sortFiles">最后修改时间</th>
-        <th data-field="statusLabel" order-by="status" x-on:click="sortFiles">状态</th>
-        <th data-field="ext" x-on:click="sortFiles">文件类型</th>
-        <th data-field="fsize" order-by="size" x-on:click="sortFiles">大小</th>
+        <td data-field="file" x-on:click="sortFiles">文件</td>
+        <td data-field="time" order-by="timestamp" x-on:click="sortFiles">最后修改时间</td>
+        <td data-field="statusLabel" order-by="status" x-on:click="sortFiles">状态</td>
+        <td data-field="ext" x-on:click="sortFiles">文件类型</td>
+        <td data-field="fsize" order-by="size" x-on:click="sortFiles">大小</td>
       </tr>
     </thead>
     <tbody x-on:keydown="keyboardSelectFile">
       <template x-for="file in files" :key="file.key">
         <tr :class="file.status" x-on:click="clickRow.bind($data, $event, $el, file)">
-          <td class="col-checkbox"><input type="checkbox" x-model="file.selected" class="checkbox checkbox-sm"></td>
+          <th class="col-checkbox"><input type="checkbox" x-model="file.selected" class="checkbox checkbox-sm"></th>
           <td x-text="file.file" x-on:contextmenu="showPathContextMenu.bind($data, file)" x-on:dblclick="showDiff.bind($data, file)"></td>
           <td x-text="file.time"></td>
           <td x-text="file.statusLabel"></td>

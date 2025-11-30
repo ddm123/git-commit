@@ -71,7 +71,8 @@ const registerWindowShortcut = function(win) {
 };
 
 Menu.setApplicationMenu(null);
-app.disableHardwareAcceleration();
+//console.log(app.isHardwareAccelerationEnabled());
+//app.disableHardwareAcceleration();
 app.whenReady().then(() => {
   let mainWindow = createWindow();
 

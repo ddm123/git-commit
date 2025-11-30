@@ -2,7 +2,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('app', () => ({
     branches: [],
     files: [],
-    isRenderingFiles: false,
+    _rafId: null,
 
     init() {
       window.gitAPI.onProgress('git:progress', (event, data) => {
@@ -10,17 +10,25 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
+    get isRenderingFiles() {
+      return this._rafId !== null;
+    },
+
     refresh(succeedCallback) {
       const projectPath = Alpine.store('projectPath').path;
       if (!projectPath || isDisabledBody()) return;
+      if (this._rafId!==null) {
+        window.cancelAnimationFrame(this._rafId);
+      }
 
       clearMessages();
       disableBody(true);
-      this.isRenderingFiles = false;
 
+      if (Alpine.store('projectPath')) Alpine.store('projectPath').currentBranch = '';
+      if (Alpine.store('fileListing')) Alpine.store('fileListing').selectedFilesCount = 0;
+      this.branches = [];
+      this.files = [];
       window.gitAPI.getBranches(projectPath).then((result) => {
-        Alpine.store('projectPath').currentBranch = '';
-        this.branches = [];
         if (result.all.length === 0) {
           showError('没有找到任何分支');
           return;
@@ -77,32 +85,26 @@ document.addEventListener('alpine:init', () => {
     },
 
     async fillFileList(status) {
-      this.files = [];
-      Alpine.store('fileListing').selectedFilesCount = 0;
-
       if(status.current){
         Alpine.store('projectPath').currentBranch = status.current;
       }
 
-      this.isRenderingFiles = true;
       await this.renderFiles(Alpine.store('projectPath').path, status.files);
-      this.isRenderingFiles = false;
-      Alpine.store('fileListing').selectedFilesCount = 0;
+      if (this._rafId!==null) {
+        window.cancelAnimationFrame(this._rafId);
+        this._rafId = null;
+      }
       return this.files;
     },
 
     renderFiles(projectPath, files, start = 0) {
-      if (!this.isRenderingFiles) {
-        return Promise.resolve(false);
-      }
-
       return new Promise((resolve, reject) => {
         const limit = 10;
         const fileCount = files.length;
         const types = { 'M': 'modified', 'D': 'deleted', 'A': 'added', '?': 'untracked' };
         const typeLabels = { 'M': '已修改', 'D': '已删除', 'A': '已添加', '?': '未跟踪' };
 
-        window.requestAnimationFrame(() => {
+        this._rafId = window.requestAnimationFrame(() => {
           let index = null;
           for (let i = 0; i < limit && index < fileCount; i++) {
             index = start + i;

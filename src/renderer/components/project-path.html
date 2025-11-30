@@ -53,12 +53,12 @@
       let path = window.electronStore.get('projectPath') || (this.historyProjectPaths[0] ?? '');
       if (path === this.selectProjectPathFlag) path = '';
 
-      Alpine.store('projectPath').path = path;
-      if(path){
-        this.refresh(() => this.lastSelectedPath = path);
-      }
+      Alpine.store('projectPath').path = this.lastSelectedPath = path;
 
       document.addEventListener('componentsLoaded', () => {
+        if(path){
+          this.refresh();
+        }
         if (path && this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object' && this.savedFtpConfig[path].autoSync && this.savedFtpConfig[path].host) {
           window.electronAPI.startSyncFiles(path, 'files.sync.progress').then(result => {
             Alpine.store('statusBar').statusText = result ? '正在监听文件变更并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
