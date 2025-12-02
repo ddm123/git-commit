@@ -9,8 +9,10 @@ for (const argv of process.argv) {
 contextBridge.exposeInMainWorld('electronAPI', {
   getArgument: (key) => key === undefined ? argumentsMap : argumentsMap.get(key),
   ipcInvoke: (...args) => ipcRenderer.invoke(...args),
+  receive: (channel, func) => ipcRenderer.on(channel, func),
   openDirectory: (def) => ipcRenderer.invoke('dialog:openDirectory', def),
   showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options),
+  showProjectsDialog: (...paths) => ipcRenderer.invoke('dialog:showProjectsDialog', ...paths),
   getFileStat: (path, file) => ipcRenderer.invoke('fs:getFileStat', path, file),
   getFileStatSync: (path, file) => ipcRenderer.sendSync('fs:getFileStatSync', path, file),
   showPathContextMenu: (menus) => ipcRenderer.invoke('show-copy-context-menu', menus),
@@ -47,5 +49,6 @@ contextBridge.exposeInMainWorld('electronStore', {
   setIntValue: (key, value) => ipcRenderer.invoke('store:setIntValue', key, value),
   getFloatValue: (key, defaultValue = undefined) => ipcRenderer.sendSync('store:getFloatValue', key, defaultValue),
   setFloatValue: (key, value) => ipcRenderer.invoke('store:setFloatValue', key, value),
-  setJSON: (key, value) => ipcRenderer.invoke('store:setJSON', key, value)
+  setJSON: (key, value) => ipcRenderer.invoke('store:setJSON', key, value),
+  delete: (key) => ipcRenderer.invoke('store:delete', key)
 });

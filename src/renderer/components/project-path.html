@@ -34,6 +34,28 @@
         }
         Alpine.store('statusBar').statusText = statusText;
       });
+      window.electronAPI.receive('manage-projects.closed', (event, ...paths) => {
+        disableBody(false);
+
+        const selectedPath = Alpine.store('projectPath').path;
+        Alpine.store('projectPath').path = '';
+        this.historyProjectPaths = paths;
+        window.electronStore.set('historyProjectPaths', paths.join(';'));
+
+        this.$nextTick(()=>{
+          if (paths.length === 0) {
+            this.lastSelectedPath = '';
+            this.clearAllList();
+            window.electronStore.delete('projectPath');
+          } else if (!paths.includes(selectedPath)) {
+            Alpine.store('projectPath').path = this.lastSelectedPath = paths[0];
+            this.refresh();
+            window.electronStore.set('projectPath', paths[0]);
+          } else {
+            Alpine.store('projectPath').path = selectedPath;
+          }
+        });
+      });
       this.$watch('$store.projectPath.path', path => {
         if(path){
           this.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? Object.assign({}, this.savedFtpConfig[path]) : {};
@@ -118,6 +140,11 @@
       }
     },
 
+    manageProjects() {
+      disableBody(true);
+      window.electronAPI.showProjectsDialog(...this.historyProjectPaths);
+    },
+
     switchBranch(event) {
       if(isDisabledBody()) return;
 
@@ -198,7 +225,9 @@
 <div x-data="projectPath">
   <div class="flex gap-2">
     <label class="select grow">
-      <span class="label whitespace-nowrap">项目路径</span>
+      <span class="label whitespace-nowrap"><svg x-show="historyProjectPaths.length>0" x-on:click="manageProjects" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18" stroke-width="1.5" stroke="currentColor" class="size-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M0 3h18M0 9h18M0 15h18" />
+        </svg>项目路径</span>
       <select x-model="$store.projectPath.path" x-on:change="selectProjectPath">
         <template x-if="!historyProjectPaths.length">
           <option value="" selected></option>

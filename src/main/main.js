@@ -1,6 +1,7 @@
 const { app, BrowserWindow, Menu } = require('electron');
 const path = require('node:path');
 const Store = require('../modules/electron-store.js');
+const { addListener: bindWinClose, bindCloseEvent } = require('../modules/main-win-onclose.js');
 
 // const debounce = function(func, wait) {
 //   let timeout;
@@ -30,7 +31,8 @@ const createWindow = function() {
   });
 
   //监听事件
-  win.on('close', (event) => {
+  bindCloseEvent(win);
+  bindWinClose(() => {
     if (!win.isDestroyed()) {
       const bounds = win.getBounds();
       if(win.isMaximized()){

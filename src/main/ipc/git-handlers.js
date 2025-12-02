@@ -110,7 +110,7 @@ async function showMessagePaste(event, projectPath) {
         }});
       }
     }catch(ex){
-      console.log(ex);
+      console.error(ex);
     }
   }
 

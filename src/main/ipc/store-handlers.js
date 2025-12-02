@@ -20,4 +20,7 @@ module.exports = function setupDialogHandlers() {
   ipcMain.handle('store:setJSON', (event, key, value) => {
     store.setJSON(key, value);
   });
+  ipcMain.handle('store:delete', (event, key) => {
+    store.delete(key);
+  });
 };

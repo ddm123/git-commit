@@ -13,10 +13,16 @@
         }
       });
       window.electronAPI.onMenuClick('showFileDiff', (event, file) => this.showDiff(file));
-      window.electronAPI.onMenuClick('git:checkout', (event, path, file) => {
-        if(window.confirm('是否放弃对 "' + file + '" 的修改？')){
-          window.gitAPI.checkout(path, file).then(() => {
-            showSuccess('已还原 "' + file + '" 的修改');
+      window.electronAPI.onMenuClick('git:checkout', (event, path, file, ...files) => {
+        const confirmMsg = files.length > 0
+          ? '是否放弃对选中的 ' + (files.length + 1) + ' 个文件的修改？'
+          : '是否放弃对 "' + file + '" 的修改？';
+        const successMsg = files.length > 0
+          ? '已还原选中的 ' + (files.length + 1) + ' 个文件的修改'
+          : '已还原 "' + file + '" 的修改';
+        if(window.confirm(confirmMsg)){
+          window.gitAPI.checkout(path, file, ...files).then(() => {
+            showSuccess(successMsg);
             this.refresh();
           }).catch((error) => {
             this.showError(error.message);
@@ -174,7 +180,8 @@
           '-',
           {label: '复制选中文件的相对路径', text: paths.join("\n")},
           {label: '复制选中文件的绝对对路径', text: absPaths.join("\n")},
-          {label: '打包选中的文件', text: 'archiver', handler: 'dialog:showSaveDialog', args: [Alpine.store('projectPath').path, ...paths]}
+          {label: '打包选中的文件', text: 'archiver', handler: 'dialog:showSaveDialog', args: [Alpine.store('projectPath').path, ...paths]},
+          {label: '放弃选中文件的修改', text: 'checkout', handler: 'git:checkout', args: [Alpine.store('projectPath').path, ...paths]}
         );
 
         if (this.getFtpConfig()) {

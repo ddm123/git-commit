@@ -14,6 +14,14 @@ document.addEventListener('alpine:init', () => {
       return this._rafId !== null;
     },
 
+    clearAllList() {
+      if (Alpine.store('projectPath')) Alpine.store('projectPath').currentBranch = '';
+      if (Alpine.store('fileListing')) Alpine.store('fileListing').selectedFilesCount = 0;
+      this.branches = [];
+      this.files = [];
+      return this;
+    },
+
     refresh(succeedCallback) {
       const projectPath = Alpine.store('projectPath').path;
       if (!projectPath || isDisabledBody()) return;
@@ -25,10 +33,7 @@ document.addEventListener('alpine:init', () => {
       clearMessages();
       disableBody(true);
 
-      if (Alpine.store('projectPath')) Alpine.store('projectPath').currentBranch = '';
-      if (Alpine.store('fileListing')) Alpine.store('fileListing').selectedFilesCount = 0;
-      this.branches = [];
-      this.files = [];
+      this.clearAllList();
       window.gitAPI.getBranches(projectPath).then((result) => {
         if (result.all.length === 0) {
           showError('没有找到任何分支');

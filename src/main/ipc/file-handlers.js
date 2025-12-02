@@ -3,6 +3,7 @@ const path = require('node:path');
 const fs = require('fs');
 const Store = require('../../modules/electron-store.js');
 const SyncWatcher = require('../../modules/sync-watcher.js');
+const { addListener: bindWinClose } = require('../../modules/main-win-onclose.js');
 
 let syncWatcher = null;
 
@@ -127,19 +128,11 @@ module.exports = function setupFileHandlers(win) {
   ipcMain.handle('fs:startSyncFiles', startSyncFiles);
   ipcMain.handle('fs:stopSyncFiles', stopSyncFiles);
 
-  win.on('close', async (event) => {
-    // stop the sync watcher before closing the window
-    event.preventDefault();
-
+  bindWinClose(async () => {
     try {
       await stopSyncFiles();
     } catch (e) {
       console.error('Error stopping SyncWatcher on window close:', e);
-    }
-
-    // now close the window (if not already closed)
-    if (!win.isDestroyed()) {
-      win.destroy();
     }
   });
 };
