@@ -7,15 +7,12 @@ document.addEventListener('alpine:init', () => {
       window.electronAPI.receive('project.paths', (event, paths) => {
         this.addPath(...paths);
       });
-      window.electronAPI.receive('parentWin.closed', () => {
-        window.close();
-      });
       window.addEventListener('beforeunload', () => {
         window.electronAPI.send('manage-projects.closed', ...this.projectPaths.map(item => item.path));
       });
       window.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
-          window.close();
+          window.electronAPI.closeWindow();
         }
       });
     },

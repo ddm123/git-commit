@@ -225,7 +225,7 @@
 <div x-data="projectPath">
   <div class="flex gap-2">
     <label class="select grow">
-      <span class="label whitespace-nowrap"><svg x-show="historyProjectPaths.length>0" x-on:click="manageProjects" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18" stroke-width="1.5" stroke="currentColor" class="size-4">
+      <span class="label whitespace-nowrap"><svg x-show="historyProjectPaths.length>0" x-on:click="manageProjects" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18" stroke-width="1.5" stroke="currentColor" class="size-4 cursor-pointer">
           <path stroke-linecap="round" stroke-linejoin="round" d="M0 3h18M0 9h18M0 15h18" />
         </svg>项目路径</span>
       <select x-model="$store.projectPath.path" x-on:change="selectProjectPath">

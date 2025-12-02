@@ -134,5 +134,5 @@ module.exports = function setupFileHandlers(win) {
     } catch (e) {
       console.error('Error stopping SyncWatcher on window close:', e);
     }
-  });
+  }, win);
 };

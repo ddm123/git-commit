@@ -47,7 +47,7 @@ const createWindow = function() {
         }
       }
     }
-  });
+  }, win);
 
   if(windowBounds.get('mainWin.isMaximized', false)){
     win.maximize();

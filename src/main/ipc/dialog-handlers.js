@@ -28,6 +28,11 @@ async function handleShowSaveDialog(event, options) {
 }
 
 function handleShowProjectsDialog(event, ...paths) {
+  const parentWin = BrowserWindow.fromWebContents(event.sender);
+  if (!parentWin) {
+    throw new Error('无法获取主窗口');
+  }
+
   const win = new BrowserWindow({
     width: 600,
     height: 400,
@@ -35,7 +40,7 @@ function handleShowProjectsDialog(event, ...paths) {
     resizable: false,
     minimizable: false,
     maximizable: false,
-    parent: BrowserWindow.fromWebContents(event.sender),
+    parent: parentWin,
     modal: true,
     show: false,
     webPreferences: {
@@ -43,16 +48,14 @@ function handleShowProjectsDialog(event, ...paths) {
     }
   });
 
-  bindWinClose(() => {
+  const removeCloseListener = bindWinClose(() => {
     if (!win.isDestroyed()) {
-      win.webContents.send('parentWin.closed', null);
       win.close();
     }
-  });
+  }, parentWin);
 
-  win.once('ready-to-show', () => {
-    win.show();
-  })
+  win.on('close', removeCloseListener);
+  win.once('ready-to-show', () => win.show());
 
   win.loadFile('src/renderer/manage-projects.html');
   win.setTitle('管理项目路径');
@@ -60,6 +63,13 @@ function handleShowProjectsDialog(event, ...paths) {
     //win.webContents.openDevTools();
     win.webContents.send('project.paths', paths);
   });
+}
+
+function closeManageProjectsWindow(event) {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win && !win.isDestroyed()) {
+    win.close();
+  }
 }
 
 function handleSendProjectPaths(event, ...paths) {
@@ -81,4 +91,5 @@ module.exports = function setupDialogHandlers() {
   ipcMain.handle('shell:showItemInFolder', (event, fullPath) => shell.showItemInFolder(fullPath));
   ipcMain.handle('shell:openExternal', (event, url) => shell.openExternal(url));
   ipcMain.on('manage-projects.closed', handleSendProjectPaths);
+  ipcMain.on('close-manage-projects-window', closeManageProjectsWindow);
 };

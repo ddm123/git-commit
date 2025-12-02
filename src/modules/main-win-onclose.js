@@ -1,47 +1,60 @@
-const listeners = new Set();
+const listeners = new Map();
 
-function addListener(handler) {
+/**
+ * @param {Function} handler
+ * @param {BrowserWindow} win
+ * @returns {Function}
+ */
+function addListener(handler, win) {
     if (typeof handler !== 'function') {
         throw new TypeError('Handler must be a function');
     }
-    listeners.add(handler);
+    if (!listeners.has(win.id)) {
+        listeners.set(win.id, new Set());
+    }
+    listeners.get(win.id).add(handler);
 
-    return () => removeListener(handler);
+    return () => removeListener(handler, win);
 }
 
-function removeListener(handler) {
-    return listeners.delete(handler);
-}
-
-function removeAllListeners() {
-    listeners.clear();
+/**
+ * @param {Function} handler
+ * @param {BrowserWindow} win
+ * @returns boolean
+ */
+function removeListener(handler, win) {
+    return !listeners.has(win.id) || listeners.get(win.id).delete(handler);
 }
 
 /**
  * @param {BrowserWindow} win
+ * @returns void
+ */
+function removeAllListeners(win) {
+    win===undefined ? listeners.clear() : listeners.delete(win.id);
+}
+
+/**
+ * @param {BrowserWindow} win
+ * @returns void
  */
 function bindCloseEvent(win) {
     win.on('close', (event) => closeListener(event, win));
 }
 
 async function closeListener(event, win) {
-    if (listeners.size === 0) {
-        return;
+    const _listeners = listeners.get(win.id);
+    if (_listeners && _listeners.size > 0) {
+        event.preventDefault();
+        await Promise.all(Array.from(_listeners).map(handler => handler(event)));
+
+        removeAllListeners(win);
+        win.removeAllListeners('close');
+
+        if (!win.isDestroyed()) {
+            win.close();
+        }
     }
-
-    event.preventDefault();
-    await emitCloseEvent(event);
-
-    removeAllListeners();
-    win.removeAllListeners('close');
-
-    if (!win.isDestroyed()) {
-        win.close();
-    }
-}
-
-async function emitCloseEvent(event) {
-    return await Promise.all(Array.from(listeners).map(handler => handler(event)));
 }
 
 module.exports = {
