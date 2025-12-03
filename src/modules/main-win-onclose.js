@@ -1,4 +1,5 @@
 const listeners = new Map();
+const boundWindows = new Map();
 
 /**
  * @param {Function} handler
@@ -13,6 +14,7 @@ function addListener(handler, win) {
         listeners.set(win.id, new Set());
     }
     listeners.get(win.id).add(handler);
+    bindCloseEvent(win);
 
     return () => removeListener(handler, win);
 }
@@ -36,30 +38,58 @@ function removeAllListeners(win) {
 
 /**
  * @param {BrowserWindow} win
- * @returns void
+ * @returns {Function}
  */
 function bindCloseEvent(win) {
-    win.on('close', (event) => closeListener(event, win));
+    var removeCloseListener = boundWindows.get(win.id);
+    if (!removeCloseListener) {
+        const handler = (event) => closeListener(event, win);
+        win.on('close', handler);
+
+        removeCloseListener = () => win.removeListener('close', handler);
+        boundWindows.set(win.id, removeCloseListener);
+    }
+
+    return removeCloseListener;
 }
 
-async function closeListener(event, win) {
+/**
+ * @param {BrowserWindow} win
+ * @returns void
+ */
+function removeCloseEvent(win) {
+    const removeCloseListener = boundWindows.get(win.id);
+    if (removeCloseListener) {
+        removeCloseListener();
+        removeAllListeners(win);
+        boundWindows.delete(win.id);
+    }
+}
+
+function closeListener(event, win) {
     const _listeners = listeners.get(win.id);
     if (_listeners && _listeners.size > 0) {
         event.preventDefault();
-        await Promise.all(Array.from(_listeners).map(handler => handler(event)));
 
-        removeAllListeners(win);
-        win.removeAllListeners('close');
+        Promise.allSettled(Array.from(_listeners).map(handler => Promise.try(handler, event))).then(allResults => {
+            allResults.forEach(result => {
+                if (result.status === 'rejected') {
+                    console.error('Error in window close listener:', result.reason);
+                }
+            });
 
-        if (!win.isDestroyed()) {
-            win.close();
-        }
+            removeCloseEvent(win);
+            win.removeAllListeners('close');
+
+            if (!win.isDestroyed()) {
+                win.close();
+            }
+        });
     }
 }
 
 module.exports = {
     addListener,
     removeListener,
-    removeAllListeners,
-    bindCloseEvent
+    removeAllListeners
 };
