@@ -13,7 +13,7 @@ class FtpClient {
     host,
     user = '',
     password = '',
-    port = 21,
+    port = '',
     protocol = 'ftp'
   ) {
     this.host = host;
