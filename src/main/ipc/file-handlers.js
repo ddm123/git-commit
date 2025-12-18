@@ -73,20 +73,25 @@ function startSyncFiles(event, projectPath, progressChannel) {
     };
   }
   if (typeof syncWatcherOptions.ftp.ignoredPaths === 'string' && syncWatcherOptions.ftp.ignoredPaths.trim() !== '') {
-    const ignoredPaths = syncWatcherOptions.ftp.ignoredPaths.split(/\r\n|\n|\r/).map(item => item.trim().replaceAll('\\', '/')).filter(item => item !== '');
+    const ignoredPaths = syncWatcherOptions.ftp.ignoredPaths
+      .trim().replaceAll('\\', '/')
+      .split(/\s*(?:\r\n|\n|\r)+\s*/)
+      .map(pattern => {
+        if (pattern.includes('*') || pattern.includes('?')) {
+          try {
+            const reg = new RegExp(wildcardToRegex(pattern), 'i');
+            pattern = reg;
+          } catch (e) {}
+        }
+        return pattern;
+      });
+
     syncWatcherOptions.ignored = function (relPath){
       const normalizedPath = relPath.replaceAll('\\', '/');
 
       for (const pattern of ignoredPaths) {
-        // 处理通配符
-        if (pattern.includes('*') || pattern.includes('?')) {
-          try {
-            const reg = new RegExp(wildcardToRegex(pattern), 'i');
-            if (reg.test(normalizedPath)) return true;
-          } catch (e) {
-            // 正则表达式错误，回退到字符串匹配
-            if (normalizedPath.includes(pattern)) return true;
-          }
+        if (pattern instanceof RegExp) {
+          if (pattern.test(normalizedPath)) return true;
         } else {
           // 精确匹配或目录匹配
           if (normalizedPath === pattern || normalizedPath.startsWith(pattern + '/')
@@ -110,9 +115,10 @@ function startSyncFiles(event, projectPath, progressChannel) {
 function wildcardToRegex(pattern) {
   return '^' + pattern
     .replace(/[.+?^${}()|\[\]\/\\]/g, '\\$&')
-    .replace(/\*\*/g, '.*') // ** 匹配多级目录
-    .replace(/\*/g, '[^/]*') // * 不匹配路径分隔符
-    .replace(/\?/g, '[^/]') + '$'; // ? 匹配单个字符（不包括路径分隔符）
+    .replaceAll('**', '@ALL@') // '.*': ** 匹配多级目录
+    .replaceAll('*', '[^/]*') // * 不匹配路径分隔符
+    .replaceAll('?', '[^/]')
+    .replaceAll('@ALL@', '.*') + '$'; // ? 匹配单个字符（不包括路径分隔符）
 }
 
 async function stopSyncFiles() {
