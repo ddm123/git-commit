@@ -1,6 +1,6 @@
 {
   "name": "git-commit",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "提交文件到Git版本控制仓库",
   "main": "./src/main/main.js",
   "scripts": {

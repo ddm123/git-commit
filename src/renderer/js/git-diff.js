@@ -83,7 +83,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     renderFileCode(oldCode, newCode, start) {
-      const limit = 10;
+      const limit = 20;
       const oldCodeLength = oldCode.length;
       const newCodeLength = newCode.length;
       const maxLength = Math.max(oldCodeLength, newCodeLength);
@@ -130,7 +130,11 @@ document.addEventListener('alpine:init', () => {
         activeElement.classList.remove('active');
       }
       if (lineElement) {
-        lineElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'start' });
+        lineElement.scrollIntoView({
+          behavior: 'instant', // 滚动是立即的还是平滑的动画。smooth：滚动应该是平滑的动画。instant：滚动应该通过一次跳跃立刻发生。auto：滚动行为由 scroll-behavior 的计算值决定。
+          block: 'center',
+          inline: 'start'
+        });
         lineElement.classList.add('active');
       }
     },

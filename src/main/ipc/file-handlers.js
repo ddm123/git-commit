@@ -90,7 +90,7 @@ function startSyncFiles(event, projectPath, progressChannel) {
       const normalizedPath = relPath.replaceAll('\\', '/');
 
       for (const pattern of ignoredPaths) {
-        if (pattern instanceof RegExp) {
+        if (typeof pattern === 'object') {
           if (pattern.test(normalizedPath)) return true;
         } else {
           // 精确匹配或目录匹配

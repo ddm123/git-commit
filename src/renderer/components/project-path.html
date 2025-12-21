@@ -32,6 +32,9 @@
         } else if (data.sourcePath) {
           statusText += '文件 ' + data.sourcePath + ' 已同步';
         }
+        if (statusText!=='') {
+          statusText += ' | ' + this.getTime();
+        }
         Alpine.store('statusBar').statusText = statusText;
       });
       window.electronAPI.receive('manage-projects.closed', (event, ...paths) => {
@@ -81,7 +84,7 @@
         if(path){
           this.refresh();
         }
-        if (path && this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object' && this.savedFtpConfig[path].autoSync && this.savedFtpConfig[path].host) {
+        if (this.isSyncEnabled(path)) {
           window.electronAPI.startSyncFiles(path, 'files.sync.progress').then(result => {
             Alpine.store('statusBar').statusText = result ? '正在监听文件变更并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
           });
@@ -89,6 +92,18 @@
           window.electronAPI.stopSyncFiles();
         }
       });
+    },
+
+    getTime() {
+      const date = new Date();
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      const seconds = date.getSeconds();
+      return (hours < 10 ? '0' + hours : hours) + ':' + (minutes < 10 ? '0' + minutes : minutes) + ':' + (seconds < 10 ? '0' + seconds : seconds);
+    },
+
+    isSyncEnabled(path) {
+      return path && this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object' && this.savedFtpConfig[path].autoSync && this.savedFtpConfig[path].host;
     },
 
     selectProjectPath(event) {
@@ -121,6 +136,16 @@
                 paths.unshift(result);
                 window.electronStore.set('historyProjectPaths', paths.join(';'));
               }
+
+              window.electronAPI.stopSyncFiles().then(() => {
+                if (this.isSyncEnabled(result)) {
+                  window.electronAPI.startSyncFiles(result, 'files.sync.progress').then(result => {
+                    Alpine.store('statusBar').statusText = result ? '正在监听文件变更并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
+                  });
+                }
+              }).catch((error) => {
+                showError('文件同步服务停止失败，无法重新为同前项目启动文件同步。请重启本程序。<br>' + error.message);
+              });
             });
           } else {
             Alpine.store('projectPath').path = this.lastSelectedPath;
