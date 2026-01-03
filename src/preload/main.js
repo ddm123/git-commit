@@ -32,6 +32,12 @@ contextBridge.exposeInMainWorld('gitAPI', {
   switchBranch: (path, branch) => ipcRenderer.invoke('git:switchBranch', path, branch),
   pull: (path) => ipcRenderer.invoke('git:pull', path),
   add: (path, files) => ipcRenderer.invoke('git:add', path, files),
+  stash: {
+    push: (path, files, message = '') => ipcRenderer.invoke('git:stash.push', path, files, message),
+    pop: (path, name) => ipcRenderer.invoke('git:stash.pop', path, name),
+    drop: (path, name) => ipcRenderer.invoke('git:stash.drop', path, name),
+    list: (path) => ipcRenderer.invoke('git:stash.list', path)
+  },
   commit: (path, message) => ipcRenderer.invoke('git:commit', path, message),
   push: (path) => ipcRenderer.invoke('git:push', path),
   reset: (path, parameters) => ipcRenderer.invoke('git:reset', path, parameters),

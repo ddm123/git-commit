@@ -113,6 +113,20 @@
       }
 
       const selectedValue = event.target.value;
+      const restartSyncFiles = function(projectPath) {
+        window.electronAPI.stopSyncFiles().then(isStopped => {
+          if (isStopped) {
+            Alpine.store('statusBar').statusText = '文件同步服务已停止';
+          }
+          if (this.isSyncEnabled(projectPath)) {
+            window.electronAPI.startSyncFiles(projectPath, 'files.sync.progress').then(result => {
+              Alpine.store('statusBar').statusText = result ? '正在监听文件变更并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
+            });
+          }
+        }).catch((error) => {
+          showError('文件同步服务停止失败，无法重新为同前项目启动文件同步。请重启本程序。<br>' + error.message);
+        });
+      };
 
       if (selectedValue === this.selectProjectPathFlag) {
         disableBody(true);
@@ -137,15 +151,7 @@
                 window.electronStore.set('historyProjectPaths', paths.join(';'));
               }
 
-              window.electronAPI.stopSyncFiles().then(() => {
-                if (this.isSyncEnabled(result)) {
-                  window.electronAPI.startSyncFiles(result, 'files.sync.progress').then(result => {
-                    Alpine.store('statusBar').statusText = result ? '正在监听文件变更并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
-                  });
-                }
-              }).catch((error) => {
-                showError('文件同步服务停止失败，无法重新为同前项目启动文件同步。请重启本程序。<br>' + error.message);
-              });
+              restartSyncFiles.call(this, result);
             });
           } else {
             Alpine.store('projectPath').path = this.lastSelectedPath;
@@ -161,6 +167,8 @@
           // 提供的路径如果是有效的，则更新这次选择的路径
           this.lastSelectedPath = selectedValue;
           window.electronStore.set('projectPath', selectedValue);
+
+          restartSyncFiles.call(this, selectedValue);
         });
       }
     },

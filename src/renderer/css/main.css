@@ -124,7 +124,7 @@ body.disable > .body-mask{
 }
 .file-list {
   --input-color: color-mix(in oklab, var(--color-base-content) 20%, #0000);
-  height: calc(100vh - 242px);
+  height: calc(100vh - 254px);
   min-height: 100px;
   border: 1px solid var(--input-color);
   border-radius: .25rem;

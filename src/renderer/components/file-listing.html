@@ -21,13 +21,20 @@
           ? '已还原选中的 ' + (files.length + 1) + ' 个文件的修改'
           : '已还原 "' + file + '" 的修改';
         if(window.confirm(confirmMsg)){
-          window.gitAPI.checkout(path, file, ...files).then(() => {
-            showSuccess(successMsg);
-            this.refresh();
-          }).catch((error) => {
-            this.showError(error.message);
-          });
+          window.gitAPI.checkout(path, file, ...files)
+            .then(() => this.refresh(() => showSuccess(successMsg)))
+            .catch(err => this.showError(err.message));
         }
+      });
+      window.electronAPI.onMenuClick('git:stash.push', (event, path, ...files) => {
+        const promptMsg = files.length ? '确定要存储选中的 ' + files.length + ' 个文件？' : '确定要存储所有修改的文件？';
+        Alpine.store('dialog').prompt(promptMsg, '备注:').then(msg => {
+          if (typeof msg === 'string') {
+            window.gitAPI.stash.push(path, files, msg)
+              .then(() => this.refresh(() => showSuccess('已成功存储文件')))
+              .catch(err => this.showError(err.message));
+          }
+        });
       });
       window.electronAPI.onMenuClick('dialog:showSaveDialog', (event, path, ...files) => {
         window.electronAPI.showSaveDialog({
@@ -149,22 +156,24 @@
     },
 
     showPathContextMenu(currentFile) {
+      const projectPath = Alpine.store('projectPath').path;
       let files = this.getSelectedFiles();
       let menus = [];
 
-      menus.push({label: '查看差异', text: currentFile.file, handler: 'showFileDiff', args: [{ file: currentFile.file, status: currentFile.status }], enabled: currentFile.status === 'modified'});
+      menus.push(
+        {label: '查看差异', text: currentFile.file, handler: 'showFileDiff', args: [{ file: currentFile.file, status: currentFile.status }], enabled: currentFile.status === 'modified'},
 
-      menus.push(
         {label: '复制相对路径', text: currentFile.file},
-        {label: '复制绝对路径', text: currentFile.absPath}
-      );
-      menus.push(
-        {label: '打开所在文件夹', text: 'showItemInFolder', handler: 'shell:showItemInFolder', args: [currentFile.absPath]}
+        {label: '复制绝对路径', text: currentFile.absPath},
+
+        {label: '打开所在文件夹', text: 'showItemInFolder', handler: 'shell:showItemInFolder', args: [currentFile.absPath]},
+
+        {label: '存储所有修改', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath]},
       );
 
       if (currentFile.status !== 'untracked') {
         menus.push(
-          {label: '放弃修改', text: currentFile.file, handler: 'git:checkout', args: [Alpine.store('projectPath').path, currentFile.file]}
+          {label: '放弃修改', text: currentFile.file, handler: 'git:checkout', args: [projectPath, currentFile.file]}
         );
       }
 
@@ -180,13 +189,14 @@
           '-',
           {label: '复制选中文件的相对路径', text: paths.join("\n")},
           {label: '复制选中文件的绝对对路径', text: absPaths.join("\n")},
-          {label: '打包选中的文件', text: 'archiver', handler: 'dialog:showSaveDialog', args: [Alpine.store('projectPath').path, ...paths]},
-          {label: '放弃选中文件的修改', text: 'checkout', handler: 'git:checkout', args: [Alpine.store('projectPath').path, ...paths]}
+          {label: '打包选中的文件', text: 'archiver', handler: 'dialog:showSaveDialog', args: [projectPath, ...paths]},
+          {label: '存储选中的文件', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath, ...paths]},
+          {label: '放弃选中文件的修改', text: 'checkout', handler: 'git:checkout', args: [projectPath, ...paths]}
         );
 
         if (this.getFtpConfig()) {
           menus.push(
-            {label: '上传选中的文件', text: 'ftpUpload', handler: 'ftp:upload', args: [Alpine.store('projectPath').path, ...paths]}
+            {label: '上传选中的文件', text: 'ftpUpload', handler: 'ftp:upload', args: [projectPath, ...paths]}
           );
         }
       }

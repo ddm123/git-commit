@@ -50,6 +50,18 @@ async function handleGitDiff(event, projectPath, options) {
   return await git(projectPath).diff(options);
 }
 
+async function handleGitStashPush(event, projectPath, files, message = '') {
+  const args = ['push'];
+  if (message) {
+    args.push('-m', '"'+message.replaceAll('"', '\\"')+'"');
+  }
+  if (files.length) {
+    // -u 选项表示也将未跟踪的文件暂存起来
+    args.push('-u', '--', ...files);
+  }
+  return await git(projectPath).stash(args);
+}
+
 async function getDiffContent(projectPath, file) {
   //const { execFileSync } = require('node:child_process');
   //const head = execFileSync('git', ['show', 'HEAD:' + file], { cwd: projectPath, encoding: null });
@@ -243,6 +255,10 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:switchBranch', async (event, projectPath, branch) => await git(projectPath).checkout(branch));
   ipcMain.handle('git:pull', handleGitPull);
   ipcMain.handle('git:add', async (event, projectPath, files) => await git(projectPath).add(files));
+  ipcMain.handle('git:stash.push', handleGitStashPush);
+  ipcMain.handle('git:stash.pop', async (event, projectPath, name) => await git(projectPath).stash(name ? ['pop', name] : ['pop'])); // Example name: stash@{0}
+  ipcMain.handle('git:stash.drop', async (event, projectPath, name) => await git(projectPath).stash(name ? ['drop', name] : ['drop']));
+  ipcMain.handle('git:stash.list', async (event, projectPath) => await git(projectPath).stashList());
   ipcMain.handle('git:commit', async (event, projectPath, message) => await git(projectPath).commit(message));
   ipcMain.handle('git:push', async (event, projectPath) => await git(projectPath).push());
   ipcMain.handle('git:reset', async (event, projectPath, parameters) => await git(projectPath).reset(parameters));

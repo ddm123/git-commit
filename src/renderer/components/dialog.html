@@ -1,17 +1,70 @@
 <dialog class="modal" x-init="Alpine.store('dialog', {
   title: '',
   body: '',
+  okBtn: null,
+  cancelBtn: null,
+  isPrompt: false,
+  promptValue: '',
+  promptLabel: '',
+  promptPlaceholder: '',
   open(title, body) {
+    this.isPrompt = false;
     this.title = title;
     this.body = body;
     $el.showModal();
+  },
+  prompt (title, label, placeholder = '') {
+    this.isPrompt = true;
+    this.title = title;
+    this.promptLabel = label;
+    this.promptValue = '';
+    this.promptPlaceholder = placeholder;
+    $el.showModal();
+    $nextTick(() => $refs.modalPromptInput.focus());
+    const promise = new Promise(resolve => {
+      this.okBtnClick(function() { resolve(this.promptValue); }, '确定');
+      this.cancelBtnClick(() => resolve(null), '取消');
+    });
+    promise.finally(() => {
+      $el.close();
+      window.setTimeout(() => {
+        this.isPrompt = false;
+        this.okBtn = null;
+        this.cancelBtn = null;
+      }, 500);
+    });
+    return promise;
+  },
+  okBtnClick (func, label) {
+    this.okBtn = [func.bind(this), label];
+    return this;
+  },
+  cancelBtnClick (func, label) {
+    this.cancelBtn = [func.bind(this), label];
+    return this;
   }
 })">
-  <div class="modal-box w-11/12 max-w-5xl">
+  <div class="modal-box" :class="{'w-11/12 max-w-5xl': !$store.dialog.isPrompt}">
     <form method="dialog">
       <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
     </form>
     <h3 class="text-lg font-bold" x-text="$store.dialog.title"></h3>
-    <div class="py-4" x-html="$store.dialog.body"></div>
+    <div class="py-4" x-show="!$store.dialog.isPrompt" x-html="$store.dialog.body"></div>
+    <div class="py-4" x-show="$store.dialog.isPrompt">
+      <label class="input my-1 w-full">
+        <span class="label" x-text="$store.dialog.promptLabel"></span>
+        <input type="text" x-ref="modalPromptInput" x-bind:placeholder="$store.dialog.promptPlaceholder" x-model="$store.dialog.promptValue" />
+      </label>
+    </div>
+    <template x-if="$store.dialog.okBtn || $store.dialog.cancelBtn">
+      <div class="modal-action">
+        <template x-if="$store.dialog.cancelBtn">
+          <button class="btn" x-on:click="$store.dialog.cancelBtn[0]" x-text="$store.dialog.cancelBtn[1] ?? '取消'"></button>
+        </template>
+        <template x-if="$store.dialog.okBtn">
+          <button class="btn btn-primary" x-on:click="$store.dialog.okBtn[0]" x-text="$store.dialog.okBtn[1] ?? '确定'"></button>
+        </template>
+      </div>
+    </template>
   </div>
 </dialog>
