@@ -107,9 +107,11 @@ document.addEventListener('alpine:init', () => {
       return new Promise((resolve, reject) => {
         const limit = 10;
         const fileCount = files.length;
-        const types = { 'M': 'modified', 'D': 'deleted', 'A': 'added', '?': 'untracked' };
-        const typeLabels = { 'M': '已修改', 'D': '已删除', 'A': '已添加', '?': '未跟踪' };
+        const types = { 'M': 'modified', 'D': 'deleted', 'A': 'added', 'U': 'unmerged', '?': 'untracked' };
+        const typeLabels = { 'M': '已修改', 'D': '已删除', 'A': '已添加', 'U': '未解决合并冲突', '?': '未跟踪' };
 
+        // file.working_dir表示文件在工作区的状态，
+        // file.index表示文件在暂存区的状态（只有执行过git add命令后才会有值）
         this._rafId = window.requestAnimationFrame(() => {
           let index = null;
           for (let i = 0; i < limit && index < fileCount; i++) {
@@ -142,7 +144,7 @@ document.addEventListener('alpine:init', () => {
                   second: '2-digit',
                   hour12: false
                 }) : '-',
-                selected: false
+                selected: file.index && file.index !== ' ' &&  file.index !== 'U'
               });
             }
           }
