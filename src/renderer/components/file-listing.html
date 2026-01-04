@@ -37,7 +37,7 @@
         });
       });
       window.electronAPI.onMenuClick('git:add', (event, path, ...files) => {
-        window.electronAPI.gitAPI.add(path, files)
+        window.gitAPI.add(path, files)
           .then(() => this.refresh())
           .catch(err => this.showError(err.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')));
       });
