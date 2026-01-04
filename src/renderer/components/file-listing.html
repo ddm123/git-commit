@@ -23,7 +23,7 @@
         if(window.confirm(confirmMsg)){
           window.gitAPI.checkout(path, file, ...files)
             .then(() => this.refresh(() => showSuccess(successMsg)))
-            .catch(err => this.showError(err.message));
+            .catch(err => this.showError(err.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')));
         }
       });
       window.electronAPI.onMenuClick('git:stash.push', (event, path, ...files) => {
@@ -32,9 +32,14 @@
           if (typeof msg === 'string') {
             window.gitAPI.stash.push(path, files, msg)
               .then(() => this.refresh(() => showSuccess('已成功存储文件')))
-              .catch(err => this.showError(err.message));
+              .catch(err => this.showError(err.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')));
           }
         });
+      });
+      window.electronAPI.onMenuClick('git:add', (event, path, ...files) => {
+        window.electronAPI.gitAPI.add(path, files)
+          .then(() => this.refresh())
+          .catch(err => this.showError(err.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')));
       });
       window.electronAPI.onMenuClick('dialog:showSaveDialog', (event, path, ...files) => {
         window.electronAPI.showSaveDialog({
@@ -50,11 +55,11 @@
             window.electronAPI.createArchiver(filePath, path, files, {zlib: {level: 6}}).then(() => {
               showSuccess('已成功保存压缩文件到: ' + filePath);
             }).catch((error) => {
-              this.showError('保存压缩文件失败: ' + error.message);
+              this.showError('保存压缩文件失败: ' + error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>'));
             });
           }
         }).catch((error) => {
-          this.showError('保存压缩文件失败: ' + error.message);
+          this.showError('保存压缩文件失败: ' + error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>'));
         });
       });
 
@@ -63,7 +68,7 @@
         window.electronAPI.ftpUploadFile(path, files, 'ftp:progress').then(succeedCount => {
           showSuccess(`已上传完选中的文件 ${files.length} 个。<br>成功：${succeedCount} 个，失败：${files.length - succeedCount} 个。`);
         }).catch((error) => {
-          this.showError('文件上传失败: ' + error.message);
+          this.showError('文件上传失败: ' + error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>'));
         })
         .finally(() => {
           Alpine.store('statusBar').statusText = '';
@@ -113,7 +118,7 @@
       const projectPath = Alpine.store('projectPath').path;
       window.gitAPI.diffFile(projectPath, file.file)
         .then(result => window.gitAPI.showDiff(projectPath, file.file, result))
-        .catch(error => this.showError(error.message))
+        .catch(error => this.showError(error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')))
         .finally(() => disableBody(false));
 
       /*
@@ -134,7 +139,7 @@
           }
           window.gitAPI.showDiff(fileMatch ? fileMatch[1] : null, changes);
         })
-        .catch(error => this.showError(error.message))
+        .catch(error => this.showError(error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')))
         .finally(() => disableBody(false));*/
     },
 
@@ -171,6 +176,11 @@
         {label: '存储所有修改', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath]},
       );
 
+      if (currentFile.status === 'unmerged') {
+        menus.push(
+          {label: '标记为已解决', text: currentFile.file, handler: 'git:add', args: [projectPath, currentFile.file]}
+        );
+      }
       if (currentFile.status !== 'untracked') {
         menus.push(
           {label: '放弃修改', text: currentFile.file, handler: 'git:checkout', args: [projectPath, currentFile.file]}
@@ -194,6 +204,11 @@
           {label: '放弃选中文件的修改', text: 'checkout', handler: 'git:checkout', args: [projectPath, ...paths]}
         );
 
+        if (currentFile.status === 'unmerged') {
+          menus.push(
+            {label: '标记选中文件为已解决', text: 'gitAdd', handler: 'git:add', args: [projectPath, ...paths]}
+          );
+        }
         if (this.getFtpConfig()) {
           menus.push(
             {label: '上传选中的文件', text: 'ftpUpload', handler: 'ftp:upload', args: [projectPath, ...paths]}
