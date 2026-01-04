@@ -59,7 +59,7 @@
       })
       .catch((error) => {
         disableBody(false);
-        this.showError(error.message);
+        this.showError(error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>'));
       });
 
       return commitResult;
@@ -118,7 +118,7 @@
             showSuccess('已成功拉取远程仓库最新代码');
           }
         })
-        .catch((error) => this.showError(error.message))
+        .catch((error) => this.showError(error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')))
         .finally(() => {
           disableBody(false);
           Alpine.store('statusBar').statusText = '';
@@ -147,7 +147,7 @@
             html +=   'if (filesCount) {';
             html +=     'this.openDialog(\'有 \'+filesCount+\' 个文件合并冲突\', \'冲突的文件：<br>\'+files.join(\'<br>\'));';
             html +=   '} else {';
-            html +=     'this.showError(err.message);';
+            html +=     'this.showError(err.message.replace(/(?:\\r\\n|\\r|\\n)/g, \'<br/>\'));';
             html +=   '}';
             html += '});';
             html += '},';
@@ -157,7 +157,7 @@
             html +=     'this.remove(index);';
             html +=     'this.refresh(() => showSuccess(\'已成功删除该储藏\'));';
             html +=   '}).catch(err => {';
-            html +=     'showError(err.message);';
+            html +=     'showError(err.message.replace(/(?:\\r\\n|\\r|\\n)/g, \'<br/>\'));';
             html +=   '});';
             html += '}';
             html += '},';
@@ -198,7 +198,7 @@
           }
           this.openDialog('储藏列表', html);
         })
-        .catch(error => this.showError(error.message))
+        .catch(error => this.showError(error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')))
         .finally(() => disableBody(false));
     },
 
@@ -283,4 +283,5 @@
       <button class="btn join-item" x-on:click="commit" data-action="commitAndPush" title="Ctrl + Shift + Enter">提交并推送</button>
     </div>
   </div>
+
 </div>
