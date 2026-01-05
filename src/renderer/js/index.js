@@ -144,7 +144,7 @@ document.addEventListener('alpine:init', () => {
                   second: '2-digit',
                   hour12: false
                 }) : '-',
-                selected: file.index && file.index !== ' ' &&  file.index !== 'U'
+                selected: file.index && file.index !== ' ' && file.index !== '?' &&  file.index !== 'U'
               });
             }
           }
