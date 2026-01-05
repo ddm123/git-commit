@@ -262,7 +262,7 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:commit', async (event, projectPath, message) => await git(projectPath).commit(message));
   ipcMain.handle('git:push', async (event, projectPath) => await git(projectPath).push());
   ipcMain.handle('git:reset', async (event, projectPath, parameters) => await git(projectPath).reset(parameters));
-  ipcMain.handle('git:checkout', async (event, projectPath, ...files) => await git(projectPath).checkout(['--', ...files]));
+  ipcMain.handle('git:checkout', async (event, projectPath, ...files) => await git(projectPath).checkout(['HEAD', '--', ...files]));
   ipcMain.handle('git:diff', handleGitDiff);
   ipcMain.handle('git:diffFile', (event, projectPath, file) => getDiffContent(projectPath, file));
   ipcMain.handle('git:showPasteContextMenu', showMessagePaste);

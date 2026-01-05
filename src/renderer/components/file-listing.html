@@ -173,7 +173,7 @@
 
         {label: '打开所在文件夹', text: 'showItemInFolder', handler: 'shell:showItemInFolder', args: [currentFile.absPath]},
 
-        {label: '存储所有修改', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath]},
+        {label: '存储所有修改', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath]}
       );
 
       if (currentFile.status === 'unmerged') {
@@ -181,18 +181,27 @@
           {label: '标记为已解决', text: currentFile.file, handler: 'git:add', args: [projectPath, currentFile.file]}
         );
       }
-      if (currentFile.status !== 'untracked') {
+      if (currentFile.status !== 'untracked' && currentFile.status !== 'unmerged') {
         menus.push(
           {label: '放弃修改', text: currentFile.file, handler: 'git:checkout', args: [projectPath, currentFile.file]}
         );
       }
 
       if(files.length>0){
-        let absPaths = [];
-        let paths = [];
-        for(const file of files){
+        const absPaths = [];
+        const paths = [];
+        const modifiedFiles = [];
+        const unmergedFiles = [];
+        for (const file of files) {
           absPaths.push(file.absPath);
           paths.push(file.file);
+
+          if (file.status !== 'untracked' && file.status !== 'unmerged') {
+            modifiedFiles.push(file.file);
+          }
+          if (file.status === 'unmerged') {
+            unmergedFiles.push(file.file);
+          }
         }
 
         menus.push(
@@ -200,13 +209,17 @@
           {label: '复制选中文件的相对路径', text: paths.join("\n")},
           {label: '复制选中文件的绝对对路径', text: absPaths.join("\n")},
           {label: '打包选中的文件', text: 'archiver', handler: 'dialog:showSaveDialog', args: [projectPath, ...paths]},
-          {label: '存储选中的文件', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath, ...paths]},
-          {label: '放弃选中文件的修改', text: 'checkout', handler: 'git:checkout', args: [projectPath, ...paths]}
+          {label: '存储选中的文件', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath, ...paths]}
         );
 
-        if (currentFile.status === 'unmerged') {
+        if (unmergedFiles.length > 0) {
           menus.push(
-            {label: '标记选中文件为已解决', text: 'gitAdd', handler: 'git:add', args: [projectPath, ...paths]}
+            {label: '标记选中文件为已解决', text: 'gitAdd', handler: 'git:add', args: [projectPath, ...unmergedFiles]}
+          );
+        }
+        if (modifiedFiles.length > 0) {
+          menus.push(
+            {label: '放弃选中文件的修改', text: 'checkout', handler: 'git:checkout', args: [projectPath, ...modifiedFiles]}
           );
         }
         if (this.getFtpConfig()) {
