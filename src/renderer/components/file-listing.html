@@ -2,6 +2,7 @@
   Alpine.store('fileListing', { selectedFilesCount: 0 });
   Alpine.data('fileListing', () => ({
     lastSaveArchiver: null,
+    isFirstUntracked: true,
 
     init() {
       this.$watch('$store.fileListing.selectedFilesCount', value => {
@@ -158,6 +159,16 @@
           Alpine.store('fileListing').selectedFilesCount = selectedFilesCount;
         }
       }
+    },
+
+    rowClass(file) {
+      let cls = file.status;
+      if (file.key==0) this.isFirstUntracked = true;
+      if (file.status === 'untracked' && this.isFirstUntracked) {
+        this.isFirstUntracked = false;
+        cls += ' first-untracked';
+      }
+      return cls;
     },
 
     showPathContextMenu(currentFile) {
@@ -328,7 +339,7 @@
     </thead>
     <tbody x-on:keydown="keyboardSelectFile">
       <template x-for="file in files" :key="file.key">
-        <tr :class="file.status" x-on:click="clickRow.bind($data, $event, $el, file)">
+        <tr :class="rowClass(file)" x-on:click="clickRow.bind($data, $event, $el, file)">
           <th class="col-checkbox"><input type="checkbox" x-model="file.selected" class="checkbox checkbox-sm"></th>
           <td x-text="file.file" x-on:contextmenu="showPathContextMenu.bind($data, file)" x-on:dblclick="showDiff.bind($data, file)"></td>
           <td x-text="file.time"></td>

@@ -71,31 +71,45 @@ const registerWindowShortcut = function(win) {
   }
 };
 
-Menu.setApplicationMenu(null);
-//console.log(app.isHardwareAccelerationEnabled());
-//app.disableHardwareAcceleration();
-app.whenReady().then(() => {
-  let mainWindow = createWindow();
+let mainWindow = null;
+if (app.requestSingleInstanceLock({})) {
+  Menu.setApplicationMenu(null);
+  //console.log(app.isHardwareAccelerationEnabled());
+  //app.disableHardwareAcceleration();
 
-  require('./ipc/store-handlers')();
-  require('./ipc/dialog-handlers')();
-  require('./ipc/action-handlers')();
-  require('./ipc/file-handlers')(mainWindow);
-  require('./ipc/git-handlers')();
-  require('./ipc/archiver-handlers')();
-  require('./ipc/ftp-handlers')();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      mainWindow = createWindow();
+  app.on('second-instance', (event, commandLine, workingDirectory, additionalData) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
     }
   });
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  });
+  app.whenReady().then(() => {
+    mainWindow = createWindow();
 
-  registerWindowShortcut(mainWindow);
-});
+    require('./ipc/store-handlers')();
+    require('./ipc/dialog-handlers')();
+    require('./ipc/action-handlers')();
+    require('./ipc/file-handlers')(mainWindow);
+    require('./ipc/git-handlers')();
+    require('./ipc/archiver-handlers')();
+    require('./ipc/ftp-handlers')();
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
+    /**
+     * @link https://www.electronjs.org/zh/docs/latest/tutorial/tutorial-first-app#如果没有窗口打开则打开一个窗口-macos
+     */
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        mainWindow = createWindow();
+      }
+    });
+
+    registerWindowShortcut(mainWindow);
+  });
+} else {
+  app.quit();
+}
