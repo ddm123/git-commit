@@ -2,7 +2,6 @@ const { app, BrowserWindow, Menu, ipcMain, clipboard } = require('electron');
 const path = require('node:path');
 const fs = require('fs');
 const git = require('simple-git');
-const { diffLines, diffChars } = require('diff');
 const Store = require('../../modules/electron-store.js');
 
 async function handleGitStatus(event, projectPath) {
@@ -63,18 +62,16 @@ async function handleGitStashPush(event, projectPath, files, message = '') {
 }
 
 async function getDiffContent(projectPath, file) {
-  //const { execFileSync } = require('node:child_process');
-  //const head = execFileSync('git', ['show', 'HEAD:' + file], { cwd: projectPath, encoding: null });
-  //const head = await git(projectPath).raw(['show', 'HEAD:' + file]);//这种方式无法读取二进制文件
-  const head = await git(projectPath).showBuffer('HEAD:' + file);
-
   const imageExt = isImageFile(file);
   if (imageExt) {
+    //const { execFileSync } = require('node:child_process');
+    //const head = execFileSync('git', ['show', 'HEAD:' + file], { cwd: projectPath, encoding: null });
+    //const head = await git(projectPath).raw(['show', 'HEAD:' + file]);//这种方式无法读取二进制文件
+    const head = await git(projectPath).showBuffer('HEAD:' + file);
     return 'data:image/' + imageExt + ';base64,' + Buffer.from(head, 'binary').toString('base64');
   }
 
-  const local = await fs.promises.readFile(path.join(projectPath, file), 'utf-8');
-  return diffLines(head.toString(), local, { newlineIsToken: false, stripTrailingCr: true });
+  return await git(projectPath).diff(['--', file]);
 }
 
 function getUserLogs(projectPath){

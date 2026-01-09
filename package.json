@@ -1,11 +1,11 @@
 {
   "name": "git-commit",
-  "version": "1.6.6",
+  "version": "1.6.8",
   "description": "提交文件到Git版本控制仓库",
   "main": "./src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "build:css": "tailwindcss -i ./src/renderer/css/input.css -o ./dist/tailwind.css --minify",
+    "build:css": "tailwindcss -i ./src/renderer/css/input.css -o ./dist/css/tailwind.css --minify",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": {
@@ -24,7 +24,6 @@
     "archiver": "^7.0.1",
     "basic-ftp": "^5.0.5",
     "chokidar": "^4.0.3",
-    "diff": "^8.0.2",
     "electron-store": "^8.2.0",
     "progress-stream": "^2.0.0",
     "simple-git": "^3.30.0",
@@ -39,15 +38,27 @@
       "target": [
         {
           "target": "portable",
-          "arch": ["x64", "ia32", "arm64"]
+          "arch": [
+            "x64",
+            "ia32",
+            "arm64"
+          ]
         },
         {
           "target": "nsis",
-          "arch": ["x64", "ia32", "arm64"]
+          "arch": [
+            "x64",
+            "ia32",
+            "arm64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["x64", "ia32", "arm64"]
+          "arch": [
+            "x64",
+            "ia32",
+            "arm64"
+          ]
         }
       ]
     },

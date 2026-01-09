@@ -18,17 +18,19 @@ document.addEventListener('alpine:init', () => {
       });
       window.electronAPI.receive('show-diff-chunks', (event, file, diffChunks) => {
         this.file = file;
-        this.isImage = typeof diffChunks === 'string' && diffChunks.startsWith('data:image/');
+        this.isImage = diffChunks.startsWith('data:image/') && /(?:jpeg|jpg|gif|png|bmp|webp|tiff)$/.test(file);
 
         if (this.isImage) {
           this.oldFile = diffChunks;
         } else {
-          //使用一次性渲染
-          //({ oldFile: this.diffChunks.oldFile, newFile: this.diffChunks.newFile } = this.parseDiffChunks(diffChunks));
-
-          //使用渐进式渲染
-          diffChunks = this.parseDiffChunks(diffChunks);
-          this.renderFileCode(diffChunks.oldFile, diffChunks.newFile, 0);
+          const diff2htmlUi = new Diff2HtmlUI(this.$refs.diffContainer, diffChunks, {
+            drawFileList: true,
+            matching: 'lines',
+            highlight: true,
+            outputFormat: 'side-by-side'
+          });
+          diff2htmlUi.draw();
+          diff2htmlUi.highlightCode();
         }
       });
     },

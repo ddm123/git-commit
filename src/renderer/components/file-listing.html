@@ -2,9 +2,18 @@
   Alpine.store('fileListing', { selectedFilesCount: 0 });
   Alpine.data('fileListing', () => ({
     lastSaveArchiver: null,
-    isFirstUntracked: true,
+    rowClasses: {},
 
     init() {
+      document.addEventListener('files_changed', (e) => {
+        this.rowClasses = {};
+        for (let file of e.detail.files) {
+          if (file.status === 'untracked') {
+            this.rowClasses[file.file] = 'first-untracked';
+            break;
+          }
+        }
+      });
       this.$watch('$store.fileListing.selectedFilesCount', value => {
         const selectAllCheckbox = document.getElementById('select-all');
         if (selectAllCheckbox) {
@@ -163,10 +172,8 @@
 
     rowClass(file) {
       let cls = file.status;
-      if (file.key==0) this.isFirstUntracked = true;
-      if (file.status === 'untracked' && this.isFirstUntracked) {
-        this.isFirstUntracked = false;
-        cls += ' first-untracked';
+      if (typeof this.rowClasses[file.file]==='string') {
+        cls += ' ' + this.rowClasses[file.file];
       }
       return cls;
     },

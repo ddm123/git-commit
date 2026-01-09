@@ -19,6 +19,7 @@ document.addEventListener('alpine:init', () => {
       if (Alpine.store('fileListing')) Alpine.store('fileListing').selectedFilesCount = 0;
       this.branches = [];
       this.files = [];
+      document.dispatchEvent(new CustomEvent('files_changed', { detail: {files: this.files} }));
       return this;
     },
 
@@ -96,6 +97,7 @@ document.addEventListener('alpine:init', () => {
       }
 
       await this.renderFiles(Alpine.store('projectPath').path, status.files);
+      document.dispatchEvent(new CustomEvent('files_changed', { detail: {files: this.files} }));
       if (this._rafId!==null) {
         window.cancelAnimationFrame(this._rafId);
         this._rafId = null;
@@ -186,6 +188,7 @@ document.addEventListener('alpine:init', () => {
         }
         return orderDir === 'asc' ? 1 : -1;
       });
+      document.dispatchEvent(new CustomEvent('files_changed', { detail: {files: this.files} }));
     },
 
     getSelectedFiles() {
