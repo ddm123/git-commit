@@ -61,17 +61,31 @@ async function handleGitStashPush(event, projectPath, files, message = '') {
   return await git(projectPath).stash(args);
 }
 
-async function getDiffContent(projectPath, file) {
-  const imageExt = isImageFile(file);
-  if (imageExt) {
-    //const { execFileSync } = require('node:child_process');
-    //const head = execFileSync('git', ['show', 'HEAD:' + file], { cwd: projectPath, encoding: null });
-    //const head = await git(projectPath).raw(['show', 'HEAD:' + file]);//这种方式无法读取二进制文件
-    const head = await git(projectPath).showBuffer('HEAD:' + file);
-    return 'data:image/' + imageExt + ';base64,' + Buffer.from(head, 'binary').toString('base64');
+async function getDiffContent(projectPath, ...file) {
+  // const imageExt = isImageFile(file);
+  // if (imageExt) {
+  //   //const { execFileSync } = require('node:child_process');
+  //   //const head = execFileSync('git', ['show', 'HEAD:' + file], { cwd: projectPath, encoding: null });
+  //   //const head = await git(projectPath).raw(['show', 'HEAD:' + file]);//这种方式无法读取二进制文件
+  //   const head = await git(projectPath).showBuffer('HEAD:' + file);
+  //   return 'data:image/' + imageExt + ';base64,' + Buffer.from(head, 'binary').toString('base64');
+  // }
+
+  const diffContent = await git(projectPath).diff(['--', ...file]);
+  if (/Binary files\s+.+?\s+and\s+.+?\s+differ\s*$/.test(diffContent)){
+    const imageExt = isImageFile(file);
+    if (imageExt) {
+      const head = await git(projectPath).showBuffer('HEAD:' + file);
+      return 'data:image/' + imageExt + ';base64,' + Buffer.from(head, 'binary').toString('base64');
+    }
   }
 
-  return await git(projectPath).diff(['--', file]);
+  return diffContent;
+}
+
+async function getHeadFileBase64(projectPath, file) {
+  const head = await git(projectPath).showBuffer('HEAD:' + file);
+  return Buffer.from(head, 'binary').toString('base64');
 }
 
 function getUserLogs(projectPath){
@@ -173,8 +187,14 @@ function handleShowDiff(event, projectPath, file, diffChunks) {
     win.maximize();
   }
 
+  let winTitle = '';
+  if (Array.isArray(file)) {
+    winTitle = file.length>2 ? '查看 '+file[0]+', '+file[1]+' 等 '+file.length+' 个文件的差异' : '查看 '+file.join(' 和 ')+' 文件的差异'
+  } else {
+    winTitle = '查看 '+file+' 差异';
+  }
   win.loadFile('src/renderer/git-diff.html');
-  win.setTitle('查看 '+file+' 差异');
+  win.setTitle(winTitle);
   win.webContents.on('did-finish-load', () => {
     //win.webContents.openDevTools();
     win.webContents.send('show-diff-chunks', file, diffChunks);
@@ -261,9 +281,9 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:reset', async (event, projectPath, parameters) => await git(projectPath).reset(parameters));
   ipcMain.handle('git:checkout', async (event, projectPath, ...files) => await git(projectPath).checkout(['HEAD', '--', ...files]));
   ipcMain.handle('git:diff', handleGitDiff);
-  ipcMain.handle('git:diffFile', (event, projectPath, file) => getDiffContent(projectPath, file));
   ipcMain.handle('git:showPasteContextMenu', showMessagePaste);
   ipcMain.handle('git:showDiff', handleShowDiff);
+  ipcMain.handle('git:getHeadFileBase64', (event, projectPath, file) => getHeadFileBase64(projectPath, file));
   ipcMain.on('diff-chars', (event, oldStr, newStr) => event.returnValue = diffChars(oldStr, newStr));
   ipcMain.on('close-diff-window', closeDiffWindow);
   ipcMain.on('toggle-dev-tools', toggleDevTools);

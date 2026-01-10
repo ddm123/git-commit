@@ -17,21 +17,15 @@ document.addEventListener('alpine:init', () => {
         }
       });
       window.electronAPI.receive('show-diff-chunks', (event, file, diffChunks) => {
-        this.file = file;
-        this.isImage = diffChunks.startsWith('data:image/') && /(?:jpeg|jpg|gif|png|bmp|webp|tiff)$/.test(file);
-
-        if (this.isImage) {
-          this.oldFile = diffChunks;
-        } else {
-          const diff2htmlUi = new Diff2HtmlUI(this.$refs.diffContainer, diffChunks, {
-            drawFileList: true,
-            matching: 'lines',
-            highlight: true,
-            outputFormat: 'side-by-side'
-          });
-          diff2htmlUi.draw();
-          diff2htmlUi.highlightCode();
-        }
+        const diff2htmlUi = new Diff2HtmlUI(this.$refs.diffContainer, diffChunks, {
+          drawFileList: true,
+          matching: 'lines',
+          highlight: true,
+          outputFormat: 'side-by-side'
+        });
+        diff2htmlUi.draw();
+        diff2htmlUi.highlightCode();
+        this.renderImage();
       });
     },
 
@@ -209,8 +203,47 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
+    renderImage() {
+      const projectPath = window.electronAPI.getArgument('project-path');
+      const c = [];
+      const elms = this.$refs.diffContainer.querySelectorAll('.d2h-files-diff .d2h-file-side-diff .d2h-code-side-line');
+      const len = elms.length;
+
+      for (let i = 0; i < len; i++) {
+        if (elms[i].textContent === 'Binary file') {
+          c.push({
+            "left": elms[i],
+            "right": elms[i + 1],
+            "file": elms[i].closest('.d2h-files-diff')?.previousElementSibling?.querySelector('.d2h-file-name')?.textContent?.trim()
+          });
+          i++;
+        }
+      }
+
+      c.forEach(elm => {
+        let ext;
+        if (elm.file && (ext = this.isImageFile(elm.file))) {
+          window.electronAPI.getHeadFileBase64(projectPath, elm.file).then(base64 => {
+            elm.left.innerHTML = `<img src="data:image/${ext};base64,${base64}" alt="" class="max-w-full"/>`;
+            if (elm.right) {
+              elm.right.innerHTML = '<img src="'+this.getImageSrc(elm.file)+'" alt="" class="max-w-full">';
+            }
+          })
+          .catch(err => {
+            console.error(err);
+          });
+        }
+      });
+    },
+
     encodedHtml(text) {
       return text ? text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;') : text;
+    },
+
+    isImageFile(filePath) {
+      const lastDotIndex = filePath.lastIndexOf('.');
+      const ext = lastDotIndex === -1 ? '' : filePath.substring(lastDotIndex + 1).toLowerCase();
+      return ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'tiff', 'ico'].includes(ext) ? ext : false;
     },
 
     getImageSrc(file) {

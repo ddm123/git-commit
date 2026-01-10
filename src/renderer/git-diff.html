@@ -11,15 +11,6 @@
   <script src="../../src/renderer/js/git-diff.js" type="text/javascript"></script>
 </head>
 <body class="m-4" x-data="gitDiff">
-  <template x-if="!isImage"><div x-ref="diffContainer"></div></template>
-  <template x-if="isImage">
-    <div>
-      <h1 class="text-xl font-bold mb-2" x-text="file"></h1>
-      <div class="flex gap-2">
-        <div class="align-top flex-[1_1_50%]"><img x-bind:src="oldFile" alt="" class="max-w-full"/></div>
-        <div class="align-top flex-[1_1_50%]"><img x-bind:src="getImageSrc(file)" alt="" class="max-w-full"/></div>
-      </div>
-    </div>
-  </template>
+  <div x-ref="diffContainer"></div>
 </body>
 </html>

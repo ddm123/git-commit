@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   send: (channel, data) => ipcRenderer.send(channel, data),
   receive: (channel, func) => ipcRenderer.on(channel, func),
   diffChars: (oldStr, newStr) => ipcRenderer.sendSync('diff-chars', oldStr, newStr),
+  getHeadFileBase64: (path, file) => ipcRenderer.invoke('git:getHeadFileBase64', path, file),
   closeWindow: () => ipcRenderer.send('close-diff-window'),
   toggleDevTools: () => ipcRenderer.send('toggle-dev-tools')
 });

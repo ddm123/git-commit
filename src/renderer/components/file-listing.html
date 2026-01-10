@@ -22,7 +22,7 @@
           selectAllCheckbox.checked = totalFiles > 0 && value >= totalFiles;
         }
       });
-      window.electronAPI.onMenuClick('showFileDiff', (event, file) => this.showDiff(file));
+      window.electronAPI.onMenuClick('showFileDiff', (event, ...file) => this.showDiff(file));
       window.electronAPI.onMenuClick('git:checkout', (event, path, file, ...files) => {
         const confirmMsg = files.length > 0
           ? '是否放弃对选中的 ' + (files.length + 1) + ' 个文件的修改？'
@@ -119,15 +119,16 @@
       if(isDisabledBody()) return;
 
       clearMessages();
-      if(file.status!=='modified'){
+      const isArray = Array.isArray(file);
+      if(!isArray && file.status!=='modified'){
         showError('当前文件不是已修改状态，无法查看差异');
         return;
       }
 
       disableBody(true);
       const projectPath = Alpine.store('projectPath').path;
-      window.gitAPI.diffFile(projectPath, file.file)
-        .then(result => window.gitAPI.showDiff(projectPath, file.file, result))
+      window.gitAPI.diff(projectPath, isArray ? ['--', ...file] : ['--', file.file])
+        .then(result => window.gitAPI.showDiff(projectPath, isArray ? file : [file.file], result))
         .catch(error => this.showError(error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')))
         .finally(() => disableBody(false));
 
@@ -237,6 +238,7 @@
         }
         if (modifiedFiles.length > 0) {
           menus.push(
+            {label: '查看选中文件的差异', text: 'gitDiff', handler: 'showFileDiff', args: modifiedFiles},
             {label: '放弃选中文件的修改', text: 'checkout', handler: 'git:checkout', args: [projectPath, ...modifiedFiles]}
           );
         }

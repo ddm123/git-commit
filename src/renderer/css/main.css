@@ -223,9 +223,32 @@ body.disable > .body-mask{
   background-repeat: no-repeat;
   background-position: left center;
 }
-.d2h-file-side-diff {
-  min-height: calc(100vh - 100px);
+.d2h-info,
+.d2h-code-side-linenumber:after {
+  background-image: repeating-linear-gradient(
+    to right,
+    #999,
+    #999 10px,
+    transparent 5px,
+    transparent 16px
+  );
+  background-size: 100% 2px;
+  background-repeat: no-repeat;
+  background-position: center bottom;
 }
+.d2h-info.d2h-code-side-linenumber:after,
 .d2h-info .d2h-code-side-line {
   font-weight: bold;
+  font-size: 1rem;
+}
+.d2h-emptyplaceholder:not(.d2h-code-side-linenumber) {
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23CCCCCC' fill-opacity='0.4' d='M0 0h8v8H0zm8 8h8v8H8z'/%3E%3C/svg%3E");
+  background-size: 16px 16px;
+}
+.d2h-emptyplaceholder .d2h-code-side-emptyplaceholder {
+  background:transparent;
+}
+td.d2h-code-side-linenumber.d2h-code-side-emptyplaceholder {
+  background-color: transparent;
 }
