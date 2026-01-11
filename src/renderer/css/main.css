@@ -1,3 +1,7 @@
+:root {
+  --d2h-file-header-bg-color: #eee;
+  --d2h-border-color: #ccc;
+}
 @keyframes slideIn {
   0% {
     transform: translate(0, -100%);
@@ -122,6 +126,17 @@ body.disable > .body-mask{
 .message.error .close svg .icon{
   stroke: red;
 }
+
+.textarea:focus, .textarea:focus-within,
+.select:focus, .select:focus-within,
+.input:focus, .input:focus-within,
+.btn:focus-visible, .btn:has(:focus-visible) {
+  box-shadow: 0 0 8px 0 var(--color-accent);
+  border-color: var(--color-accent);
+  outline: none;
+  outline-offset: 0;
+}
+
 .file-list {
   --input-color: color-mix(in oklab, var(--color-base-content) 20%, #0000);
   height: calc(100vh - 254px);
@@ -171,7 +186,7 @@ body.disable > .body-mask{
   white-space: nowrap;
 }
 .file-list tbody > tr:has(.col-checkbox input[type="checkbox"]:focus) {
-  outline: 1px dotted #ccc;
+  outline: 1px dotted var(--color-accent);
   outline-offset: -1px;
 }
 .file-list tbody tr.first-untracked {
@@ -223,6 +238,11 @@ body.disable > .body-mask{
   background-repeat: no-repeat;
   background-position: left center;
 }
+
+.d2h-file-wrapper, .d2h-file-header {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
 .d2h-info,
 .d2h-code-side-linenumber:after {
   background-image: repeating-linear-gradient(
@@ -236,6 +256,10 @@ body.disable > .body-mask{
   background-repeat: no-repeat;
   background-position: center bottom;
 }
+.d2h-code-side-linenumber.binary-file {
+  display: table-cell;
+  position: unset;
+}
 .d2h-info.d2h-code-side-linenumber:after,
 .d2h-info .d2h-code-side-line {
   font-weight: bold;
@@ -246,9 +270,7 @@ body.disable > .body-mask{
   background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23CCCCCC' fill-opacity='0.4' d='M0 0h8v8H0zm8 8h8v8H8z'/%3E%3C/svg%3E");
   background-size: 16px 16px;
 }
-.d2h-emptyplaceholder .d2h-code-side-emptyplaceholder {
-  background:transparent;
-}
+.d2h-emptyplaceholder .d2h-code-side-emptyplaceholder,
 td.d2h-code-side-linenumber.d2h-code-side-emptyplaceholder {
   background-color: transparent;
 }
