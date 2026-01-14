@@ -204,7 +204,7 @@ class FtpClient {
     remoteFile = remoteFile.replaceAll('\\', '/');
 
     if (this.protocol === 'sftp') {
-      return this.client.delete(remoteFile);
+      return this.client.delete(remoteFile, true);
     }
 
     return this.client.remove(remoteFile);

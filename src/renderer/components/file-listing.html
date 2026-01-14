@@ -127,7 +127,8 @@
 
       disableBody(true);
       const projectPath = Alpine.store('projectPath').path;
-      window.gitAPI.diff(projectPath, isArray ? ['HEAD', '--unified=10', '--', ...file] : ['HEAD', '--unified=10', '--', file.file])
+      const unified = !isArray || file.length===1 ? '50' : '10'; // 如果是单个文件，默认展示50行，否则10行
+      window.gitAPI.diff(projectPath, isArray ? ['HEAD', '--unified='+unified, '--', ...file] : ['HEAD', '--unified='+unified, '--', file.file])
         .then(result => window.gitAPI.showDiff(projectPath, isArray ? file : [file.file], result))
         .catch(error => this.showError(error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')))
         .finally(() => disableBody(false));
