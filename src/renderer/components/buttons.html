@@ -282,7 +282,14 @@
   }));
 </script>
 <div x-data="buttons">
-  <div class="my-1 text-xs">共有 <span class="font-bold" x-text="files.length"></span> 个文件已变更，<span class="font-bold" x-text="$store.fileListing.selectedFilesCount"></span> 个文件被选中</div>
+  <div class="my-1 flex items-center justify-between">
+    <div class="text-xs">共有 <span class="font-bold" x-text="files.length"></span> 个文件已变更，<span class="font-bold" x-text="$store.fileListing.selectedFilesCount"></span> 个文件被选中</div>
+    <div class="join">
+      <input class="join-item btn btn-xs font-normal" type="radio" name="filter_by_day" aria-label="全部" value="0" x-model="filterByDay" />
+      <input class="join-item btn btn-xs font-normal" type="radio" name="filter_by_day" aria-label="今天修改的" value="1" x-model="filterByDay" />
+      <input class="join-item btn btn-xs font-normal" type="radio" name="filter_by_day" aria-label="今天和昨天修改的" value="2" x-model="filterByDay" />
+    </div>
+  </div>
   <div class="flex items-center justify-between">
     <div class="shrink-0 flex items-center">
       <button class="btn" x-on:click="refresh">刷新(F5)</button>

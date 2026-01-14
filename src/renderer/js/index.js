@@ -2,12 +2,14 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('app', () => ({
     branches: [],
     files: [],
+    filterByDay: 0,
     _rafId: null,
 
     init() {
       window.gitAPI.onProgress('git:progress', (event, data) => {
         Alpine.store('statusBar').statusText = '正在拉取远程仓库最新代码... ' + data.method + '(' + data.stage + '): ' + data.progress + '%';
       });
+      this.$watch('filterByDay', () => this.refresh());
     },
 
     get isRenderingFiles() {
@@ -107,6 +109,7 @@ document.addEventListener('alpine:init', () => {
 
     renderFiles(projectPath, files, start = 0) {
       return new Promise((resolve, reject) => {
+        const now = Date.now();
         const limit = 10;
         const fileCount = files.length;
         const types = { 'M': 'modified', 'D': 'deleted', 'A': 'added', 'U': 'unmerged', '?': 'untracked' };
@@ -124,6 +127,9 @@ document.addEventListener('alpine:init', () => {
               const fileStat = type === 'D' ? null : window.electronAPI.getFileStatSync(projectPath, file.path);
 
               if (fileStat && fileStat.isDirectory) {
+                continue;
+              }
+              if (this.filterByDay>0 && fileStat && now-fileStat.mtimeMs > this.filterByDay*86400000) { // 86400000 = 24*60*60*1000
                 continue;
               }
 
