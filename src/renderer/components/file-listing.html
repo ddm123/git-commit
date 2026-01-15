@@ -146,6 +146,8 @@
           } else if (selectedFilesCount > 0) {
             selectedFilesCount--;
           }
+
+          checkbox.checked ? this.selectedFilesCache.add(checkbox.getAttribute('data-file')) : this.selectedFilesCache.delete(checkbox.getAttribute('data-file'));
           Alpine.store('fileListing').selectedFilesCount = selectedFilesCount;
         }
       }
@@ -272,7 +274,7 @@
     <tbody x-on:keydown="keyboardSelectFile">
       <template x-for="file in files" :key="file.key">
         <tr :class="rowClass(file)" x-on:click="clickRow.bind($data, $event, $el, file)">
-          <th class="col-checkbox"><input type="checkbox" x-model="file.selected" class="checkbox checkbox-sm"></th>
+          <th class="col-checkbox"><input type="checkbox" x-model="file.selected" x-bind:data-file="file.file" class="checkbox checkbox-sm" /></th>
           <td x-text="file.file" x-on:contextmenu="showPathContextMenu.bind($data, file)" x-on:dblclick="showDiff.bind($data, file)"></td>
           <td x-text="file.time"></td>
           <td x-text="file.statusLabel"></td>

@@ -3,17 +3,39 @@ document.addEventListener('alpine:init', () => {
     branches: [],
     files: [],
     filterByDay: 0,
+    filterDayRange: {start: 0, end: 0},
+    selectedFilesCache: new Set(),
     _rafId: null,
 
     init() {
       window.gitAPI.onProgress('git:progress', (event, data) => {
         Alpine.store('statusBar').statusText = '正在拉取远程仓库最新代码... ' + data.method + '(' + data.stage + '): ' + data.progress + '%';
       });
-      this.$watch('filterByDay', () => this.refresh());
+      this.$watch('filterByDay', days => {
+        days = parseFloat(days);
+        if (days > 0) this.setFilterDayRange(days - 1);
+        this.refresh();
+      });
+
+      this.setFilterDayRange();
     },
 
     get isRenderingFiles() {
       return this._rafId !== null;
+    },
+
+    setFilterDayRange(subDays = 0) {
+      const start = new Date(), end = new Date();
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      this.filterDayRange.start = start.getTime();
+      this.filterDayRange.end = end.getTime();
+
+      if (subDays > 0) {
+        this.filterDayRange.start -= subDays*86400000; // 86400000 = 24*60*60*1000 (1 day in milliseconds)
+      }
+
+      return this;
     },
 
     clearAllList() {
@@ -104,12 +126,14 @@ document.addEventListener('alpine:init', () => {
         window.cancelAnimationFrame(this._rafId);
         this._rafId = null;
       }
+      if (Alpine.store('fileListing')) {
+        Alpine.store('fileListing').selectedFilesCount = this.getSelectedFilesCount();
+      }
       return this.files;
     },
 
     renderFiles(projectPath, files, start = 0) {
       return new Promise((resolve, reject) => {
-        const now = Date.now();
         const limit = 10;
         const fileCount = files.length;
         const types = { 'M': 'modified', 'D': 'deleted', 'A': 'added', 'U': 'unmerged', '?': 'untracked' };
@@ -126,10 +150,13 @@ document.addEventListener('alpine:init', () => {
               const type = file.working_dir && file.working_dir !== ' ' ? file.working_dir : file.index;
               const fileStat = type === 'D' ? null : window.electronAPI.getFileStatSync(projectPath, file.path);
 
+              // 如果是一个文件夹，跳过
               if (fileStat && fileStat.isDirectory) {
                 continue;
               }
-              if (this.filterByDay>0 && fileStat && now-fileStat.mtimeMs > this.filterByDay*86400000) { // 86400000 = 24*60*60*1000
+
+              // 如果需要过滤日期
+              if (this.filterByDay>0 && fileStat && (fileStat.mtimeMs<this.filterDayRange.start || fileStat.mtimeMs>this.filterDayRange.end)) {
                 continue;
               }
 
@@ -152,7 +179,7 @@ document.addEventListener('alpine:init', () => {
                   second: '2-digit',
                   hour12: false
                 }) : '-',
-                selected: file.index && file.index !== ' ' && file.index !== '?' &&  file.index !== 'U'
+                selected: this.selectedFilesCache.has(file.path) || file.index && file.index !== ' ' && file.index !== '?' &&  file.index !== 'U'
               });
             }
           }
@@ -199,6 +226,15 @@ document.addEventListener('alpine:init', () => {
 
     getSelectedFiles() {
       return this.files.filter(file => file.selected);
+    },
+
+    getSelectedFilesCount() {
+      // 简洁版写法
+      //return this.files.reduce((count, file) => count + (file.selected ? 1 : 0), 0);
+      // 高效版写法
+      let count = 0, len = this.files.length;
+      for (let i = 0; i < len; i++) if (this.files[i].selected) count++;
+      return count;
     },
 
     openDialog(title, message) {

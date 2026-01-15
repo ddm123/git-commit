@@ -56,6 +56,7 @@
 
         Alpine.store('commitMessage').message = '';
         Alpine.store('statusBar').statusText = '';
+        this.selectedFilesCache.clear();
       })
       .catch((error) => {
         disableBody(false);
