@@ -60,6 +60,18 @@ function formatFileSize(size) {
     return size.toFixed(2) + ' ' + units[index];
 }
 
+function debounce(fn, wait = 300) {
+    let timer;
+
+     function debounced(...args) {
+          clearTimeout(timer);
+         timer = setTimeout(() => fn.apply(this, args), wait);
+     }
+
+     debounced.cancel = () => clearTimeout(timer);
+     return debounced;
+}
+
 async function compileComponents() {
     for (const component of document.querySelectorAll('component[src]')) {
         await fetch(component.getAttribute('src'), {cache: 'no-store', headers: {'Cache-Control': 'no-cache'}})

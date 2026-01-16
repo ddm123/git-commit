@@ -1,5 +1,6 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('app', () => ({
+    currentTheme: '',
     branches: [],
     files: [],
     filterByDay: 0,
@@ -11,11 +12,14 @@ document.addEventListener('alpine:init', () => {
       window.gitAPI.onProgress('git:progress', (event, data) => {
         Alpine.store('statusBar').statusText = '正在拉取远程仓库最新代码... ' + data.method + '(' + data.stage + '): ' + data.progress + '%';
       });
+      this.$watch('currentTheme', value => debounce(theme => window.electronStore.set('theme', theme), 1000)(value));
       this.$watch('filterByDay', days => {
         days = parseFloat(days);
         if (days > 0) this.setFilterDayRange(days - 1);
         this.refresh();
       });
+
+      this.currentTheme = window.electronStore.get('theme') ?? '';
 
       this.setFilterDayRange();
     },

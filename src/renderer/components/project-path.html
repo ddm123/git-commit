@@ -280,6 +280,24 @@
       </select>
     </label>
     <button class="btn shrink-0" x-on:click="showFtpConfig" x-bind:class="ftpConfig.host ? 'btn-success' : ''">远程服务器</button>
+    <div class="dropdown dropdown-left shrink-0 flex items-center">
+      <div tabindex="0" role="button">
+        <svg class="size-8" xmlns="http://www.w3.org/2000/svg" viewBox="2 0 20 24" aria-hidden="true">
+          <path d="M14 16c0 1.77-.77 3.37-2 4.46A5.93 5.93 0 018 22c-3.31 0-6-2.69-6-6 0-2.76 1.88-5.1 4.42-5.79a6.019 6.019 0 004 3.58c.5.14 1.03.21 1.58.21s1.08-.07 1.58-.21c.27.68.42 1.43.42 2.21z" fill="#fca5a5"></path>
+          <path d="M18 8a5.993 5.993 0 01-4.42 5.79c-.5.14-1.03.21-1.58.21s-1.08-.07-1.58-.21A5.993 5.993 0 016 8c0-3.31 2.69-6 6-6s6 2.69 6 6z" fill="#86efac"></path>
+          <path d="M22 16c0 3.31-2.69 6-6 6a5.93 5.93 0 01-4-1.54c1.23-1.09 2-2.69 2-4.46 0-.78-.15-1.53-.42-2.21 1.83-.5 3.31-1.84 4-3.58C20.12 10.9 22 13.24 22 16z" fill="#93c5fd"></path>
+        </svg>
+      </div>
+      <ul tabindex="-1" class="dropdown-content bg-base-300 rounded-box z-10 w-52 p-2 shadow-2xl">
+        <li><input type="radio" name="theme-dropdown" class="theme-controller w-full btn btn-sm btn-block btn-ghost justify-start" aria-label="Default" value="default" x-model="currentTheme" /></li>
+        <li><input type="radio" name="theme-dropdown" class="theme-controller w-full btn btn-sm btn-block btn-ghost justify-start" aria-label="Dark" value="dark" x-model="currentTheme" /></li>
+        <li><input type="radio" name="theme-dropdown" class="theme-controller w-full btn btn-sm btn-block btn-ghost justify-start" aria-label="Cupcake" value="cupcake" x-model="currentTheme" /></li>
+        <li><input type="radio" name="theme-dropdown" class="theme-controller w-full btn btn-sm btn-block btn-ghost justify-start" aria-label="Retro" value="retro" x-model="currentTheme" /></li>
+        <li><input type="radio" name="theme-dropdown" class="theme-controller w-full btn btn-sm btn-block btn-ghost justify-start" aria-label="Valentine" value="valentine" x-model="currentTheme" /></li>
+        <li><input type="radio" name="theme-dropdown" class="theme-controller w-full btn btn-sm btn-block btn-ghost justify-start" aria-label="Forest" value="forest" x-model="currentTheme" /></li>
+        <li><input type="radio" name="theme-dropdown" class="theme-controller w-full btn btn-sm btn-block btn-ghost justify-start" aria-label="Caramellatte" value="caramellatte" x-model="currentTheme" /></li>
+      </ul>
+    </div>
   </div>
 
   <dialog id="ftp-config-dialog" class="modal modal-bottom sm:modal-middle">

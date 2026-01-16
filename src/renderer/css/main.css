@@ -74,20 +74,20 @@ body.disable > .body-mask{
   width: auto;
 }
 .message.error{
-  color: red;
-  background-color: #f8d7da;
+  color: var(--color-error-content);
+  background-color: var(--color-error);
 }
 .message.success{
-  color: green;
-  background-color: #d4edda;
+  color: var(--color-success-content);
+  background-color: var(--color-success);
 }
 .message.success::before{
   content: "✓";
-  color: green;
+  color: var(--color-success-content);
 }
 .message.error::before{
   content: "✕";
-  color: red;
+  color: var(--color-error-content);
 }
 .message .text{
   flex-grow: 1;
@@ -120,11 +120,11 @@ body.disable > .body-mask{
 }
 .message.success .close svg .circle-fill,
 .message.success .close svg .icon{
-  stroke: green;
+  stroke: var(--color-success-content);
 }
 .message.error .close svg .circle-fill,
 .message.error .close svg .icon{
-  stroke: red;
+  stroke: var(--color-error-content);
 }
 
 .textarea:focus, .textarea:focus-within,
@@ -170,16 +170,16 @@ body.disable > .body-mask{
   padding-inline-start: 0;
 }
 .file-list tbody .modified {
-  color: blue;
+  color: var(--color-info);
 }
 .file-list tbody .added {
-  color: #724e18;
+  color: var(--color-warning-content);
 }
 .file-list tbody .deleted {
-  color: red;
+  color: var(--color-error);
 }
 .file-list tbody .untracked {
-  color: green;
+  color: var(--color-success);
 }
 .file-list .table tbody :where(td, th) {
   padding-block: 5px;
@@ -209,7 +209,7 @@ body.disable > .body-mask{
 .file-list tbody tr.first-untracked > td[x-text="file.file"]::after {
   content: "未跟踪的文件";
   text-align: center;
-  background-color: #fff;
+  background-color: var(--color-base-100);
   padding: 0 5px;
   font-size: .7rem;
   width: fit-content;
