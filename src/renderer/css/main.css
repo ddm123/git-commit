@@ -100,16 +100,16 @@ body.disable > .body-mask{
   display: block;
 }
 .message .close svg .circle-bg {
-  stroke: #f2f2f2;
+  stroke: var(--color-base-200);
 }
 .message .close svg .circle-fill {
-  stroke: gray;
+  stroke: var(--color-neutral);
   stroke-linecap: butt;
   transform: rotate(-90deg);
   transform-origin: center;
 }
 .message .close svg .icon{
-  stroke:gray;
+  stroke: var(--color-neutral);
   stroke-linecap: round;
 }
 .message .close svg .circle-bg,
