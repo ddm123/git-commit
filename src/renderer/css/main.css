@@ -100,7 +100,7 @@ body.disable > .body-mask{
   display: block;
 }
 .message .close svg .circle-bg {
-  stroke: var(--color-base-200);
+  stroke: transparent;
 }
 .message .close svg .circle-fill {
   stroke: var(--color-neutral);

@@ -9,10 +9,12 @@ document.addEventListener('alpine:init', () => {
     _rafId: null,
 
     init() {
+      const saveTheme = debounce(theme => window.electronStore.set('theme', theme), 1000);
+
       window.gitAPI.onProgress('git:progress', (event, data) => {
         Alpine.store('statusBar').statusText = '正在拉取远程仓库最新代码... ' + data.method + '(' + data.stage + '): ' + data.progress + '%';
       });
-      this.$watch('currentTheme', value => debounce(theme => window.electronStore.set('theme', theme), 1000)(value));
+      this.$watch('currentTheme', saveTheme);
       this.$watch('filterByDay', days => {
         days = parseFloat(days);
         if (days > 0) this.setFilterDayRange(days - 1);
