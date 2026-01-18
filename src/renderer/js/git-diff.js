@@ -29,7 +29,11 @@ document.addEventListener('alpine:init', () => {
         });
         diff2htmlUi.draw();
         diff2htmlUi.highlightCode();
-        this.renderImage();
+
+        const imgCount = this.renderImage().length;
+        if (!imgCount && file.length===1) { // 如果没有图片并且是只查看一个文件
+          setTimeout(() => this.showDiffPosition(), 300);
+        }
       });
     },
 
@@ -52,6 +56,18 @@ document.addEventListener('alpine:init', () => {
       }
 
       this.setImageHtml(c);
+      return c;
+    },
+
+    showDiffPosition() {
+      const td = this.$refs.diffContainer.querySelector('td.d2h-del, td.d2h-emptyplaceholder');
+      if (td) {
+        td.scrollIntoView({
+          behavior: 'smooth', // 滚动是立即的还是平滑的动画。smooth：滚动应该是平滑的动画。instant：滚动应该通过一次跳跃立刻发生。auto：滚动行为由 scroll-behavior 的计算值决定。
+          block: 'center',
+          inline: 'start'
+        });
+      }
     },
 
     setImageHtml(elms) {

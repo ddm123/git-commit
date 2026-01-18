@@ -4,7 +4,6 @@
   okBtn: null,
   cancelBtn: null,
   isPrompt: false,
-  promptValue: '',
   promptLabel: '',
   promptPlaceholder: '',
   open(title, body) {
@@ -17,12 +16,11 @@
     this.isPrompt = true;
     this.title = title;
     this.promptLabel = label;
-    this.promptValue = '';
     this.promptPlaceholder = placeholder;
     $el.showModal();
-    $nextTick(() => $refs.modalPromptInput.focus());
+    $nextTick(() => {$refs.modalPromptInput.focus();$refs.modalPromptInput.value='';});
     const promise = new Promise(resolve => {
-      this.okBtnClick(function() { resolve(this.promptValue); }, '确定');
+      this.okBtnClick(() => resolve($refs.modalPromptInput.value), '确定');
       this.cancelBtnClick(() => resolve(null), '取消');
     });
     promise.finally(() => {
@@ -53,7 +51,7 @@
     <div class="py-4" x-show="$store.dialog.isPrompt">
       <label class="input my-1 w-full">
         <span class="label" x-text="$store.dialog.promptLabel"></span>
-        <input type="text" x-ref="modalPromptInput" x-bind:placeholder="$store.dialog.promptPlaceholder" x-model="$store.dialog.promptValue" />
+        <input type="text" x-ref="modalPromptInput" x-bind:placeholder="$store.dialog.promptPlaceholder" />
       </label>
     </div>
     <template x-if="$store.dialog.okBtn || $store.dialog.cancelBtn">

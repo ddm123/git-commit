@@ -194,7 +194,7 @@ body.disable > .body-mask{
 }
 .file-list tbody tr.first-untracked > td[x-text="file.file"]::before {
   content: "";
-  background: linear-gradient(90deg, #f2f2f2, #666, #f2f2f2);
+  background: linear-gradient(90deg, transparent, #666, transparent);
   background-size: 100% 1px;
   background-repeat: no-repeat;
   background-position: left center;
