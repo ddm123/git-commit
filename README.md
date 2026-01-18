@@ -42,6 +42,6 @@ npx electron-builder -mwl #build for macOS, Windows and Linux
 ``` bash
 ./out/git-commit-1.0.0.AppImage --no-sandbox  --disable-gpu
 ```
-
+# 运行效果
 ![界面预览-1](https://github.com/user-attachments/assets/1f5e591b-6395-4cee-a8df-91fc6aa62649)
 ![界面预览-２](https://github.com/user-attachments/assets/d7105b74-2699-4056-b662-0dd55fa3cae4)
