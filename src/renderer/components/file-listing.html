@@ -109,10 +109,21 @@
     },
 
     toggleSelectAll(event) {
-      const isChecked = event.target.checked;
+      const filesCount = this.files.length;
 
-      this.files.forEach(file => file.selected = isChecked);
-      Alpine.store('fileListing').selectedFilesCount = isChecked ? this.files.length : 0;
+      if (event.target.checked) {
+        for (let i = 0; i < filesCount; i++) {
+          this.files[i].selected = true;
+          this.selectedFilesCache.add(this.files[i].file);
+        }
+        Alpine.store('fileListing').selectedFilesCount = filesCount;
+      } else {
+        for (let i = 0; i < filesCount; i++) {
+          this.files[i].selected = false;
+        }
+        this.selectedFilesCache.clear();
+        Alpine.store('fileListing').selectedFilesCount = 0;
+      }
     },
 
     showDiff(file) {

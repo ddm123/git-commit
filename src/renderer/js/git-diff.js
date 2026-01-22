@@ -32,7 +32,7 @@ document.addEventListener('alpine:init', () => {
 
         const imgCount = this.renderImage().length;
         if (!imgCount && file.length===1) { // 如果没有图片并且是只查看一个文件
-          setTimeout(() => this.showDiffPosition(), 300);
+          setTimeout(() => this.showDiffPosition(), 200);
         }
       });
     },

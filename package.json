@@ -1,8 +1,17 @@
 {
   "name": "git-commit",
-  "version": "1.6.8",
-  "description": "提交文件到Git版本控制仓库",
+  "version": "1.6.9",
+  "description": "一个简单的Git提交工具",
+  "keywords": ["Git", "Commit"],
+  "repository":{
+    "type": "git",
+    "url": "https://github.com/ddm123/git-commit.git"
+  },
   "main": "./src/main/main.js",
+  "engines": {
+    "node": "^24.11.0",
+    "npm": "^11.6.0"
+  },
   "scripts": {
     "start": "electron .",
     "build:css": "tailwindcss -i ./src/renderer/css/input.css -o ./dist/css/tailwind.css --minify",
