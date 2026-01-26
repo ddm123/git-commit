@@ -3,6 +3,7 @@ document.addEventListener('alpine:init', () => {
     currentTheme: '',
     branches: [],
     files: [],
+    untrackedCount: 0,
     filterByDay: 0,
     filterDayRange: {start: 0, end: 0},
     selectedFilesCache: new Set(),
@@ -49,6 +50,7 @@ document.addEventListener('alpine:init', () => {
       if (Alpine.store('fileListing')) Alpine.store('fileListing').selectedFilesCount = 0;
       this.branches = [];
       this.files = [];
+      this.untrackedCount = 0;
       document.dispatchEvent(new CustomEvent('files_changed', { detail: {files: this.files} }));
       return this;
     },
@@ -164,6 +166,10 @@ document.addEventListener('alpine:init', () => {
               // 如果需要过滤日期
               if (this.filterByDay>0 && fileStat && (fileStat.mtimeMs<this.filterDayRange.start || fileStat.mtimeMs>this.filterDayRange.end)) {
                 continue;
+              }
+
+              if (type === '?') {
+                this.untrackedCount++;
               }
 
               this.files.push({

@@ -207,7 +207,7 @@ body.disable > .body-mask{
   transform: translateY(-50%);
 }
 .file-list tbody tr.first-untracked > td[x-text="file.file"]::after {
-  content: "未跟踪的文件";
+  content: attr(data-title);
   text-align: center;
   background-color: var(--color-base-100);
   padding: 0 5px;

@@ -7,7 +7,7 @@
     init() {
       document.addEventListener('files_changed', (e) => {
         this.rowClasses = {};
-        for (let file of e.detail.files) {
+        for (const file of e.detail.files) {
           if (file.status === 'untracked') {
             this.rowClasses[file.file] = 'first-untracked';
             break;
@@ -166,7 +166,7 @@
 
     rowClass(file) {
       let cls = file.status;
-      if (typeof this.rowClasses[file.file]==='string') {
+      if (this.rowClasses[file.file]) {
         cls += ' ' + this.rowClasses[file.file];
       }
       return cls;
@@ -286,7 +286,7 @@
       <template x-for="file in files" :key="file.key">
         <tr :class="rowClass(file)" x-on:click="clickRow.bind($data, $event, $el, file)">
           <th class="col-checkbox"><input type="checkbox" x-model="file.selected" x-bind:data-file="file.file" class="checkbox checkbox-sm" /></th>
-          <td x-text="file.file" x-on:contextmenu="showPathContextMenu.bind($data, file)" x-on:dblclick="showDiff.bind($data, file)"></td>
+          <td x-text="file.file" :data-title="rowClasses[file.file] ? '未跟踪的文件 (' + untrackedCount + ')' : ''" x-on:contextmenu="showPathContextMenu.bind($data, file)" x-on:dblclick="showDiff.bind($data, file)"></td>
           <td x-text="file.time"></td>
           <td x-text="file.statusLabel"></td>
           <td x-text="file.ext"></td>
