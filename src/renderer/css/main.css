@@ -74,20 +74,20 @@ body.disable > .body-mask{
   width: auto;
 }
 .message.error{
-  color: var(--color-error-content);
-  background-color: var(--color-error);
+  color: var(--color-error);
+  background-color: color-mix(in oklab,var(--color-error)16%,var(--color-base-100));
 }
 .message.success{
-  color: var(--color-success-content);
-  background-color: var(--color-success);
+  color: var(--color-success);
+  background-color: color-mix(in oklab,var(--color-success)16%,var(--color-base-100));
 }
 .message.success::before{
-  content: "✓";
-  color: var(--color-success-content);
+  content: "✔︎";
+  color: var(--color-success);
 }
 .message.error::before{
-  content: "✕";
-  color: var(--color-error-content);
+  content: "🗙";
+  color: var(--color-error);
 }
 .message .text{
   flex-grow: 1;
@@ -98,6 +98,8 @@ body.disable > .body-mask{
   height: 1rem;
   line-height: 100%;
   display: block;
+  margin-right: -7px;
+  margin-top: -4px;
 }
 .message .close svg .circle-bg {
   stroke: transparent;
@@ -120,11 +122,11 @@ body.disable > .body-mask{
 }
 .message.success .close svg .circle-fill,
 .message.success .close svg .icon{
-  stroke: var(--color-success-content);
+  stroke: var(--color-success);
 }
 .message.error .close svg .circle-fill,
 .message.error .close svg .icon{
-  stroke: var(--color-error-content);
+  stroke: var(--color-error);
 }
 
 .textarea:focus, .textarea:focus-within,
