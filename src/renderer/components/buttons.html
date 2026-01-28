@@ -294,7 +294,7 @@
         </div>
         <ul tabindex="-1" class="dropdown-content bg-base-300 rounded-box z-10 p-2 shadow-2xl">
           <template x-for="day in Array.from(filterByDays)">
-            <li class="whitespace-nowrap"><input type="radio" name="filter_by_day" class="w-full btn btn-ghost font-normal justify-start" x-bind:value="day[0]" x-bind:aria-label="day[1]" x-model="filterByDay" /></li>
+            <li class="whitespace-nowrap"><input type="radio" name="filter_by_day" class="w-full btn btn-ghost btn-sm font-normal justify-start" x-bind:value="day[0]" x-bind:aria-label="day[1]" x-model="filterByDay" /></li>
           </template>
         </ul>
       </div>
