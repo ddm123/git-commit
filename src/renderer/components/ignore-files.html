@@ -2,6 +2,7 @@
 Alpine.store('ignoreFileListing', {show: function(){}, isNeedRefresh: true});
 Alpine.data('ignoreFileListing', () => ({
   ignoredFiles: [],
+  selectedCount: 0,
 
   init() {
     this.$store.ignoreFileListing.show = () => this.showFileListing();
@@ -17,6 +18,7 @@ Alpine.data('ignoreFileListing', () => ({
 
   refreshFiles() {
     this.ignoredFiles = [];
+    this.selectedCount = 0;
     this.$refs.selectAllIgnoreFiles.indeterminate = false;
     this.$refs.selectAllIgnoreFiles.checked = false;
 
@@ -48,14 +50,22 @@ Alpine.data('ignoreFileListing', () => ({
       }
       this.ignoredFiles.push(f);
     });
+
+    this.$nextTick(() => {
+      const th = this.$el.querySelector('table thead :where(td, th)[order-dir]');
+      if(th){
+        const orderDir = th.getAttribute('order-dir')==='asc' ? 'desc' : 'asc';
+        th.setAttribute('order-dir', orderDir);
+        this.sortFiles({target: th});
+      }
+    });
   },
 
   toggleSelectAll(event) {
     const filesCount = this.ignoredFiles.length;
-    const checked = event.target.checked;
-    for (let i = 0; i < filesCount; i++) {
-      this.ignoredFiles[i].selected = checked;
-    }
+    const checked = event.target.checked ? true : false;
+    for (let i = 0; i < filesCount; i++) this.ignoredFiles[i].selected = checked;
+    this.selectedCount = checked ? filesCount : 0;
   },
 
   sortFiles(event) {
@@ -102,6 +112,7 @@ Alpine.data('ignoreFileListing', () => ({
           const checked = checkbox.checked, len = this.ignoredFiles.length;
           let j = 0;
           for (let i = 0; i < len; i++) if (this.ignoredFiles[i].selected) j++;
+          this.selectedCount = j;
           this.$refs.selectAllIgnoreFiles.indeterminate = j > 0 && j < len;
           this.$refs.selectAllIgnoreFiles.checked = j >= len;
         });
@@ -122,8 +133,12 @@ Alpine.data('ignoreFileListing', () => ({
       showError('请先选择需要取消隐藏的文件');
       return;
     }
-    this.$store.ignoreFileListing.isNeedRefresh = true;
-    this.$el.close();
+    //this.$store.ignoreFileListing.isNeedRefresh = true;
+    //this.$el.close();
+    this.ignoredFiles = this.ignoredFiles.filter(f => !f.selected);
+    this.selectedCount = 0;
+    this.$refs.selectAllIgnoreFiles.indeterminate = false;
+    this.$refs.selectAllIgnoreFiles.checked = false;
     this.refresh();
 
     return new Promise((resolve, reject) => {
@@ -142,7 +157,13 @@ Alpine.data('ignoreFileListing', () => ({
     <form method="dialog">
       <button class="btn btn-sm btn-circle btn-ghost absolute z-2 right-2 top-2">✕</button>
     </form>
-    <div class="mb-1"><button class="btn btn-sm" x-on:click="unignoreFiles.bind($data, $event)">取消隐藏选中的文件</button></div>
+    <div class="mb-1 flex items-end justify-between">
+      <button class="btn btn-sm" x-on:click="unignoreFiles.bind($data, $event)">取消隐藏选中的文件</button>
+      <div class="text-xs">
+        共有 <span class="font-bold" x-text="ignoredFiles.length"></span> 个文件已隐藏，
+        <span class="font-bold" x-text="selectedCount"></span> 个文件被选中
+      </div>
+    </div>
     <div class="file-list overflow-x-auto w-full">
       <table class="table table-pin-rows table-pin-cols">
         <thead>
