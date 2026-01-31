@@ -1,10 +1,11 @@
 <script>
-  Alpine.store('fileListing', { selectedFilesCount: 0 });
+  Alpine.store('fileListing', { selectedFilesCount: 0, element: null });
   Alpine.data('fileListing', () => ({
     lastSaveArchiver: null,
     rowClasses: {},
 
     init() {
+      this.$store.fileListing.element = this.$el;
       document.addEventListener('files_changed', (e) => {
         this.rowClasses = {};
         for (const file of e.detail.files) {
@@ -72,6 +73,7 @@
           this.showError('保存压缩文件失败: ' + error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>'));
         });
       });
+      window.electronAPI.onMenuClick('ignoreFiles', (event, ...files) => this.addIgnoreFile(...files));
 
       const failedFiles = [];
       window.electronAPI.onMenuClick('ftp:upload', (event, path, ...files) => {
@@ -146,11 +148,12 @@
     },
 
     clickRow(event, tr) {
-      const checkbox = tr.querySelector('.col-checkbox input[type="checkbox"]');
+      const isCheckbox = event.target.type === 'checkbox';
+      const checkbox = isCheckbox ? event.target : tr.querySelector('.col-checkbox input[type="checkbox"]');
       if (checkbox) {
         checkbox.focus();
 
-        if (event.target.type === 'checkbox') {
+        if (isCheckbox) {
           let selectedFilesCount = Alpine.store('fileListing').selectedFilesCount;
           if (checkbox.checked) {
             selectedFilesCount++;
@@ -185,7 +188,8 @@
 
         {label: '打开所在文件夹', text: 'showItemInFolder', handler: 'shell:showItemInFolder', args: [currentFile.absPath]},
 
-        {label: '存储所有修改', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath]}
+        {label: '存储所有修改', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath]},
+        {label: '隐藏该文件', text: 'ignoreFiles', handler: 'ignoreFiles', args: [currentFile.file]},
       );
 
       if (currentFile.status === 'unmerged') {
@@ -221,7 +225,8 @@
           {label: '复制选中文件的相对路径', text: paths.join("\n")},
           {label: '复制选中文件的绝对对路径', text: absPaths.join("\n")},
           {label: '打包选中的文件', text: 'archiver', handler: 'dialog:showSaveDialog', args: [projectPath, ...paths]},
-          {label: '存储选中的文件', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath, ...paths]}
+          {label: '存储选中的文件', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath, ...paths]},
+          {label: '隐藏选中的文件', text: 'ignoreFiles', handler: 'ignoreFiles', args: paths}
         );
 
         if (unmergedFiles.length > 0) {
@@ -267,6 +272,24 @@
 
       let config = window.electronStore.get('ftp');
       return (config && typeof config[path] === 'object') ? config[path] : null;
+    },
+
+    addIgnoreFile(...file) {
+      file.forEach(f => this.ignoreFiles.add(f));
+      this.refresh();
+      this.$store.ignoreFileListing.isNeedRefresh = true;
+      return new Promise((resolve, reject) => {
+        const path = Alpine.store('projectPath').path;
+        if (path) {
+          const allIgnoreFiles = window.electronStore.get('ignoreFiles') ?? {};
+          if (typeof allIgnoreFiles !== 'object') allIgnoreFiles = {};
+          allIgnoreFiles[path] = Array.from(this.ignoreFiles).join(';');
+          window.electronStore.setJSON('ignoreFiles', JSON.stringify(allIgnoreFiles));
+          resolve(true);
+        } else {
+          reject('no project path');
+        }
+      });
     }
   }));
 </script>

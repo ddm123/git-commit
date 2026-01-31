@@ -1,3 +1,8 @@
+# 安装依赖
+``` bash
+npm install
+```
+
 # 编译CSS
 ``` bash
 npm run build:css

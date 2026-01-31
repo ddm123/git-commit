@@ -1,0 +1,174 @@
+<script>
+Alpine.store('ignoreFileListing', {show: function(){}, isNeedRefresh: true});
+Alpine.data('ignoreFileListing', () => ({
+  ignoredFiles: [],
+
+  init() {
+    this.$store.ignoreFileListing.show = () => this.showFileListing();
+  },
+
+  showFileListing() {
+    if (this.$store.ignoreFileListing.isNeedRefresh) {
+        this.refreshFiles();
+        this.$store.ignoreFileListing.isNeedRefresh = false;
+    }
+    this.$el.showModal();
+  },
+
+  refreshFiles() {
+    this.ignoredFiles = [];
+    this.$refs.selectAllIgnoreFiles.indeterminate = false;
+    this.$refs.selectAllIgnoreFiles.checked = false;
+
+    if (!this.ignoreFiles.size) return;
+
+    const projectPath = Alpine.store('projectPath').path;
+    if (!projectPath) return;
+
+    let index = 0;
+    this.ignoreFiles.forEach(async file => {
+      const fileStat = await window.electronAPI.getFileStat(projectPath, file);
+      const f = {key: index++, file: file, size: 0, fsize: '', time: '', timestamp: 0, ext: getExtname(file), selected: false};
+      if (fileStat) {
+        f.absPath = fileStat.absPath;
+        f.size = fileStat.size;
+        f.fsize = formatFileSize(fileStat.size);
+        f.time = new Date(fileStat.mtimeMs).toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+        f.timestamp = fileStat.mtimeMs;
+      } else {
+        f.absPath = projectPath + (projectPath.includes('\\') ? '\\' : '/') + file;
+      }
+      this.ignoredFiles.push(f);
+    });
+  },
+
+  toggleSelectAll(event) {
+    const filesCount = this.ignoredFiles.length;
+    const checked = event.target.checked;
+    for (let i = 0; i < filesCount; i++) {
+      this.ignoredFiles[i].selected = checked;
+    }
+  },
+
+  sortFiles(event) {
+    let th = event.target;
+    let field = th.getAttribute('data-field');
+    let orderBy = th.getAttribute('order-by') || field;
+    let orderDir = th.getAttribute('order-dir')=='asc' ? 'desc' : 'asc';
+    let ths = th.closest('tr').children;
+
+    for(let i=0; i<ths.length; i++){
+      if(ths[i].nodeType==1 && ths[i]!==th)ths[i].removeAttribute('order-dir');
+    }
+
+    th.setAttribute('order-dir', orderDir);
+    this.ignoredFiles.sort((a, b) => {
+      if (a[orderBy] <= b[orderBy]) return orderDir === 'asc' ? -1 : 1;
+      return orderDir === 'asc' ? 1 : -1;
+    });
+  },
+
+  keyboardSelectFile(event) {
+    if(event.target.type==='checkbox' && event.target.tagName.toLowerCase()==='input'){
+      let el = null;
+      if(event.keyCode === 38) {//上箭头
+        event.preventDefault();
+        el = event.target.closest('tr').previousElementSibling;
+      }else if(event.keyCode === 40){//下箭头
+        event.preventDefault();
+        el = event.target.closest('tr').nextElementSibling;
+      }
+      if(el && el.tagName?.toLowerCase()==='tr'){
+        el.querySelector('.col-checkbox input[type="checkbox"]').focus();
+      }
+    }
+  },
+
+  clickRow(event, tr) {
+    const isCheckbox = event.target.type === 'checkbox';
+    const checkbox = isCheckbox ? event.target : tr.querySelector('.col-checkbox input[type="checkbox"]');
+    if (checkbox) {
+      checkbox.focus();
+      if (isCheckbox) {
+        this.$nextTick(() => {
+          const checked = checkbox.checked, len = this.ignoredFiles.length;
+          let j = 0;
+          for (let i = 0; i < len; i++) if (this.ignoredFiles[i].selected) j++;
+          this.$refs.selectAllIgnoreFiles.indeterminate = j > 0 && j < len;
+          this.$refs.selectAllIgnoreFiles.checked = j >= len;
+        });
+      }
+    }
+  },
+
+  unignoreFiles() {
+    const len = this.ignoredFiles.length;
+    let selected = 0;
+    for (let i = 0; i < len; i++) {
+      if (this.ignoredFiles[i].selected) {
+        selected++;
+        this.ignoreFiles.delete(this.ignoredFiles[i].file);
+      }
+    }
+    if (!selected) {
+      showError('请先选择需要取消隐藏的文件');
+      return;
+    }
+    this.$store.ignoreFileListing.isNeedRefresh = true;
+    this.$el.close();
+    this.refresh();
+
+    return new Promise((resolve, reject) => {
+      const path = Alpine.store('projectPath').path;
+      if (path) {
+        this.saveIgnoreFiles(path).then(() => resolve(true));
+      } else {
+        reject('no project path');
+      }
+    });
+  }
+}));
+</script>
+<dialog class="modal" x-data="ignoreFileListing">
+  <div class="modal-box w-11/12 max-w-5xl">
+    <form method="dialog">
+      <button class="btn btn-sm btn-circle btn-ghost absolute z-2 right-2 top-2">✕</button>
+    </form>
+    <div class="mb-1"><button class="btn btn-sm" x-on:click="unignoreFiles.bind($data, $event)">取消隐藏选中的文件</button></div>
+    <div class="file-list overflow-x-auto w-full">
+      <table class="table table-pin-rows table-pin-cols">
+        <thead>
+          <tr>
+            <th class="col-checkbox" data-field="checkbox" width="32"><input type="checkbox" x-ref="selectAllIgnoreFiles" class="checkbox checkbox-sm" x-on:click="toggleSelectAll"></th>
+            <td data-field="file" x-on:click="sortFiles">文件</td>
+            <td data-field="time" order-by="timestamp" x-on:click="sortFiles">最后修改时间</td>
+            <td data-field="ext" x-on:click="sortFiles">文件类型</td>
+            <td data-field="fsize" order-by="size" x-on:click="sortFiles">大小</td>
+          </tr>
+        </thead>
+        <tbody x-on:keydown="keyboardSelectFile">
+          <template x-for="file in ignoredFiles" :key="file.key">
+            <tr x-on:click="clickRow.bind($data, $event, $el, file)">
+              <th class="col-checkbox"><input type="checkbox" x-model="file.selected" x-bind:data-file="file.file" class="checkbox checkbox-sm" /></th>
+              <td x-text="file.file"></td>
+              <td x-text="file.time"></td>
+              <td x-text="file.ext"></td>
+              <td class="text-right" x-text="file.fsize"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <template x-if="ignoredFiles.length === 0">
+        <div class="py-4 text-center">没有被忽略的文件</div>
+      </template>
+    </div>
+  </div>
+</dialog>

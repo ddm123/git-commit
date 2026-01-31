@@ -73,36 +73,44 @@ function debounce(fn, wait = 300) {
 }
 
 async function compileComponents() {
-    for (const component of document.querySelectorAll('component[src]')) {
-        await fetch(component.getAttribute('src'), {cache: 'no-store', headers: {'Cache-Control': 'no-cache'}})
-        .then(response => response.text())
-        .then(html => {
-            let attributes = {};
-            for (const attr of component.attributes) {
-                attributes[attr.name] = attr.value;
+    const rendererComponent = function(component, html) {
+        let attributes = {};
+        for (const attr of component.attributes) {
+            attributes[attr.name] = attr.value;
+        }
+        attributes = JSON.stringify(attributes);
+
+        html = html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (match, p1, p2) => {
+            const newScript = document.createElement('script');
+
+            if (p1) {
+                const attrRegex = /([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^'"\s>]+)))?/g;
+                let attrMatch;
+                while ((attrMatch = attrRegex.exec(p1)) !== null) {
+                    newScript.setAttribute(attrMatch[1], attrMatch[2] || attrMatch[3] || attrMatch[4] || '');
+                }
             }
-            attributes = JSON.stringify(attributes);
-
-            html = html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (match, p1, p2) => {
-                const newScript = document.createElement('script');
-
-                if (p1) {
-                    const attrRegex = /([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^'"\s>]+)))?/g;
-                    let attrMatch;
-                    while ((attrMatch = attrRegex.exec(p1)) !== null) {
-                        newScript.setAttribute(attrMatch[1], attrMatch[2] || attrMatch[3] || attrMatch[4] || '');
-                    }
-                }
-                if (p2 && (p2 = p2.trim())) {
-                    newScript.textContent = `(function(props) { ${p2} })(${attributes});`;
-                }
-                document.head.appendChild(newScript);
-                return '';
-            });
-            component.insertAdjacentHTML('beforebegin', html);
-            component.remove();
-        })
-        .catch(error => console.error('Error loading component '+component.getAttribute('src')+':', error));
+            if (p2 && (p2 = p2.trim())) {
+                newScript.textContent = `(function(props) { ${p2} })(${attributes});`;
+            }
+            document.head.appendChild(newScript);
+            return '';
+        });
+        component.insertAdjacentHTML('beforebegin', html);
+        component.remove();
+    };
+    const loadComponent = function(component) {
+        return fetch(component.getAttribute('src'), {cache: 'no-store', headers: {'Cache-Control': 'no-cache'}})
+            .then(response => response.text())
+            .then(html => rendererComponent(component, html))
+            .catch(error => console.error('Error loading component '+component.getAttribute('src')+':', error));
+    }
+    for (const component of document.querySelectorAll('component[src]')) {
+        if (component.hasAttribute('defer')) {
+            loadComponent(component);
+        } else {
+            await loadComponent(component);
+        }
     }
 }
 

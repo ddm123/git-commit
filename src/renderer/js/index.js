@@ -8,6 +8,7 @@ document.addEventListener('alpine:init', () => {
     filterByDays: new Map([['0', '任何时候修改的'], ['1', '今天修改的'], ['2', '最近两天修改的'], ['3', '最近3天修改的'], ['5', '最近5天修改的'], ['7', '最近一周修改的']]),
     filterDayRange: {start: 0, end: 0},
     selectedFilesCache: new Set(),
+    ignoreFiles: new Set(),
     _rafId: null,
 
     init() {
@@ -98,7 +99,7 @@ document.addEventListener('alpine:init', () => {
             return this.fillFileList(JSON.parse(status));
           })
           .then((files) => {
-            const th = document.querySelector('.file-list thead :where(td, th)[order-dir]');
+            const th = this.$store.fileListing.element.querySelector('table thead :where(td, th)[order-dir]');
             if(th){
               const orderDir = th.getAttribute('order-dir')==='asc' ? 'desc' : 'asc';
               th.setAttribute('order-dir', orderDir);
@@ -161,6 +162,10 @@ document.addEventListener('alpine:init', () => {
 
               // 如果是一个文件夹，跳过
               if (fileStat && fileStat.isDirectory) {
+                continue;
+              }
+
+              if (this.ignoreFiles.has(file.path)) {
                 continue;
               }
 
@@ -248,6 +253,19 @@ document.addEventListener('alpine:init', () => {
       let count = 0, len = this.files.length;
       for (let i = 0; i < len; i++) if (this.files[i].selected) count++;
       return count;
+    },
+
+    saveIgnoreFiles(projectPath) {
+      const allIgnoreFiles = window.electronStore.get('ignoreFiles') ?? {};
+      if (typeof allIgnoreFiles !== 'object') allIgnoreFiles = {};
+      allIgnoreFiles[projectPath] = Array.from(this.ignoreFiles).join(';');
+      return window.electronStore.setJSON('ignoreFiles', JSON.stringify(allIgnoreFiles));
+    },
+
+    loadIgnoreFiles(projectPath) {
+      const allIgnoreFiles = window.electronStore.get('ignoreFiles') ?? {};
+      if (typeof allIgnoreFiles !== 'object') allIgnoreFiles = {};
+      return allIgnoreFiles[projectPath] ? allIgnoreFiles[projectPath].split(';') : [];
     },
 
     openDialog(title, message) {
