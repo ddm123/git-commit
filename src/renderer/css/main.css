@@ -36,7 +36,7 @@ body > .body-mask{
   bottom: 16px;
   background-color: rgba(255, 255, 255, .5);
   display: none;
-  z-index: 2;
+  z-index: 5;
   transition: all .3s ease;
 }
 body.disable{
@@ -221,6 +221,10 @@ body.disable > .body-mask{
   left: 50%;
   transform: translate(-50%, -50%);
   display: inline-block;
+}
+.table :where(.table-pin-rows thead tr),
+.table :where(.table-pin-cols tr th) {
+  z-index: 3;
 }
 .status-bar{
   white-space: nowrap;

@@ -105,12 +105,16 @@ async function compileComponents() {
             .then(html => rendererComponent(component, html))
             .catch(error => console.error('Error loading component '+component.getAttribute('src')+':', error));
     }
+    const deferComponents = [];
     for (const component of document.querySelectorAll('component[src]')) {
         if (component.hasAttribute('defer')) {
-            loadComponent(component);
+            deferComponents.push(component);
         } else {
             await loadComponent(component);
         }
+    }
+    for (let len = deferComponents.length, i = 0; i < len; i++) {
+        loadComponent(deferComponents[i]);
     }
 }
 
