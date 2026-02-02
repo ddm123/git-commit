@@ -257,7 +257,8 @@
 
     initIgnoredFiles(projectPath) {
       const files = this.loadIgnoreFiles(projectPath);
-      if (files.length > 0) this.ignoreFiles = new Set(files);
+      if (files.length || this.ignoreFiles.size) this.ignoreFiles = new Set(files);
+      if (this.$store.ignoreFileListing) this.$store.ignoreFileListing.isNeedRefresh = true;
     }
   }));
 </script>

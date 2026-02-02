@@ -72,7 +72,7 @@ function debounce(fn, wait = 300) {
      return debounced;
 }
 
-async function compileComponents() {
+async function compileComponents(onLoad) {
     const rendererComponent = function(component, html) {
         let attributes = {};
         for (const attr of component.attributes) {
@@ -100,7 +100,7 @@ async function compileComponents() {
         component.remove();
     };
     const loadComponent = function(component) {
-        return fetch(component.getAttribute('src'), {cache: 'no-store', headers: {'Cache-Control': 'no-cache'}})
+        return fetch(component.getAttribute('src')/*, {cache: 'no-store', headers: {'Cache-Control': 'no-cache'}}*/)
             .then(response => response.text())
             .then(html => rendererComponent(component, html))
             .catch(error => console.error('Error loading component '+component.getAttribute('src')+':', error));
@@ -113,8 +113,16 @@ async function compileComponents() {
             await loadComponent(component);
         }
     }
-    for (let len = deferComponents.length, i = 0; i < len; i++) {
-        loadComponent(deferComponents[i]);
+
+    let len = deferComponents.length;
+    if (!len) {
+        if (typeof onLoad === 'function') onLoad();
+        return;
+    }
+    if (typeof onLoad === 'function') {
+        Promise.allSettled(deferComponents.map(component => loadComponent(component))).then(onLoad);
+    } else {
+        for (let i = 0; i < len; i++) loadComponent(deferComponents[i]);
     }
 }
 

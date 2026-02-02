@@ -28,8 +28,10 @@ Alpine.data('ignoreFileListing', () => ({
     if (!projectPath) return;
 
     let index = 0;
-    this.ignoreFiles.forEach(async file => {
-      const fileStat = await window.electronAPI.getFileStat(projectPath, file);
+    Promise.allSettled(Array.from(this.ignoreFiles).map(async file => {
+      let fileStat = null;
+      try { fileStat = await window.electronAPI.getFileStat(projectPath, file); }
+      catch (e) { fileStat = null; console.error(e); }
       const f = {key: index++, file: file, size: 0, fsize: '', time: '', timestamp: 0, ext: getExtname(file), selected: false};
       if (fileStat) {
         f.absPath = fileStat.absPath;
@@ -48,16 +50,17 @@ Alpine.data('ignoreFileListing', () => ({
       } else {
         f.absPath = projectPath + (projectPath.includes('\\') ? '\\' : '/') + file;
       }
-      this.ignoredFiles.push(f);
-    });
-
-    this.$nextTick(() => {
+      return f;
+    }))
+    .then(results => results.map(result => result.value))
+    .then(files => {
       const th = this.$el.querySelector('table thead :where(td, th)[order-dir]');
       if(th){
         const orderDir = th.getAttribute('order-dir')==='asc' ? 'desc' : 'asc';
         th.setAttribute('order-dir', orderDir);
-        this.sortFiles({target: th});
+        this.sortFiles({target: th, files});
       }
+      this.ignoredFiles = files;
     });
   },
 
@@ -80,7 +83,7 @@ Alpine.data('ignoreFileListing', () => ({
     }
 
     th.setAttribute('order-dir', orderDir);
-    this.ignoredFiles.sort((a, b) => {
+    (event.files ?? this.ignoredFiles).sort((a, b) => {
       if (a[orderBy] <= b[orderBy]) return orderDir === 'asc' ? -1 : 1;
       return orderDir === 'asc' ? 1 : -1;
     });
@@ -165,7 +168,7 @@ Alpine.data('ignoreFileListing', () => ({
       </div>
     </div>
     <div class="file-list overflow-x-auto w-full">
-      <table class="table table-pin-rows table-pin-cols">
+      <table class="table table-sm table-pin-rows table-pin-cols">
         <thead>
           <tr>
             <th class="col-checkbox" data-field="checkbox" width="32"><input type="checkbox" x-ref="selectAllIgnoreFiles" class="checkbox checkbox-sm" x-on:click="toggleSelectAll"></th>
