@@ -222,6 +222,9 @@ body.disable > .body-mask{
   transform: translate(-50%, -50%);
   display: inline-block;
 }
+.file-list tbody tr.first-untracked:where(:nth-child(1), :nth-child(2)) > td[x-text="file.file"]::after {
+  display: none;
+}
 .table :where(.table-pin-rows thead tr) {
   z-index: 4;
 }
