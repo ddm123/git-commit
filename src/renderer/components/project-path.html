@@ -63,6 +63,7 @@
         if(path){
           this.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? Object.assign({}, this.savedFtpConfig[path]) : {};
           this.initIgnoredFiles(path);
+          window.gitAPI.getUnpushedCommits(path).then(commits => this.canPush = commits.length > 0);
         }
       });
       this.$watch('ftpConfig.protocol', protocol => {

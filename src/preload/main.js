@@ -30,7 +30,7 @@ contextBridge.exposeInMainWorld('gitAPI', {
   getBranches: (path) => ipcRenderer.invoke('git:getBranches', path),
   getStatus: (path) => ipcRenderer.invoke('git:getStatus', path),
   switchBranch: (path, branch) => ipcRenderer.invoke('git:switchBranch', path, branch),
-  pull: (path) => ipcRenderer.invoke('git:pull', path),
+  pull: (path, options) => ipcRenderer.invoke('git:pull', path, options),
   add: (path, files) => ipcRenderer.invoke('git:add', path, files),
   stash: {
     push: (path, files, message = '') => ipcRenderer.invoke('git:stash.push', path, files, message),
@@ -39,11 +39,12 @@ contextBridge.exposeInMainWorld('gitAPI', {
     list: (path) => ipcRenderer.invoke('git:stash.list', path)
   },
   commit: (path, message) => ipcRenderer.invoke('git:commit', path, message),
-  push: (path) => ipcRenderer.invoke('git:push', path),
+  push: (path, options) => ipcRenderer.invoke('git:push', path, options),
   reset: (path, parameters) => ipcRenderer.invoke('git:reset', path, parameters),
   checkout: (path, ...files) => ipcRenderer.invoke('git:checkout', path, ...files),
   diff: (path, options) => ipcRenderer.invoke('git:diff', path, options),
   showDiff: (path, file, diffChunks) => ipcRenderer.invoke('git:showDiff', path, file, diffChunks),
+  getUnpushedCommits: (path) => ipcRenderer.invoke('git:getUnpushedCommits', path),
   onProgress: (eventName, closure) => ipcRenderer.on(eventName, closure),
   showPasteContextMenu: (path) => ipcRenderer.invoke('git:showPasteContextMenu', path)
 });

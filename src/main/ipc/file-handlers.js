@@ -117,8 +117,8 @@ function wildcardToRegex(pattern) {
     .replace(/[.+?^${}()|\[\]\/\\]/g, '\\$&')
     .replaceAll('**', '@ALL@') // '.*': ** 匹配多级目录
     .replaceAll('*', '[^/]*') // * 不匹配路径分隔符
-    .replaceAll('?', '[^/]')
-    .replaceAll('@ALL@', '.*') + '$'; // ? 匹配单个字符（不包括路径分隔符）
+    .replaceAll('?', '[^/]') // ? 匹配单个字符（不包括路径分隔符）
+    .replaceAll('@ALL@', '.*') + '$';
 }
 
 async function stopSyncFiles() {

@@ -16,7 +16,7 @@ async function handleGitStatus(event, projectPath) {
   return JSON.stringify(gitStatus);
 }
 
-async function handleGitPull(e, projectPath) {
+async function handleGitPull(e, projectPath, options) {
   if(typeof projectPath === 'object' && projectPath.progress){
     let eventName = projectPath.progress;
     projectPath.progress = (event) => {
@@ -39,7 +39,12 @@ async function handleGitPull(e, projectPath) {
       e.sender.send(eventName, event);
     };
   }
-  return await git(projectPath).pull();
+  if(typeof options === 'string'){
+    options = [options];
+  } else if (!options || !Array.isArray(options)) {
+    options = [];
+  }
+  return await git(projectPath).pull(options);
 }
 
 async function handleGitDiff(event, projectPath, options) {
@@ -88,7 +93,7 @@ async function getHeadFileBase64(projectPath, file) {
   return Buffer.from(head, 'binary').toString('base64');
 }
 
-function getUserLogs(projectPath){
+function getUserLogs(projectPath) {
   const gitRepo = git(projectPath);
   return gitRepo.raw(['config', '--get', 'user.email'])
     .then(email => email ? email.trim() : '')
@@ -108,6 +113,22 @@ function getUserLogs(projectPath){
       }
       return gitLogs;
     });
+}
+
+async function getUnpushedCommits(projectPath) {
+  try {
+    const gitRepo = git(projectPath);
+    let remoteName = await gitRepo.raw(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']);
+    if (!remoteName || '' === (remoteName = remoteName.trim())) {
+      throw new Error('获取远程分支失败');
+    }
+
+    let hasUnpushed = await gitRepo.log([remoteName + '...HEAD', '--oneline']);
+    return hasUnpushed && hasUnpushed.all ? hasUnpushed.all : [];
+  } catch (error) {
+    console.error(error);
+  }
+  return [];
 }
 
 async function showMessagePaste(event, projectPath) {
@@ -277,12 +298,13 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:stash.drop', async (event, projectPath, name) => await git(projectPath).stash(name ? ['drop', name] : ['drop']));
   ipcMain.handle('git:stash.list', async (event, projectPath) => await git(projectPath).stashList());
   ipcMain.handle('git:commit', async (event, projectPath, message) => await git(projectPath).commit(message));
-  ipcMain.handle('git:push', async (event, projectPath) => await git(projectPath).push());
+  ipcMain.handle('git:push', async (event, projectPath, options) => await git(projectPath).push(typeof options === 'string' ? [options] : (options && Array.isArray(options) ? options : [])));
   ipcMain.handle('git:reset', async (event, projectPath, parameters) => await git(projectPath).reset(parameters));
   ipcMain.handle('git:checkout', async (event, projectPath, ...files) => await git(projectPath).checkout(['HEAD', '--', ...files]));
   ipcMain.handle('git:diff', handleGitDiff);
   ipcMain.handle('git:showPasteContextMenu', showMessagePaste);
   ipcMain.handle('git:showDiff', handleShowDiff);
+  ipcMain.handle('git:getUnpushedCommits', (event, projectPath) => getUnpushedCommits(projectPath));
   ipcMain.handle('git:getHeadFileBase64', (event, projectPath, file) => getHeadFileBase64(projectPath, file));
   ipcMain.on('diff-chars', (event, oldStr, newStr) => event.returnValue = diffChars(oldStr, newStr));
   ipcMain.on('close-diff-window', closeDiffWindow);

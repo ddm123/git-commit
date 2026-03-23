@@ -3,6 +3,7 @@ document.addEventListener('alpine:init', () => {
     currentTheme: '',
     branches: [],
     files: [],
+    canPush: false,
     untrackedCount: 0,
     filterByDay: '0',
     filterByDays: new Map([['0', '任何时候修改的'], ['1', '今天修改的'], ['2', '最近两天修改的'], ['3', '最近3天修改的'], ['5', '最近5天修改的'], ['7', '最近一周修改的']]),

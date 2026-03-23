@@ -1,7 +1,5 @@
 <script>
   Alpine.data('buttons', () => ({
-    canPush: false,
-
     init() {
       window.addEventListener('keydown', event => {
         // 如果事件已经在进行中，则不做任何事。
@@ -70,16 +68,24 @@
       if(isDisabledBody()) return;
       clearMessages();
       disableBody(true);
-      Alpine.store('statusBar').statusText = '正在推送代码...';
-      window.gitAPI.push(Alpine.store('projectPath').path)
-        .then(() => {
-          showSuccess('已成功推送到远程仓库');
-          this.canPush = false;
-        })
-        .finally(() => {
-          Alpine.store('statusBar').statusText = '';
-          disableBody(false);
-        });
+
+      Alpine.store('statusBar').statusText = '拉取最新代码...';
+      const projectPath = Alpine.store('projectPath').path;
+      window.gitAPI.pull({baseDir: projectPath, progress: 'git:progress'}, '--rebase').then(() => {
+        Alpine.store('statusBar').statusText = '正在推送代码...';
+        return window.gitAPI.push(projectPath)
+          .then(() => {
+            showSuccess('已成功推送到远程仓库');
+            this.canPush = false;
+          });
+      })
+      .catch(err => {
+        this.showError(err.message.replace(/(?:\r\n|\r|\n)/g, '<br/>'));
+      })
+      .finally(() => {
+        Alpine.store('statusBar').statusText = '';
+        disableBody(false);
+      });
     },
 
     pull() {
