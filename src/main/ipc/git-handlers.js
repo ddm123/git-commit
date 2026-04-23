@@ -115,7 +115,7 @@ function getUserLogs(projectPath) {
     });
 }
 
-async function getUnpushedCommits(projectPath) {
+async function getUnpushedCommits(projectPath, options) {
   try {
     const gitRepo = git(projectPath);
     let remoteName = await gitRepo.raw(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']);
@@ -123,8 +123,21 @@ async function getUnpushedCommits(projectPath) {
       throw new Error('获取远程分支失败');
     }
 
-    let hasUnpushed = await gitRepo.log([remoteName + '...HEAD', '--oneline']);
-    return hasUnpushed && hasUnpushed.all ? hasUnpushed.all : [];
+    if(typeof options === 'string'){
+      options = [options];
+    } else if (!options || !Array.isArray(options)) {
+      options = [];
+    }
+
+    const logs = await gitRepo.raw(['log', remoteName + '...HEAD', '--pretty=format:%x00%h%x01%s%x01', '--name-only', ...options]);
+    const hasUnpushed = [];
+    for(const line of logs.replace(/^[\x00\s]|[\s\x00]$/g, '').split(/\s*\x00+\s*/)){
+      const [hash, message, files] = line.replace(/^[\x01\s]|[\s\x01]$/g, '').split(/\s*\x01+\s*/);
+      if (files) {
+        hasUnpushed.push({hash, message, files: files.split('\n')});
+      }
+    }
+    return hasUnpushed;
   } catch (error) {
     console.error(error);
   }
@@ -304,7 +317,7 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:diff', handleGitDiff);
   ipcMain.handle('git:showPasteContextMenu', showMessagePaste);
   ipcMain.handle('git:showDiff', handleShowDiff);
-  ipcMain.handle('git:getUnpushedCommits', (event, projectPath) => getUnpushedCommits(projectPath));
+  ipcMain.handle('git:getUnpushedCommits', (event, projectPath, options) => getUnpushedCommits(projectPath, options));
   ipcMain.handle('git:getHeadFileBase64', (event, projectPath, file) => getHeadFileBase64(projectPath, file));
   ipcMain.on('diff-chars', (event, oldStr, newStr) => event.returnValue = diffChars(oldStr, newStr));
   ipcMain.on('close-diff-window', closeDiffWindow);

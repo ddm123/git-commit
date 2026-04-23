@@ -71,7 +71,31 @@
 
       Alpine.store('statusBar').statusText = '拉取最新代码...';
       const projectPath = Alpine.store('projectPath').path;
-      window.gitAPI.pull({baseDir: projectPath, progress: 'git:progress'}, '--rebase').then(() => {
+      window.gitAPI.pull({baseDir: projectPath, progress: 'git:progress'}).then(async (pullResult) => {
+        if (pullResult.files && pullResult.files.length > 0) {
+          // 如果有拉取到别人已有新的提交，则撤消我的提交，再重新提交
+          Alpine.store('statusBar').statusText = '推送到远程仓库之前发现已有其他人提交';
+          const commits = await window.gitAPI.getUnpushedCommits(projectPath);
+          const count = commits.length;
+          if (count > 0) {
+            Alpine.store('statusBar').statusText = '开始撤消您的 '+count+' 个提交...';
+            await window.gitAPI.reset(projectPath, ['HEAD~'+count, '--mixed']); // 撤销提交（保留修改到工作区）
+            await window.gitAPI.reset(projectPath, ['HEAD', '--', ...files]);// 取消暂存
+
+            let message = '';
+            let files = [];
+            for (let i = 0; i < count; i++) {
+              if (commits[i].message) {
+                if (message !== '') message += '\n';
+                message += commits[i].message;
+              }
+              files.push(...commits[i].files);
+            }
+
+            return this._commit(files, message, true);
+          }
+        }
+
         Alpine.store('statusBar').statusText = '正在推送代码...';
         return window.gitAPI.push(projectPath)
           .then(() => {
