@@ -3,6 +3,7 @@ document.addEventListener('alpine:init', () => {
     currentTheme: '',
     branches: [],
     files: [],
+    currentFilesCount: 0,
     canPush: false,
     untrackedCount: 0,
     filterByDay: '0',
@@ -10,6 +11,7 @@ document.addEventListener('alpine:init', () => {
     filterDayRange: {start: 0, end: 0},
     selectedFilesCache: new Set(),
     ignoreFiles: new Set(),
+    isIgnoreMode: false,
     _rafId: null,
 
     init() {
@@ -166,15 +168,6 @@ document.addEventListener('alpine:init', () => {
                 continue;
               }
 
-              if (this.ignoreFiles.has(file.path)) {
-                continue;
-              }
-
-              // 如果需要过滤日期
-              if (this.filterByDay>0 && fileStat && (fileStat.mtimeMs<this.filterDayRange.start || fileStat.mtimeMs>this.filterDayRange.end)) {
-                continue;
-              }
-
               if (type === '?') {
                 this.untrackedCount++;
               }
@@ -210,6 +203,21 @@ document.addEventListener('alpine:init', () => {
           }
         });
       });
+    },
+
+    getFileList() {
+      this.currentFilesCount = 0;
+      const files = [];
+      for (let len = this.files.length, i = 0; i < len; i++) {
+        if (this.isIgnoreMode === this.ignoreFiles.has(this.files[i].file)) {
+          // 如果需要过滤日期
+          if (this.filterByDay>0 && this.files[i].timestamp>0 && (this.files[i].timestamp<this.filterDayRange.start || this.files[i].timestamp>this.filterDayRange.end)) {
+            continue;
+          }
+          this.currentFilesCount = files.push(this.files[i]);
+        }
+      }
+      return files;
     },
 
     sortFiles(event) {

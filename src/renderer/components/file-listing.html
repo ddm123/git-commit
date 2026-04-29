@@ -23,6 +23,11 @@
           selectAllCheckbox.checked = totalFiles > 0 && value >= totalFiles;
         }
       });
+      this.$watch('isIgnoreMode', value => {
+        if (value) {
+          this.$nextTick(() => this.$refs.ignoreListingMask.style.height = this.$refs.fileListTable.getBoundingClientRect().height+'px');
+        }
+      });
       window.electronAPI.onMenuClick('showFileDiff', (event, file) => this.showDiff(file));
       window.electronAPI.onMenuClick('git:checkout', (event, path, file, ...files) => {
         const confirmMsg = files.length > 0
@@ -189,7 +194,7 @@
         {label: '打开所在文件夹', text: 'showItemInFolder', handler: 'shell:showItemInFolder', args: [currentFile.absPath]},
 
         {label: '存储所有修改', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath]},
-        {label: '隐藏该文件', text: 'ignoreFiles', handler: 'ignoreFiles', args: [currentFile.file]},
+        {label: this.isIgnoreMode ? '取消隐藏该文件' : '隐藏该文件', text: 'ignoreFiles', handler: 'ignoreFiles', args: [currentFile.file]},
       );
 
       if (currentFile.status === 'unmerged') {
@@ -226,7 +231,7 @@
           {label: '复制选中文件的绝对对路径', text: absPaths.join("\n")},
           {label: '打包选中的文件', text: 'archiver', handler: 'dialog:showSaveDialog', args: [projectPath, ...paths]},
           {label: '存储选中的文件', text: 'gitStagePush', handler: 'git:stash.push', args: [projectPath, ...paths]},
-          {label: '隐藏选中的文件', text: 'ignoreFiles', handler: 'ignoreFiles', args: paths}
+          {label: this.isIgnoreMode ? '取消隐藏选中的文件' : '隐藏选中的文件', text: 'ignoreFiles', handler: 'ignoreFiles', args: paths}
         );
 
         if (unmergedFiles.length > 0) {
@@ -275,9 +280,9 @@
     },
 
     addIgnoreFile(...file) {
-      file.forEach(f => this.ignoreFiles.add(f));
+      file.forEach(f => this.isIgnoreMode ? this.ignoreFiles.delete(f) : this.ignoreFiles.add(f));
       this.refresh();
-      this.$store.ignoreFileListing.isNeedRefresh = true;
+
       return new Promise((resolve, reject) => {
         const path = Alpine.store('projectPath').path;
         if (path) {
@@ -293,8 +298,9 @@
     }
   }));
 </script>
-<div class="file-list overflow-x-auto w-full" x-data="fileListing">
-  <table class="table table-pin-rows table-pin-cols">
+<div class="file-list overflow-x-auto w-full" x-data="fileListing" x-bind:class="{'ignore-listing': isIgnoreMode}">
+  <div class="ignore-listing-mask" x-ref="ignoreListingMask"></div>
+  <table class="table table-pin-rows table-pin-cols" x-ref="fileListTable">
     <thead>
       <tr>
         <th class="col-checkbox" data-field="checkbox" width="32"><input type="checkbox" id="select-all" class="checkbox checkbox-sm" x-on:click="toggleSelectAll"></th>
@@ -306,7 +312,7 @@
       </tr>
     </thead>
     <tbody x-on:keydown="keyboardSelectFile">
-      <template x-for="file in files" :key="file.key">
+      <template x-for="file in getFileList()" :key="file.key">
         <tr :class="rowClass(file)" x-on:click="clickRow.bind($data, $event, $el, file)">
           <th class="col-checkbox"><input type="checkbox" x-model="file.selected" x-bind:data-file="file.file" class="checkbox checkbox-sm" /></th>
           <td x-text="file.file" :data-title="rowClasses[file.file] ? '未跟踪的文件 (' + untrackedCount + ')' : ''" x-on:contextmenu="showPathContextMenu.bind($data, file)" x-on:dblclick="showDiff.bind($data, file)"></td>
@@ -318,7 +324,7 @@
       </template>
     </tbody>
   </table>
-  <template x-if="files.length === 0">
-  <div class="py-4 text-center">没有需要提交的文件</div>
+  <template x-if="currentFilesCount === 0">
+  <div class="py-4 text-center" x-text="isIgnoreMode ? '没有已被隐藏的文件' : '没有需要提交的文件'"></div>
   </template>
 </div>
