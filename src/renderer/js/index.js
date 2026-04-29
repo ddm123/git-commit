@@ -9,7 +9,7 @@ document.addEventListener('alpine:init', () => {
     filterByDay: '0',
     filterByDays: new Map([['0', '任何时候修改的'], ['1', '今天修改的'], ['2', '最近两天修改的'], ['3', '最近3天修改的'], ['5', '最近5天修改的'], ['7', '最近一周修改的']]),
     filterDayRange: {start: 0, end: 0},
-    selectedFilesCache: new Set(),
+    selectedFilesCache: {submitting: new Set(), ignored: new Set()},
     ignoreFiles: new Set(),
     isIgnoreMode: false,
     _rafId: null,
@@ -56,6 +56,7 @@ document.addEventListener('alpine:init', () => {
       this.branches = [];
       this.files = [];
       this.untrackedCount = 0;
+      this.currentFilesCount = 0;
       document.dispatchEvent(new CustomEvent('files_changed', { detail: {files: this.files} }));
       return this;
     },
@@ -139,9 +140,6 @@ document.addEventListener('alpine:init', () => {
         window.cancelAnimationFrame(this._rafId);
         this._rafId = null;
       }
-      if (Alpine.store('fileListing')) {
-        Alpine.store('fileListing').selectedFilesCount = this.getSelectedFilesCount();
-      }
       return this.files;
     },
 
@@ -191,7 +189,7 @@ document.addEventListener('alpine:init', () => {
                   second: '2-digit',
                   hour12: false
                 }) : '-',
-                selected: this.selectedFilesCache.has(file.path) || file.index && file.index !== ' ' && file.index !== '?' &&  file.index !== 'U'
+                selected: file.index && file.index !== ' ' && file.index !== '?' &&  file.index !== 'U'
               });
             }
           }
@@ -207,15 +205,26 @@ document.addEventListener('alpine:init', () => {
 
     getFileList() {
       this.currentFilesCount = 0;
+      const key = this.isIgnoreMode ? 'ignored' : 'submitting';
       const files = [];
+      let selectedCount = 0;
       for (let len = this.files.length, i = 0; i < len; i++) {
         if (this.isIgnoreMode === this.ignoreFiles.has(this.files[i].file)) {
           // 如果需要过滤日期
           if (this.filterByDay>0 && this.files[i].timestamp>0 && (this.files[i].timestamp<this.filterDayRange.start || this.files[i].timestamp>this.filterDayRange.end)) {
             continue;
           }
+          if (this.files[i].selected) {
+            selectedCount++;
+          } else if (this.selectedFilesCache[key].has(this.files[i].file)) {
+            this.files[i].selected = true;
+            selectedCount++;
+          }
           this.currentFilesCount = files.push(this.files[i]);
         }
+      }
+      if (Alpine.store('fileListing')) {
+        Alpine.store('fileListing').selectedFilesCount = selectedCount;
       }
       return files;
     },
@@ -255,15 +264,6 @@ document.addEventListener('alpine:init', () => {
       return this.files.filter(file => file.selected);
     },
 
-    getSelectedFilesCount() {
-      // 简洁版写法
-      //return this.files.reduce((count, file) => count + (file.selected ? 1 : 0), 0);
-      // 高效版写法
-      let count = 0, len = this.files.length;
-      for (let i = 0; i < len; i++) if (this.files[i].selected) count++;
-      return count;
-    },
-
     saveIgnoreFiles(projectPath) {
       const allIgnoreFiles = window.electronStore.get('ignoreFiles') ?? {};
       if (typeof allIgnoreFiles !== 'object') allIgnoreFiles = {};
@@ -275,6 +275,17 @@ document.addEventListener('alpine:init', () => {
       const allIgnoreFiles = window.electronStore.get('ignoreFiles') ?? {};
       if (typeof allIgnoreFiles !== 'object') allIgnoreFiles = {};
       return allIgnoreFiles[projectPath] ? allIgnoreFiles[projectPath].split(';') : [];
+    },
+
+    setSelectedFileCache(file, isAdd = true) {
+      const key = this.isIgnoreMode ? 'ignored' : 'submitting';
+      isAdd ? this.selectedFilesCache[key].add(file) : this.selectedFilesCache[key].delete(file);
+      return this;
+    },
+
+    clearSelectedFileCache() {
+      this.selectedFilesCache[this.isIgnoreMode ? 'ignored' : 'submitting'].clear();
+      return this;
     },
 
     openDialog(title, message) {

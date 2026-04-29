@@ -54,7 +54,7 @@
 
         Alpine.store('commitMessage').message = '';
         Alpine.store('statusBar').statusText = '';
-        this.selectedFilesCache.clear();
+        this.clearSelectedFileCache();
       })
       .catch((error) => {
         disableBody(false);
@@ -314,7 +314,10 @@
 </script>
 <div x-data="buttons">
   <div class="my-1 flex items-center justify-between">
-    <div class="text-xs">共有 <span class="font-bold" x-text="files.length"></span> 个文件已变更，<span class="font-bold" x-text="$store.fileListing.selectedFilesCount"></span> 个文件被选中</div>
+    <div class="text-xs">共有
+      <span class="font-bold" x-text="currentFilesCount"></span> 个文件<span x-text="isIgnoreMode ? '已隐藏' : '已变更'"></span>，
+      <span class="font-bold" x-text="$store.fileListing.selectedFilesCount"></span> 个文件被选中
+    </div>
     <div class="flex items-center">
       <div class="dropdown dropdown-top dropdown-end">
         <div tabindex="0" role="button" class="btn btn-xs font-normal" x-bind:class="{'btn-ghost': filterByDay==0}">

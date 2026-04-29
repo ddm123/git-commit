@@ -5,6 +5,11 @@
     rowClasses: {},
 
     init() {
+      const autoIgnoreListingMaskHeight = (isIgnoreMode) => {
+        if (isIgnoreMode) {
+          this.$nextTick(() => this.$refs.ignoreListingMask.style.height = Math.max(this.$refs.fileListTable.getBoundingClientRect().height, this.$refs.ignoreListingMask.parentElement.clientHeight)+'px');
+        }
+      };
       this.$store.fileListing.element = this.$el;
       document.addEventListener('files_changed', (e) => {
         this.rowClasses = {};
@@ -14,20 +19,16 @@
             break;
           }
         }
+        autoIgnoreListingMaskHeight(this.isIgnoreMode);
       });
       this.$watch('$store.fileListing.selectedFilesCount', value => {
         const selectAllCheckbox = document.getElementById('select-all');
         if (selectAllCheckbox) {
-          const totalFiles = this.files.length;
-          selectAllCheckbox.indeterminate = value > 0 && value < totalFiles;
-          selectAllCheckbox.checked = totalFiles > 0 && value >= totalFiles;
+          selectAllCheckbox.indeterminate = value > 0 && value < this.currentFilesCount;
+          selectAllCheckbox.checked = this.currentFilesCount > 0 && value >= this.currentFilesCount;
         }
       });
-      this.$watch('isIgnoreMode', value => {
-        if (value) {
-          this.$nextTick(() => this.$refs.ignoreListingMask.style.height = this.$refs.fileListTable.getBoundingClientRect().height+'px');
-        }
-      });
+      this.$watch('isIgnoreMode', autoIgnoreListingMaskHeight);
       window.electronAPI.onMenuClick('showFileDiff', (event, file) => this.showDiff(file));
       window.electronAPI.onMenuClick('git:checkout', (event, path, file, ...files) => {
         const confirmMsg = files.length > 0
@@ -116,19 +117,20 @@
     },
 
     toggleSelectAll(event) {
-      const filesCount = this.files.length;
+      const files = this.getFileList();
 
       if (event.target.checked) {
-        for (let i = 0; i < filesCount; i++) {
-          this.files[i].selected = true;
-          this.selectedFilesCache.add(this.files[i].file);
+        const key = this.isIgnoreMode ? 'ignored' : 'submitting';
+        for (let i = 0; i < this.currentFilesCount; i++) {
+          files[i].selected = true;
+          this.selectedFilesCache[key].add(files[i].file);
         }
-        Alpine.store('fileListing').selectedFilesCount = filesCount;
+        Alpine.store('fileListing').selectedFilesCount = this.currentFilesCount;
       } else {
-        for (let i = 0; i < filesCount; i++) {
-          this.files[i].selected = false;
+        for (let i = 0; i < this.currentFilesCount; i++) {
+          files[i].selected = false;
         }
-        this.selectedFilesCache.clear();
+        this.clearSelectedFileCache();
         Alpine.store('fileListing').selectedFilesCount = 0;
       }
     },
@@ -166,7 +168,7 @@
             selectedFilesCount--;
           }
 
-          checkbox.checked ? this.selectedFilesCache.add(checkbox.getAttribute('data-file')) : this.selectedFilesCache.delete(checkbox.getAttribute('data-file'));
+          this.setSelectedFileCache(checkbox.getAttribute('data-file'), checkbox.checked ? true : false);
           Alpine.store('fileListing').selectedFilesCount = selectedFilesCount;
         }
       }
