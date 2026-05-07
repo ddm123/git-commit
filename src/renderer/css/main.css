@@ -139,6 +139,9 @@ body.disable > .body-mask{
   outline-offset: 0;
 }
 
+.dropdown.theme-button svg {
+  stroke: var(--btn-fg);
+}
 .file-list {
   --input-color: color-mix(in oklab, var(--color-base-content) 20%, #0000);
   height: calc(100vh - 250px);
@@ -221,26 +224,14 @@ body.disable > .body-mask{
   left: 50%;
   transform: translate(-50%, -50%);
   display: inline-block;
+  border: none;
 }
 .file-list tbody tr.first-untracked:where(:nth-child(1), :nth-child(2)) > td[x-text="file.file"]::after {
   display: none;
 }
-.file-list .ignore-listing-mask{
-  display: none;
-}
-.ignore-listing {
-  position: relative;
-}
-.file-list.ignore-listing .ignore-listing-mask{
-  pointer-events: none;
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  background-color: var(--color-base-300);
-  opacity: .4;
-  z-index: 5;
+.file-list.ignore-listing:is(th, td, div){
+  --color-base-100: var(--color-base-300);
+  background-color: var(--color-base-100);
 }
 .table :where(.table-pin-rows thead tr) {
   z-index: 4;

@@ -5,11 +5,6 @@
     rowClasses: {},
 
     init() {
-      const autoIgnoreListingMaskHeight = (isIgnoreMode) => {
-        if (isIgnoreMode) {
-          this.$nextTick(() => this.$refs.ignoreListingMask.style.height = Math.max(this.$refs.fileListTable.getBoundingClientRect().height, this.$refs.ignoreListingMask.parentElement.clientHeight)+'px');
-        }
-      };
       this.$store.fileListing.element = this.$el;
       document.addEventListener('files_changed', (e) => {
         this.rowClasses = {};
@@ -19,7 +14,6 @@
             break;
           }
         }
-        autoIgnoreListingMaskHeight(this.isIgnoreMode);
       });
       this.$watch('$store.fileListing.selectedFilesCount', value => {
         const selectAllCheckbox = document.getElementById('select-all');
@@ -28,7 +22,7 @@
           selectAllCheckbox.checked = this.currentFilesCount > 0 && value >= this.currentFilesCount;
         }
       });
-      this.$watch('isIgnoreMode', autoIgnoreListingMaskHeight);
+
       window.electronAPI.onMenuClick('showFileDiff', (event, file) => this.showDiff(file));
       window.electronAPI.onMenuClick('git:checkout', (event, path, file, ...files) => {
         const confirmMsg = files.length > 0
@@ -301,7 +295,6 @@
   }));
 </script>
 <div class="file-list overflow-x-auto w-full" x-data="fileListing" x-bind:class="{'ignore-listing': isIgnoreMode}">
-  <div class="ignore-listing-mask" x-ref="ignoreListingMask"></div>
   <table class="table table-pin-rows table-pin-cols" x-ref="fileListTable">
     <thead>
       <tr>

@@ -1,5 +1,5 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-  themes: light --default, dark --prefersdark, cupcake, retro, valentine, forest, caramellatte;
+  themes: light --default, dark --prefersdark, cupcake, retro, valentine, lemonade, caramellatte;
 }
 @import './main.css';
