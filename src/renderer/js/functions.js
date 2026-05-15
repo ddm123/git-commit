@@ -198,7 +198,7 @@ function insertMessageElement(messageElement) {
 
     const childrens = Array.from(document.body.children);
     let isInserted = false;
-    for(child of childrens) {
+    for (const child of childrens) {
         if (child.nodeType === 1 && !child.classList.contains('message')) {
             document.body.insertBefore(messageElement, child);
             isInserted = true;

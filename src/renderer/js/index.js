@@ -265,14 +265,14 @@ document.addEventListener('alpine:init', () => {
     },
 
     saveIgnoreFiles(projectPath) {
-      const allIgnoreFiles = window.electronStore.get('ignoreFiles') ?? {};
+      let allIgnoreFiles = window.electronStore.get('ignoreFiles') ?? {};
       if (typeof allIgnoreFiles !== 'object') allIgnoreFiles = {};
       allIgnoreFiles[projectPath] = Array.from(this.ignoreFiles).join(';');
       return window.electronStore.setJSON('ignoreFiles', JSON.stringify(allIgnoreFiles));
     },
 
     loadIgnoreFiles(projectPath) {
-      const allIgnoreFiles = window.electronStore.get('ignoreFiles') ?? {};
+      let allIgnoreFiles = window.electronStore.get('ignoreFiles') ?? {};
       if (typeof allIgnoreFiles !== 'object') allIgnoreFiles = {};
       return allIgnoreFiles[projectPath] ? allIgnoreFiles[projectPath].split(';') : [];
     },
