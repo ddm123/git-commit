@@ -1,4 +1,4 @@
-const { BrowserWindow, Menu, ipcMain, clipboard } = require('electron');
+const { BrowserWindow, Menu, ipcMain, clipboard, nativeTheme } = require('electron');
 
 async function showCopyContextMenu(event, menus) {
   // 创建菜单
@@ -34,8 +34,33 @@ async function showCopyContextMenu(event, menus) {
   return true;
 }
 
+/**
+ * @param {boolean} flag
+ * @returns boolean 返回当前是否为暗黑模式
+ */
+function darkMode(flag = undefined) {
+  let dark = nativeTheme.shouldUseDarkColors;
+
+  if (flag !== undefined) {
+    if (flag) {
+      if (!dark) {
+        nativeTheme.themeSource = 'dark';
+        dark = true;
+      }
+    } else {
+      if (dark) {
+        nativeTheme.themeSource = 'light';
+        dark = false;
+      }
+    }
+  }
+
+  return dark;
+}
+
 module.exports = function setupActionHandlers() {
   ipcMain.handle('show-copy-context-menu', showCopyContextMenu);
   ipcMain.handle('clipboard:write-text', (event, text) => clipboard.writeText(text));
   ipcMain.handle('clipboard:read-text', (event) => clipboard.readText());
+  ipcMain.handle('native-theme:dark-mode', (event, flag = undefined) => darkMode(flag));
 };

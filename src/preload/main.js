@@ -9,6 +9,7 @@ for (const argv of process.argv) {
 contextBridge.exposeInMainWorld('electronAPI', {
   getArgument: (key) => key === undefined ? argumentsMap : argumentsMap.get(key),
   ipcInvoke: (...args) => ipcRenderer.invoke(...args),
+  darkMode: (flag = undefined) => ipcRenderer.invoke('native-theme:dark-mode', flag),
   receive: (channel, func) => ipcRenderer.on(channel, func),
   openDirectory: (def) => ipcRenderer.invoke('dialog:openDirectory', def),
   showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options),

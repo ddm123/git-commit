@@ -3,14 +3,6 @@ const path = require('node:path');
 const Store = require('../modules/electron-store.js');
 const { addListener: bindWinClose } = require('../modules/main-win-onclose.js');
 
-// const debounce = function(func, wait) {
-//   let timeout;
-//   return (...args) => {
-//     clearTimeout(timeout);
-//     timeout = setTimeout(() => func(...args), wait);
-//   };
-// };
-
 const createWindow = function() {
   const windowBounds = Store.singleton;
   const win = new BrowserWindow({
@@ -30,7 +22,7 @@ const createWindow = function() {
     }
   });
 
-  //监听事件
+  // 监听事件
   bindWinClose(() => {
     if (!win.isDestroyed()) {
       const bounds = win.getBounds();
@@ -53,7 +45,22 @@ const createWindow = function() {
   }
 
   win.loadFile('src/renderer/index.html');
+
+  //win.once('ready-to-show', () => {
+  //  console.log('主窗口 ready-to-show');
+  //});
+
   return win;
+};
+
+const loadIpcHandlers = function(win) {
+  require('./ipc/store-handlers')();
+  require('./ipc/dialog-handlers')();
+  require('./ipc/action-handlers')();
+  require('./ipc/file-handlers')(win);
+  require('./ipc/git-handlers')();
+  require('./ipc/archiver-handlers')();
+  require('./ipc/ftp-handlers')();
 };
 
 const registerWindowShortcut = function(win) {
@@ -91,13 +98,9 @@ if (app.requestSingleInstanceLock({})) {
   app.whenReady().then(() => {
     mainWindow = createWindow();
 
-    require('./ipc/store-handlers')();
-    require('./ipc/dialog-handlers')();
-    require('./ipc/action-handlers')();
-    require('./ipc/file-handlers')(mainWindow);
-    require('./ipc/git-handlers')();
-    require('./ipc/archiver-handlers')();
-    require('./ipc/ftp-handlers')();
+    //mainWindow.once('ready-to-show', () => {
+    //  console.log('窗口 ready-to-show');
+    //});
 
     /**
      * @link https://www.electronjs.org/zh/docs/latest/tutorial/tutorial-first-app#如果没有窗口打开则打开一个窗口-macos
@@ -108,7 +111,10 @@ if (app.requestSingleInstanceLock({})) {
       }
     });
 
-    registerWindowShortcut(mainWindow);
+    setTimeout(() => {
+      loadIpcHandlers(mainWindow);
+      registerWindowShortcut(mainWindow);
+    }, 0);
   });
 } else {
   app.quit();
