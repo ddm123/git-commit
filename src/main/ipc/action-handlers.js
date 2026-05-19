@@ -1,6 +1,8 @@
 const { BrowserWindow, Menu, ipcMain, clipboard, nativeTheme } = require('electron');
 
 async function showCopyContextMenu(event, menus) {
+  if (!menus.length) return false;
+
   // 创建菜单
   const menuTemplate = [];
 

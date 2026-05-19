@@ -95,24 +95,37 @@ async function getHeadFileBase64(projectPath, file) {
 
 function getUserLogs(projectPath) {
   const gitRepo = git(projectPath);
-  return gitRepo.raw(['config', '--get', 'user.email'])
-    .then(email => email ? email.trim() : '')
-    .then(email => email ? gitRepo.raw([
-      'log',
-      '--author='+email, // 按作者筛选
-      '--pretty=format:%h%x01%s%x00', // 只输出 hash 和提交信息
-      '-n', '10' // 限制 10 条
-    ]) : '')
-    .then(logs => {
-      const gitLogs = [];
-      for(const line of logs.trim().split('\x00')){
-        const [hash, message] = line.split('\x01');
-        if(hash && message){
-          gitLogs.push({hash, message});
-        }
+  return gitRepo.getConfig('user.email')
+    .then(email => email ? email.value : '')
+    .then(email => email ? gitRepo.log({
+      '--author': email, // 按作者筛选
+      maxCount: 10, // 限制 10 条
+      multiLine: true,
+      strictDate: true
+    }) : [])
+    .then(logs => logs.all ?? []);
+}
+
+async function handleGitLogs (event, projectPath, options) {
+  const gitRepo = git(projectPath);
+  if(options && Object.prototype.toString.call(options) === '[object Object]'){
+    if (options.userName) {
+      if (options.userName === true) {
+        options.userName = await gitRepo.getConfig('user.name').then(name => name ? name.value : '');
       }
-      return gitLogs;
-    });
+      options['--author'] = options.userName;
+      delete options.userName;
+    } else if (options.userEmail) {
+      if (options.userEmail === true) {
+        options.userEmail = await gitRepo.getConfig('user.email').then(email => email ? email.value : '');
+      }
+      options['--author'] = options.userEmail;
+      delete options.userEmail;
+    }
+  } else {
+    options = undefined;
+  }
+  return gitRepo.log(options);
 }
 
 async function getUnpushedCommits(projectPath, options) {
@@ -163,7 +176,7 @@ async function showMessagePaste(event, projectPath) {
           label = label.substring(0, 50) + '...';
         }
         menuTemplate.push({label: label, click: () => {
-          event.sender.send('clipboard:readText', 'gitMessagePaste', log.message);
+          event.sender.send('clipboard:readText', 'gitMessagePaste', (log.body ?? log.message).trim());
         }});
       }
     }catch(ex){
@@ -315,6 +328,7 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:reset', async (event, projectPath, parameters) => await git(projectPath).reset(parameters));
   ipcMain.handle('git:checkout', async (event, projectPath, ...files) => await git(projectPath).checkout(['HEAD', '--', ...files]));
   ipcMain.handle('git:diff', handleGitDiff);
+  ipcMain.handle('git:logs', handleGitLogs);
   ipcMain.handle('git:showPasteContextMenu', showMessagePaste);
   ipcMain.handle('git:showDiff', handleShowDiff);
   ipcMain.handle('git:getUnpushedCommits', (event, projectPath, options) => getUnpushedCommits(projectPath, options));

@@ -3,37 +3,79 @@
     init() {
       Alpine.store('commitMessage', { message: '' });
 
-      window.electronAPI.onPaste((event, type, text) => {
-        if(type==='gitMessagePaste'){
-          this.insertCommitMessage(text);
-        }
+      window.electronAPI.onMenuClick('clipboard:paste', (event, text) => this.insertCommitMessage(text));
+      window.electronAPI.onMenuClick('clipboard:copy', (event, text) => window.electronAPI.writeClipboard(text));
+      window.electronAPI.onMenuClick('clipboard:cut', (event, text) => {
+        window.electronAPI.writeClipboard(text);
+        this.insertCommitMessage('');
       });
+    },
+
+    async showContextMenu(event) {
+      const menus = [];
+
+      const clipboardText = await window.electronAPI.readClipboard();
+      if (clipboardText) {
+        menus.push({ label: '粘贴', text: clipboardText, handler: 'clipboard:paste', args: [clipboardText] });
+      }
+
+      const selectionText = this.getSelectionText();
+      if (selectionText) {
+        menus.push(
+          { label: '复制', text: selectionText, handler: 'clipboard:copy', args: [selectionText] },
+          { label: '剪切', text: selectionText, handler: 'clipboard:cut', args: [selectionText] }
+        );
+      }
+
+      const projectPath = Alpine.store('projectPath').path;
+      if (projectPath) {
+        const gitLogs = await window.gitAPI.logs(projectPath, { maxCount: 10, multiLine: true, strictDate: true, userEmail: true });
+        if (gitLogs.all) {
+          menus.push('-');
+          for (const log of gitLogs.all) {
+            let label = log.message;
+            let text = (log.body ?? log.message).trim();
+            if(label.length>50){
+              label = label.substring(0, 50) + '...';
+            }
+            menus.push({ label, text, handler: 'clipboard:paste', args: [text] });
+          }
+        }
+      }
+
+      window.electronAPI.showPathContextMenu(menus);
     },
 
     insertCommitMessage(text) {
       const textarea = this.$refs.commitMessage;
-      const commitMessage = Alpine.store('commitMessage').message;
+
       if(textarea){
-        let startPos = 0, endPos = 0;
-        let beforeText = '', afterText = '';
+        let startPos = textarea.selectionStart ?? 0;
+        let endPos = textarea.selectionEnd ?? 0;
 
-        // 获取当前光标位置或选中文本范围
-        startPos = textarea.selectionStart;
-        endPos = textarea.selectionEnd;
-        beforeText = commitMessage.substring(0, startPos);
-        afterText = commitMessage.substring(endPos);
-
-        Alpine.store('commitMessage').message = beforeText + text + afterText;
         textarea.focus();
         textarea.setRangeText(
           text,// 要插入的文本
-          textarea.selectionStart,
-          textarea.selectionEnd,
+          startPos,
+          endPos,
           'end'// 可选: 'start'|'end'|'preserve'（光标位置）
         );
+
+        Alpine.store('commitMessage').message = textarea.value;
       }else{
         Alpine.store('commitMessage').message = text;
       }
+    },
+
+    getSelectionText() {
+      const textarea = this.$refs.commitMessage;
+      if (textarea && textarea.value) {
+        const start = textarea.selectionStart, end = textarea.selectionEnd;
+
+        if (start === null || end === null) return '';
+        return textarea.value.substring(start, end);
+      }
+      return '';
     }
   }));
 </script>
@@ -41,7 +83,7 @@
   <textarea
     x-ref="commitMessage"
     x-model="$store.commitMessage.message"
-    x-on:contextmenu="window.gitAPI.showPasteContextMenu($store.projectPath.path)"
+    x-on:contextmenu="showContextMenu.bind($data)"
     placeholder="提交消息"
     class="textarea w-full resize-none"
   ></textarea>
