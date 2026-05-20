@@ -38,24 +38,23 @@
         Alpine.store('statusBar').statusText = statusText;
       });
       window.electronAPI.receive('manage-projects.closed', (event, ...paths) => {
-        disableBody(false);
+        document.body.classList.remove('disable');
 
-        const selectedPath = Alpine.store('projectPath').path;
-        Alpine.store('projectPath').path = '';
+        const pathsStr = paths.join(';');
+        if (pathsStr === this.historyProjectPaths.join(';')) return;
+
         this.historyProjectPaths = paths;
-        window.electronStore.set('historyProjectPaths', paths.join(';'));
+        window.electronStore.set('historyProjectPaths', pathsStr);
 
         this.$nextTick(()=>{
           if (paths.length === 0) {
-            this.lastSelectedPath = '';
+            Alpine.store('projectPath').path = this.lastSelectedPath = '';
             this.clearAllList();
             window.electronStore.delete('projectPath');
-          } else if (!paths.includes(selectedPath)) {
+          } else if (!paths.includes(Alpine.store('projectPath').path)) {
             Alpine.store('projectPath').path = this.lastSelectedPath = paths[0];
             this.refresh();
             window.electronStore.set('projectPath', paths[0]);
-          } else {
-            Alpine.store('projectPath').path = selectedPath;
           }
         });
       });
@@ -176,7 +175,7 @@
     },
 
     manageProjects() {
-      disableBody(true);
+      document.body.classList.add('disable');
       window.electronAPI.showProjectsDialog(...this.historyProjectPaths);
     },
 
@@ -273,7 +272,7 @@
         <template x-if="!historyProjectPaths.length">
           <option value="" selected></option>
         </template>
-        <template x-for="path in historyProjectPaths">
+        <template x-for="path in historyProjectPaths" :key="path">
           <option x-bind:value="path" x-text="path"></option>
         </template>
         <option x-bind:value="selectProjectPathFlag">选择项目文件夹...</option>
