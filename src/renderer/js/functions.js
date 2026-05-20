@@ -8,17 +8,21 @@ function disableBody(flag, enforce) {
     if (flag || flag === undefined) {
         if (enforce) {
             body.classList.add('disable');
+            NProgress.start();
         } else {
             if (disableBodyCounter === 0) {
                 body.classList.add('disable');
+                NProgress.start();
             }
             disableBodyCounter++;
         }
     } else {
         if (enforce) {
             body.classList.remove('disable');
+            NProgress.done();
         }else if(disableBodyCounter<=1) {
             body.classList.remove('disable');
+            NProgress.done();
             disableBodyCounter = 0;
         }else{
             disableBodyCounter--;
@@ -97,6 +101,7 @@ async function compileComponents(onLoad) {
             return '';
         });
         component.insertAdjacentHTML('beforebegin', html);
+        onLoad(html, component);
         component.remove();
     };
     const loadComponent = function(component) {
@@ -105,6 +110,8 @@ async function compileComponents(onLoad) {
             .then(html => rendererComponent(component, html))
             .catch(error => console.error('Error loading component '+component.getAttribute('src')+':', error));
     }
+    if (typeof onLoad !== 'function') onLoad = () => {};
+
     const deferComponents = [];
     for (const component of document.querySelectorAll('component[src]')) {
         if (component.hasAttribute('defer')) {
@@ -115,14 +122,10 @@ async function compileComponents(onLoad) {
     }
 
     let len = deferComponents.length;
-    if (!len) {
-        if (typeof onLoad === 'function') onLoad();
-        return;
-    }
-    if (typeof onLoad === 'function') {
-        Promise.allSettled(deferComponents.map(component => loadComponent(component))).then(onLoad);
-    } else {
+    if (len) {
         for (let i = 0; i < len; i++) loadComponent(deferComponents[i]);
+    } else {
+        onLoad(undefined, undefined);
     }
 }
 

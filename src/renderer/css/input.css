@@ -2,4 +2,5 @@
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark, cupcake, retro, valentine, lemonade, caramellatte;
 }
+@import './nprogress.css';
 @import './main.css';

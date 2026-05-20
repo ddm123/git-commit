@@ -5,10 +5,12 @@
   <title>Git 版本控制提交工具</title>
   <link href="../../dist/css/tailwind.css" rel="stylesheet">
   <script src="../../src/renderer/js/functions.js" type="text/javascript"></script>
+  <script src="../../dist/js/nprogress.js" type="text/javascript"></script>
+  <script defer src="../../src/renderer/js/index.js" type="text/javascript"></script>
   <script defer src="../../dist/js/alpine-latest.min.js"></script>
-  <script src="../../src/renderer/js/index.js" type="text/javascript"></script>
 </head>
 <body class="mx-4 mt-1 mb-0" x-data="app">
+  <script> NProgress.configure({ showSpinner: false }).start(); </script>
   <component src="./components/project-path.html"></component>
   <component src="./components/commit-message.html"></component>
   <component src="./components/file-listing.html"></component>

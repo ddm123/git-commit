@@ -12,38 +12,39 @@
     },
 
     async showContextMenu(event) {
-      const menus = [];
-
-      const clipboardText = await window.electronAPI.readClipboard();
-      if (clipboardText) {
-        menus.push({ label: '粘贴', text: clipboardText, handler: 'clipboard:paste', args: [clipboardText] });
-      }
-
-      const selectionText = this.getSelectionText();
-      if (selectionText) {
-        menus.push(
-          { label: '复制', text: selectionText, handler: 'clipboard:copy', args: [selectionText] },
-          { label: '剪切', text: selectionText, handler: 'clipboard:cut', args: [selectionText] }
-        );
-      }
-
       const projectPath = Alpine.store('projectPath').path;
-      if (projectPath) {
-        const gitLogs = await window.gitAPI.logs(projectPath, { maxCount: 10, multiLine: true, strictDate: true, userEmail: true });
-        if (gitLogs.all) {
+      const promises = [
+        window.electronAPI.readClipboard(),
+        Promise.resolve(this.getSelectionText()),
+        projectPath ? window.gitAPI.logs(projectPath, { maxCount: 10, multiLine: true, strictDate: true, userEmail: true }) : Promise.resolve(null)
+      ];
+
+      Promise.allSettled(promises).then(results => {
+        const menus = [];
+
+        if (results[0].status === 'fulfilled' && results[0].value) {
+          menus.push({ label: '粘贴', text: results[0].value, handler: 'clipboard:paste', args: [results[0].value] });
+        }
+
+        if (results[1].status === 'fulfilled' && results[1].value) {
+          menus.push(
+            { label: '复制', text: results[1].value, handler: 'clipboard:copy', args: [results[1].value] },
+            { label: '剪切', text: results[1].value, handler: 'clipboard:cut', args: [results[1].value] }
+          );
+        }
+
+        if (results[2].status === 'fulfilled' && results[2].value  && results[2].value.all) {
           menus.push('-');
-          for (const log of gitLogs.all) {
+          for (const log of results[2].value.all) {
             let label = log.message;
             let text = (log.body ?? log.message).trim();
-            if(label.length>50){
-              label = label.substring(0, 50) + '...';
-            }
+            if (label.length>50) label = label.substring(0, 50) + '...';
             menus.push({ label, text, handler: 'clipboard:paste', args: [text] });
           }
         }
-      }
 
-      window.electronAPI.showPathContextMenu(menus);
+        window.electronAPI.showPathContextMenu(menus);
+      });
     },
 
     insertCommitMessage(text) {
