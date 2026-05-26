@@ -317,6 +317,7 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:getBranches', async (event, projectPath) => await git(projectPath).branchLocal());
   ipcMain.handle('git:getStatus', handleGitStatus);
   ipcMain.handle('git:switchBranch', async (event, projectPath, branch) => await git(projectPath).checkout(branch));
+  ipcMain.handle('git:branch', (event, projectPath, options) => git(projectPath).branch(typeof options === 'string' ? [options] : (options && Array.isArray(options) ? options : [])));
   ipcMain.handle('git:pull', handleGitPull);
   ipcMain.handle('git:add', async (event, projectPath, files) => await git(projectPath).add(files));
   ipcMain.handle('git:stash.push', handleGitStashPush);

@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('gitAPI', {
   getBranches: (path) => ipcRenderer.invoke('git:getBranches', path),
   getStatus: (path) => ipcRenderer.invoke('git:getStatus', path),
   switchBranch: (path, branch) => ipcRenderer.invoke('git:switchBranch', path, branch),
+  branch: (path, options) => ipcRenderer.invoke('git:branch', path, options),
   pull: (path, options) => ipcRenderer.invoke('git:pull', path, options),
   add: (path, files) => ipcRenderer.invoke('git:add', path, files),
   stash: {

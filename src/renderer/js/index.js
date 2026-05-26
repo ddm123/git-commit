@@ -306,7 +306,5 @@ document.addEventListener('alpine:init', () => {
 
   compileComponents().then(() => {
     document.dispatchEvent(new CustomEvent('componentsLoaded'));
-    NProgress.done();
-    //NProgress.remove();
   });
 });
