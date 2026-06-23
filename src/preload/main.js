@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('gitAPI', {
   diff: (path, options) => ipcRenderer.invoke('git:diff', path, options),
   logs: (path, options) => ipcRenderer.invoke('git:logs', path, options),
   showDiff: (path, file, diffChunks) => ipcRenderer.invoke('git:showDiff', path, file, diffChunks),
+  showLogHistories: (path, branch, options, file) => ipcRenderer.invoke('git:showLogHistories', path, branch, options, file),
   getUnpushedCommits: (path, options) => ipcRenderer.invoke('git:getUnpushedCommits', path, options),
   onProgress: (eventName, closure) => ipcRenderer.on(eventName, closure),
   showPasteContextMenu: (path) => ipcRenderer.invoke('git:showPasteContextMenu', path)

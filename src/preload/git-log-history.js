@@ -11,8 +11,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isDevelopment: () => argumentsMap.get('is-packaged') === 'false',
   send: (channel, data) => ipcRenderer.send(channel, data),
   receive: (channel, func) => ipcRenderer.on(channel, func),
-  diffChars: (oldStr, newStr) => ipcRenderer.sendSync('diff-chars', oldStr, newStr),
-  getHeadFileBase64: (path, file) => ipcRenderer.invoke('git:getHeadFileBase64', path, file),
+  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
   closeWindow: () => ipcRenderer.send('close-window'),
-  toggleDevTools: () => ipcRenderer.send('toggle-dev-tools')
+  toggleDevTools: () => ipcRenderer.send('toggle-dev-tools'),
+  logs: (path, options) => ipcRenderer.invoke('git:logs', path, options),
+  gitShow: (path, options) => ipcRenderer.invoke('git:show', path, options),
+  showDiff: (path, file, diffChunks) => ipcRenderer.invoke('git:showDiff', path, file, diffChunks)
 });

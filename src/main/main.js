@@ -58,7 +58,7 @@ const loadIpcHandlers = function(win) {
   require('./ipc/dialog-handlers')();
   require('./ipc/action-handlers')();
   require('./ipc/file-handlers')(win);
-  require('./ipc/git-handlers')();
+  require('./ipc/git-handlers')(win);
   require('./ipc/archiver-handlers')();
   require('./ipc/ftp-handlers')();
 };

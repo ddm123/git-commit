@@ -74,6 +74,7 @@
         });
       });
       window.electronAPI.onMenuClick('ignoreFiles', (event, ...files) => this.addIgnoreFile(...files));
+      window.electronAPI.onMenuClick('git:fileLogs', (event, path, file) => window.gitAPI.showLogHistories(path, Alpine.store('projectPath').currentBranch, undefined, file));
 
       const failedFiles = [];
       window.electronAPI.onMenuClick('ftp:upload', (event, path, ...files) => {
@@ -203,6 +204,11 @@
           {label: '放弃修改', text: currentFile.file, handler: 'git:checkout', args: [projectPath, currentFile.file]}
         );
       }
+      if (currentFile.status !== 'untracked' && currentFile.status !== 'added') {
+        menus.push(
+          {label: '提交历史', text: currentFile.file, handler: 'git:fileLogs', args: [projectPath, currentFile.file]}
+        );
+      }
 
       if(files.length>0){
         const absPaths = [];
@@ -294,7 +300,7 @@
     }
   }));
 </script>
-<div class="file-list overflow-x-auto w-full" x-data="fileListing" x-bind:class="{'ignore-listing': isIgnoreMode}">
+<div class="file-list files-color overflow-x-auto w-full" x-data="fileListing" x-bind:class="{'ignore-listing': isIgnoreMode}">
   <table class="table table-pin-rows table-pin-cols" x-ref="fileListTable">
     <thead>
       <tr>

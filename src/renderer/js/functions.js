@@ -8,21 +8,21 @@ function disableBody(flag, enforce) {
     if (flag || flag === undefined) {
         if (enforce) {
             body.classList.add('disable');
-            NProgress.start();
+            if (typeof NProgress === 'object') NProgress.start();
         } else {
             if (disableBodyCounter === 0) {
                 body.classList.add('disable');
-                NProgress.start();
+                if (typeof NProgress === 'object') NProgress.start();
             }
             disableBodyCounter++;
         }
     } else {
         if (enforce) {
             body.classList.remove('disable');
-            NProgress.done();
+            if (typeof NProgress === 'object') NProgress.done();
         }else if(disableBodyCounter<=1) {
             body.classList.remove('disable');
-            NProgress.done();
+            if (typeof NProgress === 'object') NProgress.done();
             disableBodyCounter = 0;
         }else{
             disableBodyCounter--;
@@ -74,6 +74,10 @@ function debounce(fn, wait = 300) {
 
      debounced.cancel = () => clearTimeout(timer);
      return debounced;
+}
+
+function htmlspecialchars(str) {
+    return str.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 }
 
 async function compileComponents(onLoad) {

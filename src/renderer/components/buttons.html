@@ -1,5 +1,7 @@
 <script>
   Alpine.data('buttons', () => ({
+    isLoadingLogs: false,
+
     init() {
       window.addEventListener('keydown', event => {
         // 如果事件已经在进行中，则不做任何事。
@@ -17,6 +19,18 @@
         } else if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
           event.preventDefault();
           this.commit(event, event.shiftKey);
+        } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'h') {
+          event.preventDefault();
+          if (this.isLoadingLogs) return;
+
+          this.isLoadingLogs = true;
+          window.gitAPI.showLogHistories(Alpine.store('projectPath').path, Alpine.store('projectPath').currentBranch)
+          .catch(error => {
+            this.showError(error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>'));
+          })
+          .finally(() => {
+            this.isLoadingLogs = false;
+          });
         }
       });
     },

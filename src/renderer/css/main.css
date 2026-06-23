@@ -174,16 +174,16 @@ body.disable > .body-mask{
 .file-list .col-checkbox + th {
   padding-inline-start: 0;
 }
-.file-list tbody .modified {
+.files-color tbody .modified {
   color: var(--color-info);
 }
-.file-list tbody .added {
+.files-color tbody .added {
   color: var(--color-warning-content);
 }
-.file-list tbody .deleted {
+.files-color tbody .deleted {
   color: var(--color-error);
 }
-.file-list tbody .untracked {
+.files-color tbody .untracked {
   color: var(--color-success);
 }
 .file-list .table tbody :where(td, th) {
@@ -292,4 +292,41 @@ body.disable > .body-mask{
 .d2h-emptyplaceholder .d2h-code-side-emptyplaceholder,
 td.d2h-code-side-linenumber.d2h-code-side-emptyplaceholder {
   background-color: transparent;
+}
+
+.logs, .log-message, .log-files {
+  overflow: auto;
+  border: 1px solid color-mix(in oklab, var(--color-base-content) 20%, #0000);
+  border-radius: .25rem;
+}
+.logs {
+  height: calc(24vh);
+}
+.log-message {
+  height: calc(18vh);
+  font-size: .75rem;
+}
+.log-files {
+  height: calc(58vh - var(--spacing) * 10 - 2.5rem);
+}
+.log-files .table-xs :is(th, td, div) {
+  font-size: 0.8rem;
+}
+.log-files tr.active {
+  font-weight: bold;
+}
+.log-files tr.active > td:first-child::before {
+  content: "▸";
+  margin-left: -0.65rem;
+}
+
+.logs tbody > tr:has(input[type="radio"]:checked) {
+  background-color: var(--color-primary);
+  color: var(--color-primary-content);
+}
+.logs tbody .log-author {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 15rem;
 }

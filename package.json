@@ -1,6 +1,6 @@
 {
   "name": "git-commit",
-  "version": "1.6.13",
+  "version": "1.7.0",
   "description": "一个简单的Git提交工具",
   "keywords": [
     "Git",

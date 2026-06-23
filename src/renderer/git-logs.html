@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link href="../../dist/css/tailwind.css" rel="stylesheet">
+  <script defer src="../../dist/js/alpine-latest.min.js"></script>
+  <script src="../../src/renderer/js/functions.js" type="text/javascript"></script>
+  <script src="../../src/renderer/js/git-logs.js" type="text/javascript"></script>
+</head>
+<body class="m-2" x-data="gitLogHistory">
+  <div class="filter-form mb-2">
+    <div class="join w-full">
+      <select class="select join-item w-auto" x-model="filter.action">
+        <option value="name">提交人</option>
+        <option value="message">提交消息</option>
+        <template x-if="!currentFile"><option value="file">提交文件</option></template>
+      </select>
+      <input type="text" class="input join-item grow" placeholder="关键字" x-model="filter.text" x-on:keydown.enter="search" />
+      <label class="input join-item w-40">
+        <span>从</span>
+        <input type="date" x-model="filter.begin" />
+      </label>
+      <label class="input join-item w-40">
+        <span>至</span>
+        <input type="date" x-model="filter.end" />
+      </label>
+      <button class="btn join-item" x-on:click="search">搜索</button>
+    </div>
+  </div>
+  <div class="logs" x-ref="logsContainer">
+    <table class="table table-pin-rows table-xs">
+      <thead>
+        <tr class="text-xs">
+          <td>日期</td>
+          <td>消息</td>
+          <td>提交人</td>
+          <td>&nbsp;</td>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="log in logs" :key="log.hash">
+        <tr x-on:click="clickLogRow.bind($data, $event, $el, log)" x-bind:id="log.hash">
+          <td x-text="formatDateTime(log.date)" class="log-date"></td>
+          <td x-text="log.message.length > 50 ? log.message.substring(0, 50) + '...' : log.message" class="log-msg"></td>
+          <td x-text="formatAuthor(log)" class="log-author"></td>
+          <td><input type="radio" name="__log" x-model="selectedLog" class="hidden" x-bind:value="log.hash" /><div x-html="formatRefs(log.refs)" class="flex flex-wrap justify-end gap-1"></div></td>
+        </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+  <template x-if="currentLog">
+  <div class="log-message p-2 my-2">
+    <div class="flex">
+      <div><strong>Hash:</strong> <span x-text="currentLog.hash"></span></div>
+      <div x-html="formatRefs(currentLog.refs)" class="flex gap-1 ml-auto"></div>
+    </div>
+    <div>
+      <strong>Author:</strong> <span x-text="formatAuthor(currentLog)"></span>,
+      <strong>Date:</strong> <span x-text="formatDateTime(currentLog.date)"></span>
+    </div>
+    <pre x-text="currentLog.body ? currentLog.body : currentLog.message"></pre>
+  </div>
+  </template>
+  <template x-if="logFiles.length">
+  <div class="log-files files-color">
+    <table class="table table-xs">
+      <tbody>
+        <template x-for="file in logFiles" :key="file.file">
+        <tr :class="rowClass(file)">
+          <td x-on:dblclick="showDiff.bind($data, file)">
+            <span x-text="file.status"></span>&nbsp;&nbsp;
+            <template x-if="file.fileFormatted"><span x-html="file.fileFormatted"></span></template>
+            <template x-if="!file.fileFormatted"><span x-text="file.file"></span></template>
+          </td>
+          <td class="text-green-600 text-right"><span x-text="file.add==='-' || file.add==0 ? file.add : '+'+file.add"></span></td>
+          <td class="text-red-600 text-right"><span x-text="file.delete==='-' || file.delete==0 ? file.delete : '-'+file.delete"></span></td>
+        </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+  </template>
+  <div class="body-mask"></div>
+  <div class="messages" id="messages"></div>
+</body>
+</html>

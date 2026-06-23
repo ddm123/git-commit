@@ -3,6 +3,10 @@ const path = require('node:path');
 const fs = require('fs');
 const git = require('simple-git');
 const Store = require('../../modules/electron-store.js');
+const { addListener: bindWinClose } = require('../../modules/main-win-onclose.js');
+
+/** @type {Map<string, BrowserWindow>} */
+const logHistoryWin = new Map();
 
 async function handleGitStatus(event, projectPath) {
   const gitRepo = git(projectPath);
@@ -234,8 +238,9 @@ function handleShowDiff(event, projectPath, file, diffChunks) {
     win.maximize();
   }
 
+  const isArr = Array.isArray(file);
   let winTitle = '';
-  if (Array.isArray(file)) {
+  if (isArr) {
     winTitle = file.length>2 ? '查看 '+file[0]+', '+file[1]+' 等 '+file.length+' 个文件的差异' : '查看 '+file.join(' 和 ')+' 文件的差异'
   } else {
     winTitle = '查看 '+file+' 差异';
@@ -243,11 +248,67 @@ function handleShowDiff(event, projectPath, file, diffChunks) {
   win.loadFile('src/renderer/git-diff.html');
   win.setTitle(winTitle);
   win.webContents.on('did-finish-load', () => {
-    //win.webContents.openDevTools();
-    win.webContents.send('show-diff-chunks', file, diffChunks);
+    win.webContents.send('show-diff-chunks', isArr ? file : [file], diffChunks);
   });
 
   return win.getTitle();
+}
+
+function handleShowLogHistories(event, projectPath, branch, options, file) {
+  const key = projectPath + '_' + branch;
+  if (logHistoryWin.has(key)) {
+    const win = logHistoryWin.get(key);
+    if (win.isMinimized()) {
+      win.restore();
+    }
+    win.focus();
+    return;
+  }
+  const windowBounds = Store.singleton;
+  const win = new BrowserWindow({
+    x: windowBounds.getIntValue('logHistoryWin.x') || 183,
+    y: windowBounds.getIntValue('logHistoryWin.y') || 66,
+    width: windowBounds.getIntValue('logHistoryWin.width') || 1000,
+    height: windowBounds.getIntValue('logHistoryWin.height') || 600,
+    minWidth: 600,
+    minHeight: 400,
+    webPreferences: {
+      preload: path.join(__dirname, '../../preload/git-log-history.js'),
+      additionalArguments: [
+        '--project-path=' + projectPath,
+        '--is-packaged=' + (app.isPackaged ? 'true' : 'false')
+      ]
+    }
+  });
+
+  logHistoryWin.set(key, win);
+  win.on('close', (event) => {
+    if (!win.isDestroyed()) {
+      const bounds = win.getBounds();
+      if(win.isMaximized()){
+        windowBounds.set('logHistoryWin.isMaximized', true);
+      }else{
+        windowBounds.set('logHistoryWin.isMaximized', false);
+        if(!win.isMinimized()){
+          windowBounds.set('logHistoryWin.x', bounds.x);
+          windowBounds.set('logHistoryWin.y', bounds.y);
+          windowBounds.set('logHistoryWin.width', bounds.width);
+          windowBounds.set('logHistoryWin.height', bounds.height);
+        }
+      }
+    }
+  });
+  win.on('closed', () => logHistoryWin.delete(key));
+
+  if (windowBounds.get('logHistoryWin.isMaximized', false)) {
+    win.maximize();
+  }
+  win.loadFile('src/renderer/git-logs.html');
+  win.setTitle('查看 '+projectPath+' ('+branch+') 的日志');
+  win.webContents.on('did-finish-load', () => {
+    //win.webContents.openDevTools();
+    win.webContents.send('show-log-histories', projectPath, branch, options, file);
+  });
 }
 
 /**
@@ -296,7 +357,7 @@ async function isBinaryFile(filePath, maxBytes = 8192) {
   });
 }
 
-function closeDiffWindow(event) {
+function closeWindow(event) {
   //event.sender is webContents
   /** @var {BrowserWindow} win */
   const win = BrowserWindow.fromWebContents(event.sender);
@@ -312,7 +373,7 @@ function toggleDevTools(event) {
   }
 }
 
-module.exports = function setupGitHandlers() {
+module.exports = function setupGitHandlers(mainWin) {
   ipcMain.handle('git:getRootPath', async (event, projectPath) => await git(projectPath).revparse(['--show-toplevel']));
   ipcMain.handle('git:getBranches', async (event, projectPath) => await git(projectPath).branchLocal());
   ipcMain.handle('git:getStatus', handleGitStatus);
@@ -330,11 +391,19 @@ module.exports = function setupGitHandlers() {
   ipcMain.handle('git:checkout', async (event, projectPath, ...files) => await git(projectPath).checkout(['HEAD', '--', ...files]));
   ipcMain.handle('git:diff', handleGitDiff);
   ipcMain.handle('git:logs', handleGitLogs);
+  ipcMain.handle('git:show', (event, projectPath, options) => git(projectPath).show(typeof options === 'string' ? [options] : (options && Array.isArray(options) ? options : [])));
   ipcMain.handle('git:showPasteContextMenu', showMessagePaste);
   ipcMain.handle('git:showDiff', handleShowDiff);
   ipcMain.handle('git:getUnpushedCommits', (event, projectPath, options) => getUnpushedCommits(projectPath, options));
   ipcMain.handle('git:getHeadFileBase64', (event, projectPath, file) => getHeadFileBase64(projectPath, file));
+  ipcMain.handle('git:showLogHistories', handleShowLogHistories);
   ipcMain.on('diff-chars', (event, oldStr, newStr) => event.returnValue = diffChars(oldStr, newStr));
-  ipcMain.on('close-diff-window', closeDiffWindow);
+  ipcMain.on('close-window', closeWindow);
   ipcMain.on('toggle-dev-tools', toggleDevTools);
+
+  bindWinClose(() => {
+    if (logHistoryWin.size > 0) {
+      setTimeout(() => logHistoryWin.forEach(win => win.close()), 0);
+    }
+  }, mainWin);
 };
