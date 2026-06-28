@@ -8,6 +8,8 @@ const { addListener: bindWinClose } = require('../../modules/main-win-onclose.js
 /** @type {Map<string, BrowserWindow>} */
 const logHistoryWin = new Map();
 
+let isLoadedGitLogIpcHandler = false;
+
 async function handleGitStatus(event, projectPath) {
   const gitRepo = git(projectPath);
   const gitStatus = await gitRepo.status(['--porcelain', projectPath]);
@@ -309,6 +311,11 @@ function handleShowLogHistories(event, projectPath, branch, options, file) {
     //win.webContents.openDevTools();
     win.webContents.send('show-log-histories', projectPath, branch, options, file);
   });
+
+  if (!isLoadedGitLogIpcHandler) {
+    isLoadedGitLogIpcHandler = true;
+    setTimeout(() => require('./git-log-handlers')(), 0);
+  }
 }
 
 /**

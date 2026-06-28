@@ -133,7 +133,7 @@ body.disable > .body-mask{
 .select:focus, .select:focus-within,
 .input:focus, .input:focus-within,
 .btn:focus-visible, .btn:has(:focus-visible) {
-  box-shadow: 0 0 8px 0 var(--color-accent);
+  box-shadow: 0 0 4px 0 var(--color-accent);
   border-color: var(--color-accent);
   outline: none;
   outline-offset: 0;
@@ -324,9 +324,30 @@ td.d2h-code-side-linenumber.d2h-code-side-emptyplaceholder {
   background-color: var(--color-primary);
   color: var(--color-primary-content);
 }
-.logs tbody .log-author {
+.logs tbody > tr > td {
   white-space: nowrap;
-  text-overflow: ellipsis;
   overflow: hidden;
+}
+.logs tbody .log-graph {
+  --svg-width: 28px;
+  --svg-height: 28px;
+  padding-block: 0;
+  padding-inline: 0;
+  width: var(--svg-width);
+  text-align: center;
+  overflow: hidden;
+  border-top: none;
+  border-bottom: none;
+}
+.logs tbody .log-graph svg {
+  width: var(--svg-width);
+  height: var(--svg-height);
+}
+.logs tbody .log-date {
+  width: 126px;
+  text-overflow: ellipsis;
+}
+.logs tbody .log-author {
+  text-overflow: ellipsis;
   max-width: 15rem;
 }

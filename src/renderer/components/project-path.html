@@ -26,7 +26,7 @@
         } else if (data.type === 'error') {
           if (data.sourcePath) statusText += '同步 ' + data.sourcePath + ' 出错: ';
           statusText += data.message;
-          this.showError(statusText);
+          this.showError(data.sourcePath ? statusText : '文件自动同步失败: ' + statusText);
         } else if (data.message) {
           statusText += data.message;
         } else if (data.sourcePath) {
@@ -78,6 +78,10 @@
 
       let path = window.electronStore.get('projectPath') || (this.historyProjectPaths[0] ?? '');
       if (path === this.selectProjectPathFlag) path = '';
+      if (!this.historyProjectPaths.includes(path)) {
+        path = this.historyProjectPaths[0] ?? '';
+        window.electronStore.set('projectPath', path);
+      }
 
       Alpine.store('projectPath').path = this.lastSelectedPath = path;
 

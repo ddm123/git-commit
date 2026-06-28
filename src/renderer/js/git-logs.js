@@ -29,7 +29,7 @@ document.addEventListener('alpine:init', () => {
         this.branch = branch;
         this.currentFile = file;
         this.fetchLogs(options).then(logs => {
-          this.logs = logs.all ?? [];
+          this.logs = logs;
           if (this.logs.length > 0) {
             this.selectedLog = this.logs[0].hash;
             this.currentLog = this.logs[0];
@@ -58,44 +58,42 @@ document.addEventListener('alpine:init', () => {
     },
 
     fetchLogs(options, limit, page = 1) {
-      if(!options || Object.prototype.toString.call(options) !== '[object Object]') {
-        options = {};
+      if(!options || !Array.isArray(options)) {
+        options = [];
       }
-      if (this.currentFile) {
-        options.file = this.currentFile;
+
+      const TZOffset = this.filter.end || this.filter.begin ? this.timezoneOffset() : '';
+      if (this.filter.end) {
+        options.push("--until='" + this.filter.end + "T23:59:59" + TZOffset + "'");
+      }
+      if (this.filter.begin) {
+        options.push("--since='" + this.filter.begin + "T00:00:00" + TZOffset + "'");
+      }
+      if (limit !== undefined) {
+        options.push('--max-count=' + limit);
+        this.logsMaxCount = limit;
+      } else {
+        options.push('--max-count=' + this.logsMaxCount);
+      }
+      if (page !== undefined && page > 1) {
+        options.push('--skip=' + ((page - 1) * limit));
       }
       if (this.filter.text) {
         switch (this.filter.action) {
           case 'name':
-            options['--author'] = this.filter.text;
+            options.push("--author='" + this.filter.text.replaceAll("'", "\\'") + "'");
             break;
           case 'message':
-            options['--grep'] = this.filter.text;
+            options.push("--grep='" + this.filter.text.replaceAll("'", "\\'") + "'");
             break;
           case 'file':
-            options['file'] = '*' + this.filter.text + '*';
+            options.push('--', "'*" + this.filter.text.replaceAll("'", "\\'") + "*'");
             break;
         }
       }
-      if (this.filter.end) {
-        options['--before'] = this.filter.end;
+      if ((this.filter.action !== 'file' || !this.filter.text) && this.currentFile) {
+        options.push('--', this.currentFile);
       }
-      if (this.filter.begin) {
-        options['--after'] = this.filter.begin;
-      }
-      if (limit !== undefined) options.maxCount = limit;
-      if (page !== undefined && page > 1) {
-        options['--skip'] = (page - 1) * limit;
-      }
-      if (options.maxCount) {
-        this.logsMaxCount = options.maxCount;
-      } else {
-        options.maxCount = this.logsMaxCount;
-      }
-
-      options.multiLine ??= true;
-      options.strictDate ??= true;
-      //options['--graph'] = null;
 
       return window.electronAPI.logs(this.projectPath, options);
     },
@@ -114,7 +112,7 @@ document.addEventListener('alpine:init', () => {
       const options = {};
 
       this.fetchLogs(options).then(logs => {
-        this.logs = logs.all ?? [];
+        this.logs = logs;
         if (this.logs.length > 0) {
           this.selectedLog = this.logs[0].hash;
           this.currentLog = this.logs[0];
@@ -137,9 +135,10 @@ document.addEventListener('alpine:init', () => {
       this.isLoadingLogs = true;
       this.fetchLogs(null, this.logsMaxCount, this.logPage + 1)
         .then(logs => {
-          logs.all ??= [];
-          this.logs.push(...logs.all);
-          if (logs.all.length < this.logsMaxCount) {
+          if (logs.length) {
+            this.logs.push(...logs);
+          }
+          if (logs.length < this.logsMaxCount) {
             this.isEndLogs = true;
           }
           this.logPage += 1;
@@ -167,7 +166,7 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    fetchLogFiles(log) {console.log(log);
+    fetchLogFiles(log) {
       this.logFiles = [];
       const keyMap = new Map();
       const files = [];
@@ -301,6 +300,12 @@ document.addEventListener('alpine:init', () => {
         .finally(() => disableBody(false));
     },
 
+    timezoneOffset() {
+      const o1 = new Date().getTimezoneOffset();
+      const o2 = Math.abs(o1);
+      return (o1 > 0 ? '-' : '+') + String(Math.floor(o2 / 60)).padStart(2, '0') + ':' + String(o2 % 60).padStart(2, '0');
+    },
+
     formatDateTime(date) {
       return new Date(date).toLocaleString('zh-CN', {
         year: 'numeric',
@@ -311,6 +316,14 @@ document.addEventListener('alpine:init', () => {
         second: '2-digit',
         hour12: false
       });
+    },
+
+    formatSubject(log) {
+      let str = log.subject || log.body;
+      if (str.length > 50) {
+        str = str.substring(0, 50) + '...';
+      }
+      return str;
     },
 
     formatAuthor(log) {

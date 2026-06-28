@@ -31,6 +31,7 @@
     <table class="table table-pin-rows table-xs">
       <thead>
         <tr class="text-xs">
+          <td></td>
           <td>日期</td>
           <td>消息</td>
           <td>提交人</td>
@@ -40,10 +41,11 @@
       <tbody>
         <template x-for="log in logs" :key="log.hash">
         <tr x-on:click="clickLogRow.bind($data, $event, $el, log)" x-bind:id="log.hash">
+          <td x-html="log.graph" class="log-graph"></td>
           <td x-text="formatDateTime(log.date)" class="log-date"></td>
-          <td x-text="log.message.length > 50 ? log.message.substring(0, 50) + '...' : log.message" class="log-msg"></td>
+          <td x-text="formatSubject(log)" class="log-msg"></td>
           <td x-text="formatAuthor(log)" class="log-author"></td>
-          <td><input type="radio" name="__log" x-model="selectedLog" class="hidden" x-bind:value="log.hash" /><div x-html="formatRefs(log.refs)" class="flex flex-wrap justify-end gap-1"></div></td>
+          <td><input type="radio" name="__log" x-model="selectedLog" class="hidden" x-bind:value="log.hash" /><div x-html="formatRefs(log.refs)" class="flex justify-end gap-1"></div></td>
         </tr>
         </template>
       </tbody>
@@ -59,7 +61,8 @@
       <strong>Author:</strong> <span x-text="formatAuthor(currentLog)"></span>,
       <strong>Date:</strong> <span x-text="formatDateTime(currentLog.date)"></span>
     </div>
-    <pre x-text="currentLog.body ? currentLog.body : currentLog.message"></pre>
+    <div x-show="currentLog.subject!=''" x-text="currentLog.subject" class="font-bold mb-1"></div>
+    <pre x-text="currentLog.body"></pre>
   </div>
   </template>
   <template x-if="logFiles.length">

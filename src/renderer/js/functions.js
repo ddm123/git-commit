@@ -35,7 +35,7 @@ function isDisabledBody() {
     return document.body.classList.contains('disable');
 }
 
-function showError(message) {
+function showError(message) {console.trace();
     const messageElement = createMessageElement(message);
     messageElement.classList.add('error');
     insertMessageElement(messageElement);
