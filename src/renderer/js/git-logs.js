@@ -14,6 +14,7 @@ document.addEventListener('alpine:init', () => {
     selectedLog: '',
     intersectionObserver: null,
     isLoadingLogs: false,
+    highlightCss: 'bg-secondary text-secondary-content',
     _rafId: null,
 
     init() {
@@ -52,8 +53,8 @@ document.addEventListener('alpine:init', () => {
         }
       }, { threshold: 0.5, root: this.$refs.logsContainer });
 
-      this.$watch('currentLog', log => {
-        if (log) this.fetchLogFiles(log);
+      this.$watch('currentLog', (log, oldLog) => {
+        if (log && (!oldLog || log.hash !== oldLog.hash)) this.fetchLogFiles(log);
       });
     },
 
@@ -64,10 +65,10 @@ document.addEventListener('alpine:init', () => {
 
       const TZOffset = this.filter.end || this.filter.begin ? this.timezoneOffset() : '';
       if (this.filter.end) {
-        options.push("--until='" + this.filter.end + "T23:59:59" + TZOffset + "'");
+        options.push("--until=" + this.filter.end + "T23:59:59" + TZOffset);
       }
       if (this.filter.begin) {
-        options.push("--since='" + this.filter.begin + "T00:00:00" + TZOffset + "'");
+        options.push("--since=" + this.filter.begin + "T00:00:00" + TZOffset);
       }
       if (limit !== undefined) {
         options.push('--max-count=' + limit);
@@ -81,13 +82,13 @@ document.addEventListener('alpine:init', () => {
       if (this.filter.text) {
         switch (this.filter.action) {
           case 'name':
-            options.push("--author='" + this.filter.text.replaceAll("'", "\\'") + "'");
+            options.push("--author=" + this.filter.text, "-i");
             break;
           case 'message':
-            options.push("--grep='" + this.filter.text.replaceAll("'", "\\'") + "'");
+            options.push("--grep=" + this.filter.text, "-i");
             break;
           case 'file':
-            options.push('--', "'*" + this.filter.text.replaceAll("'", "\\'") + "*'");
+            options.push('--', "*" + this.filter.text.replaceAll("'", "\\'") + "*");
             break;
         }
       }
@@ -111,7 +112,7 @@ document.addEventListener('alpine:init', () => {
       this.isEndLogs = false;
       const options = {};
 
-      this.fetchLogs(options).then(logs => {
+      return this.fetchLogs(options).then(logs => {
         this.logs = logs;
         if (this.logs.length > 0) {
           this.selectedLog = this.logs[0].hash;
@@ -127,6 +128,17 @@ document.addEventListener('alpine:init', () => {
       .finally(() => {
         disableBody(false);
       });
+    },
+
+    clearSearch(event, btn) {
+      let input = btn.previousElementSibling;
+      if (input && input.getAttribute('x-model') !== "filter.text") input = null;
+      if (this.filter.text) {
+        this.filter.text = '';
+        this.search(event).then(() => input && input.focus());
+      } else if (input) {
+        input.focus();
+      }
     },
 
     fetchNextLogs() {
@@ -201,8 +213,7 @@ document.addEventListener('alpine:init', () => {
                 row.fileFormatted = fileMatch[0];
               }
               if (this.filter.action === 'file' && this.filter.text) {
-                const kw = htmlspecialchars(this.filter.text);
-                row.fileFormatted = htmlspecialchars(row.fileFormatted ?? row.file).replaceAll(kw, `<span class="bg-secondary text-secondary-content">${kw}</span>`);
+                row.fileFormatted = this.highlightText(row.fileFormatted ?? row.file, this.filter.text, true);
               } else if (row.fileFormatted) {
                 row.fileFormatted = htmlspecialchars(row.fileFormatted);
               }
@@ -238,8 +249,7 @@ document.addEventListener('alpine:init', () => {
                 row.fileFormatted = fileParts[0] + ' => ' + fileParts[1];
               }
               if (this.filter.action === 'file' && this.filter.text) {
-                const kw = htmlspecialchars(this.filter.text);
-                row.fileFormatted = htmlspecialchars(row.fileFormatted ?? row.file).replaceAll(kw, `<span class="bg-secondary text-secondary-content">${kw}</span>`);
+                row.fileFormatted = this.highlightText(row.fileFormatted ?? row.file, this.filter.text, true);
               } else if (row.fileFormatted) {
                 row.fileFormatted = htmlspecialchars(row.fileFormatted);
               }
@@ -306,6 +316,51 @@ document.addEventListener('alpine:init', () => {
       return (o1 > 0 ? '-' : '+') + String(Math.floor(o2 / 60)).padStart(2, '0') + ':' + String(o2 % 60).padStart(2, '0');
     },
 
+    generateGraphSVG(graphStr) {
+      const width = 28;
+      const height = 28;
+      const radius = 4;
+      const startX = 5;
+      const startY = -1;
+      const corlor = '#e80a0a';
+      const lineWidth = 1;
+
+      const lines = graphStr.replaceAll('|\\', '^').replaceAll('|/', 'v').split('\n');
+      const lineCount = lines.length;
+      if (lineCount === 0) return '';
+
+      let svgContent = '';
+
+      for (let rowIdx = 0; rowIdx < lineCount; rowIdx++) {
+        const line = lines[rowIdx];
+        const chars = line.split('');
+
+        chars.forEach((char, col) => {
+          const x = col * startX + startX;
+
+          switch (char) {
+            case '|':
+              svgContent += `<line x1="${x}" y1="${startY}" x2="${x}" y2="${height + 1}" stroke="${corlor}" stroke-width="${lineWidth}"/>`;
+              break;
+            case 'v':
+              svgContent += `<line x1="${x}" y1="${startY}" x2="${x}" y2="${height + 1}" stroke="${corlor}" stroke-width="${lineWidth}"/>`;
+              svgContent += `<path d="M${x},${height / 2} C${x + startX*2 - 2},${height / 2} ${x + startX*2},${height / 2 - 2} ${x + startX*2},${height / 2 - 4} L${x + startX*2},${startY}" fill="none" stroke="${corlor}" stroke-width="${lineWidth}"/>`;
+              break;
+            case '^':
+              svgContent += `<line x1="${x}" y1="${startY}" x2="${x}" y2="${height + 1}" stroke="${corlor}" stroke-width="${lineWidth}"/>`;
+              svgContent += `<path d="M${x},${height / 2} C${x + startX*2 - 2},${height / 2} ${x + startX*2},${height / 2 + 2} ${x + startX*2},${height / 2 + 4} L${x + startX*2},${height + 1}" fill="none" stroke="${corlor}" stroke-width="${lineWidth}"/>`;
+              break;
+            case '*':
+              svgContent += `<line x1="${x}" y1="${startY}" x2="${x}" y2="${height + 1}" stroke="${corlor}" stroke-width="${lineWidth}"/>`;
+              svgContent += `<circle cx="${x}" cy="${height / 2}" r="${radius}" fill="${corlor}"/>`;
+              break;
+          }
+        });
+      };
+
+      return `<svg title="${graphStr}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" shape-rendering="auto">${svgContent}</svg>`;
+    },
+
     formatDateTime(date) {
       return new Date(date).toLocaleString('zh-CN', {
         year: 'numeric',
@@ -323,10 +378,15 @@ document.addEventListener('alpine:init', () => {
       if (str.length > 50) {
         str = str.substring(0, 50) + '...';
       }
+      if (this.filter.text && this.filter.action === 'message') {
+        str = this.highlightText(str, this.filter.text, true);
+      } else {
+        str = htmlspecialchars(str);
+      }
       return str;
     },
 
-    formatAuthor(log) {
+    formatAuthor(log, highlight) {
       let str = '';
       if (log.author_name && log.author_email) {
         str = `${log.author_name} <${log.author_email}>`;
@@ -334,6 +394,13 @@ document.addEventListener('alpine:init', () => {
         str = log.author_name;
       } else if (log.author_email) {
         str = log.author_email;
+      }
+      if (highlight) {
+        if (this.filter.text && this.filter.action === 'name') {
+          str = this.highlightText(str, this.filter.text, true);
+        } else {
+          str = htmlspecialchars(str);
+        }
       }
       return str;
     },
@@ -351,6 +418,20 @@ document.addEventListener('alpine:init', () => {
         }
       }
       return html;
+    },
+
+    escapeRegExp(str) {
+      return str.replace(/[\.\*\+\?\^\$\{\}\(\)\|\[\]\\]/g, '\\$&');
+    },
+
+    highlightText(str, text, escape = true) {
+      if (escape) {
+        str = htmlspecialchars(str.replace(new RegExp(this.escapeRegExp(text), 'gi'), '[{highlight}]$&[{/highlight}]'));
+        str = str.replaceAll('[{highlight}]', '<span class="'+this.highlightCss+'">').replaceAll('[{/highlight}]', '</span>');
+      } else {
+        str = str.replace(new RegExp(this.escapeRegExp(text), 'gi'), '<span class="'+this.highlightCss+'">$&</span>');
+      }
+      return str;
     },
 
     clickLogRow(event, tr, log) {

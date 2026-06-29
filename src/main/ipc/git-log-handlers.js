@@ -9,7 +9,7 @@ async function handleGitLogs (event, projectPath, options) {
     options = [];
   }
 
-  const output = await gitRepo.raw(['log', '--graph', '--format=%x00%H%x00%an%x00%ae%x00%cn%x00%ce%x00%cI%x00%s%x00%b%x00%D%x01', ...options]);
+  const output = await gitRepo.raw(['log', '--graph', '--format=%x00%H%x00%an%x00%ae%x00%cn%x00%ce%x00%cI%x00%B%x00%D%x01', ...options]);
   return parseGraphOutput(output);
 }
 
@@ -39,15 +39,24 @@ function parseGraphOutput(output) {
       nextFields[0] = nextGraphParts.join('\n');
     }
 
-    let subject = fields[7] ?? '';
-    let body = (fields[8] ?? '').trim();
+    let subject = (fields[7] ?? '').trim();
+    let body = '';
+    if (subject !== '') {
+      subject = subject.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+      const arr = subject.split('\n\n');
+      subject = arr[0];
+      if (arr.length > 1) body = arr.slice(1).join('\n\n');
+    }
     if (body === '') {
       body = subject;
       subject = '';
     }
+    if (graphPart !== '' && graphPart.startsWith('|/') && graphPart.endsWith('|')) {
+      graphPart = graphPart.slice(0, -1);
+    }
 
     commits.push({
-      graph: graphPart ? generateGraphSVG(graphPart) : '',
+      graph: graphPart,
       hash: fields[1],
       author_name: fields[2] || '',
       author_email: fields[3] || '',
@@ -56,58 +65,11 @@ function parseGraphOutput(output) {
       date: fields[6] || '',
       subject,
       body,
-      refs: (fields[9] ?? '').trim()
+      refs: (fields[8] ?? '').trim()
     });
   }
 
   return commits;
-}
-
-function generateGraphSVG(graphStr) {
-  const width = 28;
-  const height = 28;
-  const radius = 4;
-  const startX = 5;
-  const startY = -1;
-  const corlor = '#e80a0a';
-  const lineWidth = 1;
-
-  if (graphStr.startsWith('|/') && graphStr.endsWith('|')) graphStr = graphStr.slice(0, -1);
-
-  const lines = graphStr.replaceAll('|\\', '^').replaceAll('|/', 'v').split('\n');
-  const lineCount = lines.length;
-  if (lineCount === 0) return '';
-
-  let svgContent = '';
-
-  for (let rowIdx = 0; rowIdx < lineCount; rowIdx++) {
-    const line = lines[rowIdx];
-    const chars = line.split('');
-
-    chars.forEach((char, col) => {
-      const x = col * startX + startX;
-
-      switch (char) {
-        case '|':
-          svgContent += `<line x1="${x}" y1="${startY}" x2="${x}" y2="${height + 1}" stroke="${corlor}" stroke-width="${lineWidth}"/>`;
-          break;
-        case 'v':
-          svgContent += `<line x1="${x}" y1="${startY}" x2="${x}" y2="${height + 1}" stroke="${corlor}" stroke-width="${lineWidth}"/>`;
-          svgContent += `<path d="M${x},${height / 2} C${x + startX*2 - 2},${height / 2} ${x + startX*2},${height / 2 - 2} ${x + startX*2},${height / 2 - 4} L${x + startX*2},${startY}" fill="none" stroke="${corlor}" stroke-width="${lineWidth}"/>`;
-          break;
-        case '^':
-          svgContent += `<line x1="${x}" y1="${startY}" x2="${x}" y2="${height + 1}" stroke="${corlor}" stroke-width="${lineWidth}"/>`;
-          svgContent += `<path d="M${x},${height / 2} C${x + startX*2 - 2},${height / 2} ${x + startX*2},${height / 2 + 2} ${x + startX*2},${height / 2 + 4} L${x + startX*2},${height + 1}" fill="none" stroke="${corlor}" stroke-width="${lineWidth}"/>`;
-          break;
-        case '*':
-          svgContent += `<line x1="${x}" y1="${startY}" x2="${x}" y2="${height + 1}" stroke="${corlor}" stroke-width="${lineWidth}"/>`;
-          svgContent += `<circle cx="${x}" cy="${height / 2}" r="${radius}" fill="${corlor}"/>`;
-          break;
-      }
-    });
-  };
-
-  return `<svg title="${graphStr}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" shape-rendering="auto">${svgContent}</svg>`;
 }
 
 module.exports = function () {

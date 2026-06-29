@@ -21,16 +21,7 @@
           this.commit(event, event.shiftKey);
         } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'h') {
           event.preventDefault();
-          if (this.isLoadingLogs) return;
-
-          this.isLoadingLogs = true;
-          window.gitAPI.showLogHistories(Alpine.store('projectPath').path, Alpine.store('projectPath').currentBranch)
-          .catch(error => {
-            this.showError(error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>'));
-          })
-          .finally(() => {
-            this.isLoadingLogs = false;
-          });
+          this.showLogHistories();
         }
       });
     },
@@ -259,6 +250,15 @@
         .finally(() => disableBody(false));
     },
 
+    showLogHistories() {
+      if (this.isLoadingLogs) return;
+
+      this.isLoadingLogs = true;
+      window.gitAPI.showLogHistories(Alpine.store('projectPath').path, Alpine.store('projectPath').currentBranch)
+      .catch(error => this.showError(error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')))
+      .finally(() => this.isLoadingLogs = false);
+    },
+
     async _commit(files, message, isPush) {
       const projectPath = Alpine.store('projectPath').path;
       Alpine.store('statusBar').statusText = '拉取最新代码...';
@@ -353,6 +353,7 @@
       <button class="btn" x-on:click="refresh">刷新(F5)</button>
       <button class="btn" x-on:click="pull">拉取(F6)</button>
       <button class="btn" x-on:click="stashList">查看储藏(F7)</button>
+      <button class="btn show-histories-btn" x-on:click="showLogHistories" title="Ctrl + H">提交历史</button>
     </div>
     <div class="join shrink-0" style="align-items:center;">
       <button class="btn join-item" x-on:click="commit" data-action="commit" title="Ctrl + Enter">提交</button>
