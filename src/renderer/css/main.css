@@ -298,7 +298,27 @@ body.disable > .body-mask{
 td.d2h-code-side-linenumber.d2h-code-side-emptyplaceholder {
   background-color: transparent;
 }
+.d2h-diff-tbody .hljs {
+  background-color: transparent;
+}
 
+.filter-form .kw-input{
+  gap: 2px;
+}
+.filter-form .kw-input .btn {
+  --btn-bg: var(--btn-hover-bg, color-mix(in oklab, var(--btn-color, var(--color-base-200)), #000 7%));
+  padding-inline: .125rem;
+  padding-block: 0;
+  line-height: 1;
+  height: 1.25rem;
+  border-radius: .25rem;
+  opacity: .6;
+  border-color: var(--color-base-content);
+}
+.filter-form .kw-input .btn.btn-ghost{
+  --btn-bg: #0000;
+  border-color: var(--color-base-100);
+}
 .logs, .log-message, .log-files {
   overflow: auto;
   border: 1px solid color-mix(in oklab, var(--color-base-content) 20%, #0000);

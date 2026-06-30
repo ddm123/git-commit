@@ -215,7 +215,8 @@ function handleShowDiff(event, projectPath, file, diffChunks) {
       preload: path.join(__dirname, '../../preload/git-diff.js'),
       additionalArguments: [
         '--project-path=' + projectPath,
-        '--is-packaged=' + (app.isPackaged ? 'true' : 'false')
+        '--is-packaged=' + (app.isPackaged ? 'true' : 'false'),
+        '--theme=' + windowBounds.get('theme') ?? 'default'
       ]
     }
   });
@@ -278,7 +279,8 @@ function handleShowLogHistories(event, projectPath, branch, options, file) {
       preload: path.join(__dirname, '../../preload/git-log-history.js'),
       additionalArguments: [
         '--project-path=' + projectPath,
-        '--is-packaged=' + (app.isPackaged ? 'true' : 'false')
+        '--is-packaged=' + (app.isPackaged ? 'true' : 'false'),
+        '--theme=' + windowBounds.get('theme') ?? 'default'
       ]
     }
   });

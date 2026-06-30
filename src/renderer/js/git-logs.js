@@ -2,7 +2,8 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('gitLogHistory', () => ({
     projectPath: '',
     branch: '',
-    filter: {action: 'message', text: ''},
+    filter: {action: 'message', text: '', ignoreCase: true, useRegex: false, begin: undefined, end: undefined},
+    currentFilter: {},
     logs: [],
     logFiles: [],
     currentLog: null,
@@ -19,6 +20,7 @@ document.addEventListener('alpine:init', () => {
 
     init() {
       this.projectPath = window.electronAPI.getArgument('project-path');
+      ({action: this.currentFilter.action, text: this.currentFilter.text, ignoreCase: this.currentFilter.ignoreCase, useRegex: this.currentFilter.useRegex} = this.filter);
 
       window.addEventListener('keydown', function (e) {
         if (e.key === 'F12' && window.electronAPI.isDevelopment()) {
@@ -80,12 +82,23 @@ document.addEventListener('alpine:init', () => {
         options.push('--skip=' + ((page - 1) * limit));
       }
       if (this.filter.text) {
+        if (this.filter.useRegex) {
+          try {
+            new RegExp(this.filter.text);
+          } catch (e) {
+            return Promise.reject(new Error('你填写的正则表达式有语法错误: ' + e.message));
+          }
+        }
         switch (this.filter.action) {
           case 'name':
-            options.push("--author=" + this.filter.text, "-i");
+            options.push("--author=" + this.filter.text);
+            if (this.filter.ignoreCase) options.push('-i');
+            options.push(this.filter.useRegex ? '-P' : '-F');
             break;
           case 'message':
-            options.push("--grep=" + this.filter.text, "-i");
+            options.push("--grep=" + this.filter.text);
+            if (this.filter.ignoreCase) options.push('-i');
+            options.push(this.filter.useRegex ? '-P' : '-F');
             break;
           case 'file':
             options.push('--', "*" + this.filter.text.replaceAll("'", "\\'") + "*");
@@ -121,6 +134,8 @@ document.addEventListener('alpine:init', () => {
 
           this.$nextTick(() => this.triggerNextPage());
         }
+
+        ({action: this.currentFilter.action, text: this.currentFilter.text, ignoreCase: this.currentFilter.ignoreCase, useRegex: this.currentFilter.useRegex} = this.filter);
       })
       .catch(error => {
         showError(error.message);
@@ -212,8 +227,8 @@ document.addEventListener('alpine:init', () => {
                 row.oldFile = fileMatch[1] + fileMatch[2] + fileMatch[4];
                 row.fileFormatted = fileMatch[0];
               }
-              if (this.filter.action === 'file' && this.filter.text) {
-                row.fileFormatted = this.highlightText(row.fileFormatted ?? row.file, this.filter.text, true);
+              if (this.currentFilter.action === 'file' && this.currentFilter.text) {
+                row.fileFormatted = this.highlightText(row.fileFormatted ?? row.file, this.currentFilter.text, true);
               } else if (row.fileFormatted) {
                 row.fileFormatted = htmlspecialchars(row.fileFormatted);
               }
@@ -248,8 +263,8 @@ document.addEventListener('alpine:init', () => {
                 row.file = fileParts[1];
                 row.fileFormatted = fileParts[0] + ' => ' + fileParts[1];
               }
-              if (this.filter.action === 'file' && this.filter.text) {
-                row.fileFormatted = this.highlightText(row.fileFormatted ?? row.file, this.filter.text, true);
+              if (this.currentFilter.action === 'file' && this.currentFilter.text) {
+                row.fileFormatted = this.highlightText(row.fileFormatted ?? row.file, this.currentFilter.text, true);
               } else if (row.fileFormatted) {
                 row.fileFormatted = htmlspecialchars(row.fileFormatted);
               }
@@ -378,8 +393,8 @@ document.addEventListener('alpine:init', () => {
       if (str.length > 50) {
         str = str.substring(0, 50) + '...';
       }
-      if (this.filter.text && this.filter.action === 'message') {
-        str = this.highlightText(str, this.filter.text, true);
+      if (this.currentFilter.text && this.currentFilter.action === 'message') {
+        str = this.highlightText(str, this.currentFilter.text, true);
       } else {
         str = htmlspecialchars(str);
       }
@@ -396,8 +411,8 @@ document.addEventListener('alpine:init', () => {
         str = log.author_email;
       }
       if (highlight) {
-        if (this.filter.text && this.filter.action === 'name') {
-          str = this.highlightText(str, this.filter.text, true);
+        if (this.currentFilter.text && this.currentFilter.action === 'name') {
+          str = this.highlightText(str, this.currentFilter.text, true);
         } else {
           str = htmlspecialchars(str);
         }
@@ -425,11 +440,12 @@ document.addEventListener('alpine:init', () => {
     },
 
     highlightText(str, text, escape = true) {
+      const re = new RegExp(this.currentFilter.useRegex ? text : this.escapeRegExp(text), this.currentFilter.ignoreCase ? 'gi' : 'g');
       if (escape) {
-        str = htmlspecialchars(str.replace(new RegExp(this.escapeRegExp(text), 'gi'), '[{highlight}]$&[{/highlight}]'));
+        str = htmlspecialchars(str.replace(re, '[{highlight}]$&[{/highlight}]'));
         str = str.replaceAll('[{highlight}]', '<span class="'+this.highlightCss+'">').replaceAll('[{/highlight}]', '</span>');
       } else {
-        str = str.replace(new RegExp(this.escapeRegExp(text), 'gi'), '<span class="'+this.highlightCss+'">$&</span>');
+        str = str.replace(re, '<span class="'+this.highlightCss+'">$&</span>');
       }
       return str;
     },
@@ -459,3 +475,10 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 });
+
+{
+  const theme = window.electronAPI.getArgument('theme');
+  if (theme && theme !== 'default') {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+}

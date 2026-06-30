@@ -53,3 +53,10 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 });
+
+{
+  const theme = window.electronAPI.getArgument('theme');
+  if (theme && theme !== 'default') {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+}

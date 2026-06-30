@@ -15,11 +15,11 @@
         <option value="message">提交消息</option>
         <template x-if="!currentFile"><option value="file">提交文件</option></template>
       </select>
-      <label class="input join-item grow">
-        <input type="text" placeholder="关键字" x-model="filter.text" x-on:keydown.enter="search" />
-        <svg class="h-[1.2em] opacity-50 cursor-pointer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" x-on:click="clearSearch.bind($data, $event, $el)">
-          <path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm1.41-1.41A8 8 0 1 0 15.66 4.34 8 8 0 0 0 4.34 15.66zm9.9-8.49L11.41 10l2.83 2.83-1.41 1.41L10 11.41l-2.83 2.83-1.41-1.41L8.59 10 5.76 7.17l1.41-1.41L10 8.59l2.83-2.83 1.41 1.41z"></path>
-        </svg>
+      <label class="input join-item grow kw-input" for="log-filter-input">
+        <input type="text" id="log-filter-input" placeholder="关键字" x-model="filter.text" x-on:keydown.enter="search" />
+        <span x-on:click="clearSearch.bind($data, $event, $el)" class="opacity-50 cursor-pointer inline-block leading-none">&#8855;</span>
+        <button title="区分大小写" class="btn btn-xs font-normal" x-bind:class="{'btn-ghost': filter.ignoreCase}" x-on:click="filter.ignoreCase = !filter.ignoreCase">Aa</button>
+        <button title="使用正则表达式" class="btn btn-xs" x-bind:class="{'btn-ghost': !filter.useRegex}" x-on:click="filter.useRegex = !filter.useRegex">.*</button>
       </label>
       <label class="input join-item w-40">
         <span>从</span>

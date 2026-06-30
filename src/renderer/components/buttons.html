@@ -345,7 +345,7 @@
           </template>
         </ul>
       </div>
-      <button class="btn btn-xs font-normal" x-bind:class="{'btn-ghost': !isIgnoreMode}" x-on:click="isIgnoreMode = !isIgnoreMode" x-text="isIgnoreMode ? '取消查看隐藏' : '查看隐藏的文件'"></button>
+      <button class="btn btn-xs font-normal" x-bind:class="{'btn-ghost': isIgnoreMode}" x-on:click="isIgnoreMode = !isIgnoreMode" x-text="isIgnoreMode ? '取消查看隐藏' : '查看隐藏的文件'"></button>
     </div>
   </div>
   <div class="flex items-center justify-between">

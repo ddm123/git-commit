@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('node:path');
 const { addListener: bindWinClose } = require('../../modules/main-win-onclose.js');
+const Store = require('../../modules/electron-store.js');
 
 async function handleDirectoryOpen(event, defaultPath) {
   const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
@@ -44,7 +45,11 @@ function handleShowProjectsDialog(event, ...paths) {
     modal: true,
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, '../../preload/manage-projects.js')
+      preload: path.join(__dirname, '../../preload/manage-projects.js'),
+      additionalArguments: [
+        '--theme=' + Store.singleton.get('theme') ?? 'default',
+        '--is-packaged=' + (app.isPackaged ? 'true' : 'false')
+      ]
     }
   });
 

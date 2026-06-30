@@ -128,3 +128,19 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 });
+
+{
+  const theme = window.electronAPI.getArgument('theme');
+  if (theme && theme !== 'default') {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+
+  const themeStyle = document.createElement('link');
+  themeStyle.setAttribute('rel', 'stylesheet');
+  if (theme === 'dark') {
+    themeStyle.setAttribute('href', '../../dist/css/highlight-dark.min.css');
+  } else {
+    themeStyle.setAttribute('href', '../../dist/css/highlight.min.css');
+  }
+  document.head.appendChild(themeStyle);
+}
