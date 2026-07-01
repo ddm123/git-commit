@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
   closeWindow: () => ipcRenderer.send('close-window'),
   toggleDevTools: () => ipcRenderer.send('toggle-dev-tools'),
+  showContextMenu: (menus) => ipcRenderer.invoke('show-copy-context-menu', menus),
+  onMenuClick: (handlerName, closure) => ipcRenderer.on(handlerName, closure),
   logs: (path, options) => ipcRenderer.invoke('git:logs.graph', path, options),
   gitShow: (path, options) => ipcRenderer.invoke('git:show', path, options),
   showDiff: (path, file, diffChunks) => ipcRenderer.invoke('git:showDiff', path, file, diffChunks)

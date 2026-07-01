@@ -6,6 +6,7 @@ document.addEventListener('alpine:init', () => {
     currentFilter: {},
     logs: [],
     logFiles: [],
+    logFilesStatistics: {total: 0, added: 0, deleted: 0, modified: 0, addedLines: 0, deletedLines: 0},
     currentLog: null,
     currentFile: null,
     lastLog: null,
@@ -58,6 +59,9 @@ document.addEventListener('alpine:init', () => {
       this.$watch('currentLog', (log, oldLog) => {
         if (log && (!oldLog || log.hash !== oldLog.hash)) this.fetchLogFiles(log);
       });
+
+      window.electronAPI.onMenuClick('showFileDiff', (event, file) => this.showDiff(file));
+      window.electronAPI.onMenuClick('shell:showItemInFolder', (event, fullPath) => window.electronAPI.invoke('shell:showItemInFolder', fullPath));
     },
 
     fetchLogs(options, limit, page = 1) {
@@ -150,8 +154,12 @@ document.addEventListener('alpine:init', () => {
       if (input && input.getAttribute('x-model') !== "filter.text") input = null;
       if (this.filter.text) {
         this.filter.text = '';
-        this.search(event).then(() => input && input.focus());
-      } else if (input) {
+        if (this.currentFilter.text) {
+          this.search(event).then(() => input && input.focus());
+          return;
+        }
+      }
+      if (input) {
         input.focus();
       }
     },
@@ -208,6 +216,7 @@ document.addEventListener('alpine:init', () => {
         window.electronAPI.gitShow(this.projectPath, ['--name-status', '--format=', log.hash])
       ])
       .then(results => {
+        this.resetLogFilesStatistics();
         if (results[0].status === 'fulfilled') {
           if (results[0].value) {
             results[0].value.trim()
@@ -217,8 +226,8 @@ document.addEventListener('alpine:init', () => {
               if (!fileParts) return null;
               const row = {
                 file: fileParts.join('\t'), // 处理文件名中可能包含的 tab
-                add: add === '-' ? 0 : add,   // 二进制文件显示为 "-"
-                delete: del === '-' ? 0 : del,
+                add: add,   // 二进制文件显示为 "-"
+                delete: del,
                 hash: log.hash
               };
               const fileMatch = row.file.match(/^(.+?)\{([^\}]+?)\s*=>\s*([^\}]+?)\}(.*)$/);
@@ -239,6 +248,11 @@ document.addEventListener('alpine:init', () => {
                 keyMap.set(row.file, files.length);
                 files.push(row);
               }
+
+              this.logFilesStatistics.total++;
+              this.logFilesStatistics.addedLines += row.add === '-' ? 0 : this.parseInt(row.add);
+              this.logFilesStatistics.deletedLines += row.delete === '-' ? 0 : this.parseInt(row.delete);
+
               return row;
             });
           }
@@ -276,6 +290,15 @@ document.addEventListener('alpine:init', () => {
                 keyMap.set(row.file, files.length);
                 files.push(row);
               }
+
+              if (row.status === 'A') {
+                this.logFilesStatistics.added++;
+              } else if (row.status === 'D') {
+                this.logFilesStatistics.deleted++;
+              } else {
+                this.logFilesStatistics.modified++;
+              }
+
               return row;
             });
           }
@@ -310,6 +333,15 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
+    resetLogFilesStatistics() {
+      this.logFilesStatistics.total = 0;
+      this.logFilesStatistics.added = 0;
+      this.logFilesStatistics.deleted = 0;
+      this.logFilesStatistics.modified = 0;
+      this.logFilesStatistics.addedLines = 0;
+      this.logFilesStatistics.deletedLines = 0;
+    },
+
     showDiff(file) {
       if(isDisabledBody()) return;
 
@@ -323,6 +355,23 @@ document.addEventListener('alpine:init', () => {
         .then(result => window.electronAPI.showDiff(this.projectPath, file.file, result))
         .catch(error => showError(error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')))
         .finally(() => disableBody(false));
+    },
+
+    showFileContextMenu(file) {
+      const menus = [];
+      const DS = this.projectPath.includes('\\') ? '\\' : '/';
+      let absPath = this.projectPath + DS + file.file.replaceAll('/', DS);
+
+      menus.push(
+        {label: '查看差异', text: file.file, handler: 'showFileDiff', args: [Alpine.raw(file)]},
+
+        {label: '复制相对路径', text: file.file},
+        {label: '复制绝对路径', text: absPath},
+
+        {label: '打开所在文件夹', text: 'showItemInFolder', handler: 'shell:showItemInFolder', args: [absPath]}
+      );
+
+      window.electronAPI.showContextMenu(menus);
     },
 
     timezoneOffset() {
@@ -448,6 +497,11 @@ document.addEventListener('alpine:init', () => {
         str = str.replace(re, '<span class="'+this.highlightCss+'">$&</span>');
       }
       return str;
+    },
+
+    parseInt(n) {
+      let v = parseInt(n);
+      return isNaN(v) ? 0 : v;
     },
 
     clickLogRow(event, tr, log) {

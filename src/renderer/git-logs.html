@@ -17,7 +17,7 @@
       </select>
       <label class="input join-item grow kw-input" for="log-filter-input">
         <input type="text" id="log-filter-input" placeholder="关键字" x-model="filter.text" x-on:keydown.enter="search" />
-        <span x-on:click="clearSearch.bind($data, $event, $el)" class="opacity-50 cursor-pointer inline-block leading-none">&#8855;</span>
+        <span x-on:click="clearSearch.bind($data, $event, $el)" x-show="filter.text!=''" class="opacity-50 cursor-pointer inline-block leading-none">&#8855;</span>
         <button title="区分大小写" class="btn btn-xs font-normal" x-bind:class="{'btn-ghost': filter.ignoreCase}" x-on:click="filter.ignoreCase = !filter.ignoreCase">Aa</button>
         <button title="使用正则表达式" class="btn btn-xs" x-bind:class="{'btn-ghost': !filter.useRegex}" x-on:click="filter.useRegex = !filter.useRegex">.*</button>
       </label>
@@ -67,7 +67,16 @@
       <strong>Date:</strong> <span x-text="formatDateTime(currentLog.date)"></span>
     </div>
     <div x-show="currentLog.subject!=''" x-text="currentLog.subject" class="mb-1 text-base"></div>
-    <pre x-text="currentLog.body"></pre>
+    <pre x-text="currentLog.body" class="whitespace-pre-wrap"></pre>
+    <div>&nbsp;</div>
+    <div class="flex gap-2 opacity-50 text-xs">
+      <div>文件数：<span x-text="logFilesStatistics.total" class="font-bold"></span>,</div>
+      <div class="text-info">修改：<span x-text="logFilesStatistics.modified" class="font-bold"></span>,</div>
+      <div class="text-green-600">新增：<span x-text="logFilesStatistics.added" class="font-bold"></span>,</div>
+      <div class="text-red-600">删除：<span x-text="logFilesStatistics.deleted" class="font-bold"></span>,</div>
+      <div>变更行数：<span x-text="logFilesStatistics.addedLines==0 ? '0' : '+'+logFilesStatistics.addedLines" class="text-green-600 font-bold"></span>
+      &nbsp;<span x-text="logFilesStatistics.deletedLines==0 ? '0' : '-'+logFilesStatistics.deletedLines" class="text-red-600 font-bold"></span></div>
+    </div>
   </div>
   </template>
   <template x-if="logFiles.length">
@@ -76,7 +85,7 @@
       <tbody>
         <template x-for="file in logFiles" :key="file.file">
         <tr :class="rowClass(file)">
-          <td x-on:dblclick="showDiff.bind($data, file)">
+          <td x-on:dblclick="showDiff.bind($data, file)" x-on:contextmenu="showFileContextMenu.bind($data, file)">
             <span x-text="file.status"></span>&nbsp;&nbsp;
             <template x-if="file.fileFormatted"><span x-html="file.fileFormatted"></span></template>
             <template x-if="!file.fileFormatted"><span x-text="file.file"></span></template>
