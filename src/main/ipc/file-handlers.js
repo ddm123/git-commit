@@ -76,33 +76,10 @@ function startSyncFiles(event, projectPath, progressChannel) {
     const ignoredPaths = syncWatcherOptions.ftp.ignoredPaths
       .trim().replaceAll('\\', '/')
       .split(/\s*(?:\r\n|\n|\r)+\s*/)
-      .map(pattern => {
-        if (pattern.includes('*') || pattern.includes('?')) {
-          try {
-            const reg = new RegExp(wildcardToRegex(pattern), 'i');
-            pattern = reg;
-          } catch (e) {}
-        }
-        return pattern;
-      });
+      .map(pattern => wildcardToRegex(pattern));
+    const re = new RegExp(ignoredPaths.join('|'));
 
-    syncWatcherOptions.ignored = function (relPath){
-      const normalizedPath = relPath.replaceAll('\\', '/');
-
-      for (const pattern of ignoredPaths) {
-        if (typeof pattern === 'object') {
-          if (pattern.test(normalizedPath)) return true;
-        } else {
-          // 精确匹配或目录匹配
-          if (normalizedPath === pattern || normalizedPath.startsWith(pattern + '/')
-            || (pattern.endsWith('/') && normalizedPath.startsWith(pattern))
-          ) {
-            return true;
-          }
-        }
-      }
-      return false;
-    };
+    syncWatcherOptions.ignored = (relPath) => re.test(relPath.replaceAll('\\', '/'));
   }
 
   syncWatcher = new SyncWatcher(projectPath, ftpConfig[projectPath].remotePath || '/', syncWatcherOptions);
@@ -114,7 +91,7 @@ function startSyncFiles(event, projectPath, progressChannel) {
 
 function wildcardToRegex(pattern) {
   return '^' + pattern
-    .replace(/[.+?^${}()|\[\]\/\\]/g, '\\$&')
+    .replace(/[\.\+\?\^\$\{\}\(\)\|\[\]\/\\]/g, '\\$&')
     .replaceAll('**', '@ALL@') // '.*': ** 匹配多级目录
     .replaceAll('*', '[^/]*') // * 不匹配路径分隔符
     .replaceAll('?', '[^/]') // ? 匹配单个字符（不包括路径分隔符）

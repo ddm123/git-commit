@@ -90,9 +90,7 @@
           this.refresh();
         }
         if (this.isSyncEnabled(path)) {
-          window.electronAPI.startSyncFiles(path, 'files.sync.progress').then(result => {
-            Alpine.store('statusBar').statusText = result ? '正在监听文件变更并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
-          });
+          this.startSyncFiles(path);
         } else {
           window.electronAPI.stopSyncFiles();
         }
@@ -111,6 +109,13 @@
       return path && this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object' && this.savedFtpConfig[path].autoSync && this.savedFtpConfig[path].host;
     },
 
+    startSyncFiles(path) {
+      return window.electronAPI.startSyncFiles(path, 'files.sync.progress').then(result => {
+        Alpine.store('statusBar').statusText = result ? '正在监听文件变更并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
+        return result;
+      });
+    },
+
     selectProjectPath(event) {
       if (isDisabledBody()) {
         Alpine.store('projectPath').path = this.lastSelectedPath;
@@ -124,12 +129,10 @@
             Alpine.store('statusBar').statusText = '文件同步服务已停止';
           }
           if (this.isSyncEnabled(projectPath)) {
-            window.electronAPI.startSyncFiles(projectPath, 'files.sync.progress').then(result => {
-              Alpine.store('statusBar').statusText = result ? '正在监听文件变更并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
-            });
+            this.startSyncFiles(projectPath);
           }
         }).catch((error) => {
-          showError('文件同步服务停止失败，无法重新为同前项目启动文件同步。请重启本程序。<br>' + error.message);
+          showError('文件同步服务停止失败，无法重新为当前项目启动文件同步。请重启本程序。<br>' + error.message);
         });
       };
 
@@ -231,18 +234,19 @@
         savedConfig[path] = Object.assign({}, this.ftpConfig);
 
         if (savedConfig[path].autoSync) {
-          window.electronAPI.startSyncFiles(path, 'files.sync.progress').then(result => {
-            Alpine.store('statusBar').statusText = result ? '正在监听文件变更并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
-          });
+          if (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object' && this.savedFtpConfig[path].ignoredPaths !== savedConfig[path].ignoredPaths) {
+            // 如果忽略路径发生了变化，则需要重启文件监听服务
+            window.electronAPI.stopSyncFiles()
+              .then(() => this.startSyncFiles(path))
+              .catch(err => showError('文件同步服务停止失败，无法重新为当前项目启动文件同步。请重启本程序。<br>' + err.message));
+          } else {
+            this.startSyncFiles(path);
+          }
         } else {
-          window.electronAPI.stopSyncFiles().then(result => {
-            Alpine.store('statusBar').statusText = result ? '已停止文件自动同步' : '';
-          });
+          window.electronAPI.stopSyncFiles().then(result => Alpine.store('statusBar').statusText = result ? '已停止文件自动同步' : '');
         }
       } else if (savedConfig && typeof savedConfig === 'object' && typeof savedConfig[path] !== 'undefined') {
-        window.electronAPI.stopSyncFiles().then(result => {
-          Alpine.store('statusBar').statusText = result ? '已停止文件自动同步' : '';
-        });
+        window.electronAPI.stopSyncFiles().then(result => Alpine.store('statusBar').statusText = result ? '已停止文件自动同步' : '');
         delete savedConfig[path];
       }
 
@@ -350,7 +354,7 @@
         <fieldset class="fieldset my-1 w-full" x-show="ftpConfig.autoSync">
           <legend class="fieldset-legend">以下路径不自动同步</legend>
           <textarea class="textarea w-full h-21" x-model="ftpConfig.ignoredPaths"></textarea>
-          <div class="label">多个路径请用换行分隔</div>
+          <div class="label">多个路径请用换行分隔。注意路径是区分大小写的</div>
         </fieldset>
       </div>
       <div class="modal-action">
