@@ -32,7 +32,7 @@
         } else if (data.sourcePath) {
           statusText += '文件 ' + data.sourcePath + ' 已同步';
         }
-        if (statusText!=='') {
+        if (statusText !== '') {
           statusText += ' | ' + this.getTime();
         }
         Alpine.store('statusBar').statusText = statusText;
@@ -111,7 +111,7 @@
 
     startSyncFiles(path) {
       return window.electronAPI.startSyncFiles(path, 'files.sync.progress').then(result => {
-        Alpine.store('statusBar').statusText = result ? '正在监听文件变更并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
+        Alpine.store('statusBar').statusText = result ? '正在启动文件变更监听并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
         return result;
       });
     },
@@ -217,6 +217,7 @@
 
       this.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? Object.assign({}, this.savedFtpConfig[path]) : {};
       this.ftpConfig.autoSync ??= false;
+      this.ftpConfig.childProcessSync ??= true;
       this.ftpConfig.ignoredPaths ??= '**/node_modules/**\n**/.git/**\n**/.DS_Store**';
       document.getElementById('ftp-config-dialog').showModal();
     },
@@ -234,7 +235,9 @@
         savedConfig[path] = Object.assign({}, this.ftpConfig);
 
         if (savedConfig[path].autoSync) {
-          if (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object' && this.savedFtpConfig[path].ignoredPaths !== savedConfig[path].ignoredPaths) {
+          window.electronStore.setJSON('ftp', JSON.stringify(savedConfig));
+
+          if (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object' && this.isFtpConfigChanged(this.savedFtpConfig[path], savedConfig[path])) {
             // 如果忽略路径发生了变化，则需要重启文件监听服务
             window.electronAPI.stopSyncFiles()
               .then(() => this.startSyncFiles(path))
@@ -243,18 +246,31 @@
             this.startSyncFiles(path);
           }
         } else {
+          window.electronStore.setJSON('ftp', JSON.stringify(savedConfig));
           window.electronAPI.stopSyncFiles().then(result => Alpine.store('statusBar').statusText = result ? '已停止文件自动同步' : '');
         }
       } else if (savedConfig && typeof savedConfig === 'object' && typeof savedConfig[path] !== 'undefined') {
         window.electronAPI.stopSyncFiles().then(result => Alpine.store('statusBar').statusText = result ? '已停止文件自动同步' : '');
         delete savedConfig[path];
+
+        window.electronStore.setJSON('ftp', JSON.stringify(savedConfig));
       }
 
       this.savedFtpConfig = savedConfig;
-      window.electronStore.setJSON('ftp', JSON.stringify(savedConfig));
       showSuccess('已成功保存FTP设置');
 
       document.getElementById('ftp-config-dialog').close();
+    },
+
+    isFtpConfigChanged(before, after) {
+      if (before.ignoredPaths != after.ignoredPaths) return true;
+      if (before.remotePath != after.remotePath) return true;
+      if (before.childProcessSync != after.childProcessSync) return true;
+      if (before.host != after.host) return true;
+      if (before.port != after.port) return true;
+      if (before.username != after.username) return true;
+      if (before.password != after.password) return true;
+      return false;
     },
 
     closeFtpConfig() {
@@ -350,6 +366,10 @@
         <label class="label my-1">
           <input type="checkbox" x-model="ftpConfig.autoSync" class="toggle toggle-primary" />
           自动同步到远程服务器
+        </label>
+        <label class="label my-1" x-show="ftpConfig.autoSync">
+          <input type="checkbox" x-model="ftpConfig.childProcessSync" class="toggle toggle-primary" />
+          创建子进程去同步（好处是不会出现主窗口被卡死的情况）
         </label>
         <fieldset class="fieldset my-1 w-full" x-show="ftpConfig.autoSync">
           <legend class="fieldset-legend">以下路径不自动同步</legend>

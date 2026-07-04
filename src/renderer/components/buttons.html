@@ -332,7 +332,7 @@
       <span class="font-bold" x-text="currentFilesCount"></span> 个文件<span x-text="isIgnoreMode ? '已隐藏' : '已变更'"></span>，
       <span class="font-bold" x-text="$store.fileListing.selectedFilesCount"></span> 个文件被选中
     </div>
-    <div class="flex items-center">
+    <div class="flex items-center gap-1">
       <div class="dropdown dropdown-top dropdown-end">
         <div tabindex="0" role="button" class="btn btn-xs font-normal" x-bind:class="{'btn-ghost': filterByDay==0}">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
@@ -345,7 +345,7 @@
           </template>
         </ul>
       </div>
-      <button class="btn btn-xs font-normal" x-bind:class="{'btn-ghost': isIgnoreMode}" x-on:click="isIgnoreMode = !isIgnoreMode" x-text="isIgnoreMode ? '取消查看隐藏' : '查看隐藏的文件'"></button>
+      <button class="btn btn-xs font-normal" x-bind:class="{'btn-ghost': !isIgnoreMode}" x-on:click="isIgnoreMode = !isIgnoreMode" x-text="isIgnoreMode ? '取消查看隐藏文件' : '查看隐藏的文件'"></button>
     </div>
   </div>
   <div class="flex items-center justify-between">

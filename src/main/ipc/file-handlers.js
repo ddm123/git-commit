@@ -68,6 +68,9 @@ function startSyncFiles(event, projectPath, progressChannel) {
         targetPath
       });
     };
+    syncWatcherOptions.onReady = () => {
+      sender.send(progressChannel, { type: 'ready', message: '正在监听文件变更并同步到远程服务器...' });
+    };
     syncWatcherOptions.onError = (err, sourcePath = '', action = '') => {
       sender.send(progressChannel, { type: 'error', message: err.message, sourcePath, action });
     };
@@ -82,6 +85,7 @@ function startSyncFiles(event, projectPath, progressChannel) {
     syncWatcherOptions.ignored = (relPath) => re.test(relPath.replaceAll('\\', '/'));
   }
 
+  syncWatcherOptions.childProcessSync = syncWatcherOptions.ftp.childProcessSync ?? false;
   syncWatcher = new SyncWatcher(projectPath, ftpConfig[projectPath].remotePath || '/', syncWatcherOptions);
   return syncWatcher.start().catch(err => {
     syncWatcher = null;
