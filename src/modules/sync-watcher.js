@@ -1,6 +1,7 @@
 const chokidar = require('chokidar');
 const fs = require('node:fs');
 const path = require('node:path');
+const { fork } = require('node:child_process');
 
 class SyncWatcher {
   #watcher = null;
@@ -38,8 +39,12 @@ class SyncWatcher {
     }
   }
 
-  async start() {
-    return this.options.childProcessSync ? await this.#startWithWorker() : await this.#startWithMain();
+  start() {
+    return this.options.childProcessSync ? this.#startWithWorker() : this.#startWithMain();
+  }
+
+  stop() {
+    return this.options.childProcessSync ? this.#stopWithWorker() : this.#stopWithMain();
   }
 
   async #startWithMain() {
@@ -94,8 +99,6 @@ class SyncWatcher {
   async #startWithWorker() {
     if (this.#workerProcess) return true;
 
-    const { fork } = require('node:child_process');
-
     this.#workerProcess = fork(path.join(__dirname, 'sync-watcher-worker.js'), { stdio: ['pipe', 'pipe', 'pipe', 'ipc'] });
     this.#workerProcess.stdout?.on('data', chunk => process.stdout.write(`[sync-watcher-process] ${chunk}`));
     this.#workerProcess.stderr?.on('data', chunk => process.stderr.write(`[sync-watcher-process] ${chunk}`));
@@ -136,7 +139,7 @@ class SyncWatcher {
       }
     });
 
-    const options = Object.assign({}, this.options);
+    const options = {...this.options};
     if (options.onError) options.onError = true;
     if (options.onReady) options.onReady = true;
     if (options.onProgress) options.onProgress = true;
@@ -151,10 +154,6 @@ class SyncWatcher {
 
     let result = await this.#listenWorkerProcess('started', this.#workerProcess);
     return result;
-  }
-
-  async stop() {
-    return this.options.childProcessSync ? await this.#stopWithWorker() : await this.#stopWithMain();
   }
 
   async #stopWithMain() {

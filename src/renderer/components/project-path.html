@@ -111,7 +111,7 @@
 
     startSyncFiles(path) {
       return window.electronAPI.startSyncFiles(path, 'files.sync.progress').then(result => {
-        Alpine.store('statusBar').statusText = result ? '正在启动文件变更监听并同步到远程服务器...' : '启动文件同步失败，已停止自动同步。';
+        Alpine.store('statusBar').statusHtml = result ? '<span class="loading loading-spinner loading-xs" style="--size-selector:.185rem;"></span> 正在启动文件同步...' : '启动文件同步失败，已停止自动同步。';
         return result;
       });
     },

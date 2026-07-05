@@ -1,5 +1,5 @@
 {
-  "name": "git-commit",
+  "name": "git-commit-tool",
   "version": "1.7.3",
   "description": "一个简单的Git提交工具",
   "keywords": [
@@ -42,10 +42,24 @@
     "ssh2-sftp-client": "^12.0.1"
   },
   "build": {
+    "appId": "ddm.git-commit-tool",
+    "productName": "Git Commit Tool",
+    "files": [
+      "**/*",
+      "!src/renderer/css/**",
+      "!out/**",
+      "!.gitignore",
+      "!.npmrc",
+      "!.git/**",
+      "!icon.png",
+      "!package-lock.json",
+      "!README.md"
+    ],
     "directories": {
       "output": "out"
     },
     "win": {
+      "executableName": "git-commit-tool",
       "icon": "icon.png",
       "target": [
         {
@@ -75,6 +89,7 @@
       ]
     },
     "mac": {
+      "executableName": "git-commit-tool",
       "icon": "icon.png",
       "target": [
         "dmg",
@@ -82,6 +97,7 @@
       ]
     },
     "linux": {
+      "executableName": "git-commit-tool",
       "icon": "icon.png",
       "target": [
         "AppImage",
