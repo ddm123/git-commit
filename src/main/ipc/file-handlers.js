@@ -75,15 +75,6 @@ function startSyncFiles(event, projectPath, progressChannel) {
       sender.send(progressChannel, { type: 'error', message: err.message, sourcePath, action });
     };
   }
-  if (typeof syncWatcherOptions.ftp.ignoredPaths === 'string' && syncWatcherOptions.ftp.ignoredPaths.trim() !== '') {
-    const ignoredPaths = syncWatcherOptions.ftp.ignoredPaths
-      .trim().replaceAll('\\', '/')
-      .split(/\s*(?:\r\n|\n|\r)+\s*/)
-      .map(pattern => wildcardToRegex(pattern));
-    const re = new RegExp(ignoredPaths.join('|'));
-
-    syncWatcherOptions.ignored = (relPath) => re.test(relPath.replaceAll('\\', '/'));
-  }
 
   syncWatcherOptions.childProcessSync = syncWatcherOptions.ftp.childProcessSync ?? false;
   syncWatcher = new SyncWatcher(projectPath, ftpConfig[projectPath].remotePath || '/', syncWatcherOptions);
@@ -91,15 +82,6 @@ function startSyncFiles(event, projectPath, progressChannel) {
     syncWatcher = null;
     throw err;
   });
-}
-
-function wildcardToRegex(pattern) {
-  return '^' + pattern
-    .replace(/[\.\+\?\^\$\{\}\(\)\|\[\]\/\\]/g, '\\$&')
-    .replaceAll('**', '@ALL@') // '.*': ** 匹配多级目录
-    .replaceAll('*', '[^/]*') // * 不匹配路径分隔符
-    .replaceAll('?', '[^/]') // ? 匹配单个字符（不包括路径分隔符）
-    .replaceAll('@ALL@', '.*') + '$';
 }
 
 async function stopSyncFiles() {

@@ -10,7 +10,11 @@ function startWatcher({ sourcePath, targetPath, options }) {
   let hasError = false;
 
   options.childProcessSync = false;
-  if (options.ftp) options.ftp.childProcessSync = false;
+  if (options.ftp) {
+    options.ftp.childProcessSync = false;
+    if (options.ftp.onInit) options.ftp.onInit = (...args) => process.send({ type: 'ftp.init', result: [undefined] }); // 通信机制无法传递类的实例
+    if (options.ftp.onConnected) options.ftp.onConnected = (...args) => process.send({ type: 'ftp.connected', result: [undefined] }); // 通信机制无法传递类的实例
+  }
 
   if (options.onError) options.onError = (...args) => {
     hasError = true;

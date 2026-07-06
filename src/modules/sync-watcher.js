@@ -73,6 +73,13 @@ class SyncWatcher {
     this.options.awaitWriteFinish.pollInterval ??= 200;
     this.options.depth ??= 100;
 
+    if (this.options.ftp && typeof this.options.ftp.ignoredPaths === 'string' && this.options.ftp.ignoredPaths.trim() !== '') {
+      const ignoredPaths = this.options.ftp.ignoredPaths.trim().replaceAll('\\', '/');
+      const re = new RegExp(this.#wildcardToRegex(ignoredPaths).replace(/\s*(?:\r\n|\n|\r)+\s*/g, '|'));
+
+      this.options.ignored = (relPath) => re.test(relPath.replaceAll('\\', '/'));
+    }
+
     this.#watcher = chokidar.watch(this.sourcePath, this.options);
 
     const enqueue = (p, action) => {
@@ -110,20 +117,25 @@ class SyncWatcher {
       if (message.result === undefined) message.result = [];
       else if (!Array.isArray(message.result)) message.result = [message.result];
 
-      if (message.type === 'progress') {
-        if (typeof this.options.onProgress === 'function') {
-          this.options.onProgress(...message.result);
-        }
-      } else if (message.type === 'ready') {
-        if (typeof this.options.onReady === 'function') {
-          this.options.onReady(...message.result);
-        }
-      } else if (message.type === 'error') {
-        this.#callErrorHandler(...message.result);
-      } else if (message.type === 'other') {
-        if (typeof this.options.onOther === 'function') {
-          this.options.onOther(...message.result);
-        }
+      switch (message.type) {
+        case 'progress':
+          if (typeof this.options.onProgress === 'function') this.options.onProgress(...message.result);
+          break;
+        case 'ready':
+          if (typeof this.options.onReady === 'function') this.options.onReady(...message.result);
+          break;
+        case 'error':
+          this.#callErrorHandler(...message.result);
+          break;
+        case 'other':
+          if (typeof this.options.onOther === 'function') this.options.onOther(...message.result);
+          break;
+        case 'ftp.init':
+          if (typeof this.options.ftp?.onInit === 'function') this.options.ftp.onInit(...message.result);
+          break;
+        case 'ftp.connected':
+          if (typeof this.options.ftp?.onConnected === 'function') this.options.ftp.onConnected(...message.result);
+          break;
       }
     });
 
@@ -145,6 +157,10 @@ class SyncWatcher {
     if (options.onReady) options.onReady = true;
     if (options.onProgress) options.onProgress = true;
     if (options.onOther) options.onOther = true;
+    if (options.ftp) {
+      if (options.ftp.onInit) options.ftp.onInit = true;
+      if (options.ftp.onConnected) options.ftp.onConnected = true;
+    }
 
     this.#workerProcess.send({
       type: 'start',
@@ -442,6 +458,15 @@ class SyncWatcher {
     } catch (e) {
       console.error(e);
     }
+  }
+
+  #wildcardToRegex(pattern) {
+    return '^' + pattern
+      .replace(/[\.\+\?\^\$\{\}\(\)\|\[\]\/\\]/g, '\\$&')
+      .replaceAll('**', '@@ALL@@') // '.*': ** 匹配多级目录
+      .replaceAll('*', '[^/]*') // * 不匹配路径分隔符
+      .replaceAll('?', '[^/]') // ? 匹配单个字符（不包括路径分隔符）
+      .replaceAll('@@ALL@@', '.*') + '$';
   }
 }
 
