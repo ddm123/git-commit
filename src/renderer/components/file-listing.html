@@ -84,7 +84,7 @@
           this.showError('文件上传失败: ' + error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>'));
         })
         .finally(() => {
-          Alpine.store('statusBar').statusText = '';
+          Alpine.store('statusBar').setStatusText('');
           if (failedFiles.length > 0) {
             this.openDialog('以下文件上传失败', '<div style="color:red;">' + failedFiles.join('<br>') + '</div>');
             failedFiles.length = 0;
@@ -106,7 +106,7 @@
         if (data.fileCount) {
           statusText += ` (${data.fileIndex + 1} / ${data.fileCount})`;
         }
-        Alpine.store('statusBar').statusText = statusText;
+        Alpine.store('statusBar').setStatusText(statusText);
       });
       window.electronAPI.onMenuClick('shell:showItemInFolder', (event, fullPath) => window.electronAPI.ipcInvoke('shell:showItemInFolder', fullPath));
     },

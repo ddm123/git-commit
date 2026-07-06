@@ -2,6 +2,7 @@ const chokidar = require('chokidar');
 const fs = require('node:fs');
 const path = require('node:path');
 const { fork } = require('node:child_process');
+const { type } = require('node:os');
 
 class SyncWatcher {
   #watcher = null;
@@ -135,7 +136,7 @@ class SyncWatcher {
         this.#workerProcess = null;
       }
       if (code !== 0 && signal !== 'SIGTERM') {
-        this.#callErrorHandler(new Error(`Sync watcher worker exited unexpectedly (code=${code}, signal=${signal})`));
+        console.error(new Error(`Sync watcher worker exited unexpectedly (code=${code}, signal=${signal})`));
       }
     });
 
@@ -216,7 +217,17 @@ class SyncWatcher {
         }, 10000);
 
         function onMessage(msg) {
-          if (msg.type === action) {
+          if (!msg) {
+            msg = {type: 'error', result: new Error('子进程通知为空')};
+          } else if (typeof msg !== 'object') {
+            msg = {type: 'error', result: msg};
+          } else if (Array.isArray(msg.result)) {
+            msg.result = msg.result[0];
+          }
+          if (msg.type === 'error') {
+            cleanup();
+            reject(msg.result);
+          } else if (msg.type === action) {
             cleanup();
             resolve(msg.result);
           }

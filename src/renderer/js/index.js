@@ -18,7 +18,7 @@ document.addEventListener('alpine:init', () => {
       const saveTheme = debounce(theme => window.electronStore.set('theme', theme), 1000);
 
       window.gitAPI.onProgress('git:progress', (event, data) => {
-        Alpine.store('statusBar').statusText = '正在拉取远程仓库最新代码... ' + data.method + '(' + data.stage + '): ' + data.progress + '%';
+        Alpine.store('statusBar').setStatusText('正在拉取远程仓库最新代码... ' + data.method + '(' + data.stage + '): ' + data.progress + '%');
       });
       this.$watch('currentTheme', (theme) => {
         window.electronAPI.darkMode(theme==='dark');

@@ -35,7 +35,7 @@
         if (statusText !== '') {
           statusText += ' | ' + this.getTime();
         }
-        Alpine.store('statusBar').statusText = statusText;
+        Alpine.store('statusBar').setStatusText(statusText);
       });
       window.electronAPI.receive('manage-projects.closed', (event, ...paths) => {
         document.body.classList.remove('disable');
@@ -111,7 +111,7 @@
 
     startSyncFiles(path) {
       return window.electronAPI.startSyncFiles(path, 'files.sync.progress').then(result => {
-        Alpine.store('statusBar').statusHtml = result ? '<span class="loading loading-spinner loading-xs" style="--size-selector:.185rem;"></span> 正在启动文件同步...' : '启动文件同步失败，已停止自动同步。';
+      Alpine.store('statusBar').setStatusText(result ? '<span class="loading loading-spinner loading-xs" style="--size-selector:.185rem;"></span> 正在启动文件同步...' : '启动文件同步失败，已停止自动同步。', true);
         return result;
       });
     },
@@ -126,7 +126,7 @@
       const restartSyncFiles = function(projectPath) {
         window.electronAPI.stopSyncFiles().then(isStopped => {
           if (isStopped) {
-            Alpine.store('statusBar').statusText = '文件同步服务已停止';
+            Alpine.store('statusBar').setStatusText('文件同步服务已停止');
           }
           if (this.isSyncEnabled(projectPath)) {
             this.startSyncFiles(projectPath);
@@ -247,10 +247,10 @@
           }
         } else {
           window.electronStore.setJSON('ftp', JSON.stringify(savedConfig));
-          window.electronAPI.stopSyncFiles().then(result => Alpine.store('statusBar').statusText = result ? '已停止文件自动同步' : '');
+          window.electronAPI.stopSyncFiles().then(result => Alpine.store('statusBar').setStatusText(result ? '已停止文件自动同步' : ''));
         }
       } else if (savedConfig && typeof savedConfig === 'object' && typeof savedConfig[path] !== 'undefined') {
-        window.electronAPI.stopSyncFiles().then(result => Alpine.store('statusBar').statusText = result ? '已停止文件自动同步' : '');
+        window.electronAPI.stopSyncFiles().then(result => Alpine.store('statusBar').setStatusText(result ? '已停止文件自动同步' : ''));
         delete savedConfig[path];
 
         window.electronStore.setJSON('ftp', JSON.stringify(savedConfig));

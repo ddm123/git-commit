@@ -7,10 +7,22 @@ function startWatcher({ sourcePath, targetPath, options }) {
     return;
   }
 
+  let hasError = false;
+
   options.childProcessSync = false;
   if (options.ftp) options.ftp.childProcessSync = false;
 
-  if (options.onError) options.onError = (...args) => process.send({ type: 'error', result: args });
+  if (options.onError) options.onError = (...args) => {
+    hasError = true;
+
+    for (let i = args.length; i--;) {
+      if (args[i] instanceof Error) {
+        const err = args[i];
+        args[i] = { message: err.message, name: err.name ?? undefined };
+      }
+    }
+    process.send({ type: 'error', result: args });
+  };
   if (options.onReady) options.onReady = (...args) => process.send({ type: 'ready', result: args });
   if (options.onProgress) options.onProgress = (...args) => process.send({ type: 'progress', result: args });
   if (options.onOther) options.onOther = (...args) => process.send({ type: 'other', result: args });
@@ -18,11 +30,17 @@ function startWatcher({ sourcePath, targetPath, options }) {
   watcher = new SyncWatcher(sourcePath, targetPath, options);
   watcher.start()
   .then(() => {
-    process.send({ type: 'started', result: true });
+    if (hasError) {
+      watcher = null;
+      process.exit(0);
+    } else {
+      process.send({ type: 'started', result: true });
+    }
   })
   .catch(err => {
     watcher = null;
-    process.send({ type: 'error', result: err.message });
+    process.send({ type: 'error', result: { message: err.message, name: err.name ?? undefined } });
+    process.exit(0);
   });
 }
 
