@@ -32,6 +32,7 @@ function startWatcher({ sourcePath, targetPath, options }) {
   .then(() => {
     if (hasError) {
       watcher = null;
+      console.log('Error starting SyncWatcher. Exiting...');
       process.exit(0);
     } else {
       process.send({ type: 'started', result: true });
@@ -40,6 +41,7 @@ function startWatcher({ sourcePath, targetPath, options }) {
   .catch(err => {
     watcher = null;
     process.send({ type: 'error', result: { message: err.message, name: err.name ?? undefined } });
+    console.log('Error starting SyncWatcher: ' + err.message + '. Exiting...');
     process.exit(0);
   });
 }
@@ -53,6 +55,7 @@ function stopWatcher() {
   .then(result => process.send({ type: 'stopped', result }))
   .finally(() => {
     watcher = null;
+    console.log('SyncWatcher stopped. Exiting...');
     process.exit(0);
   });
 }

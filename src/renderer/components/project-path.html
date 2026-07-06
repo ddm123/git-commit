@@ -11,6 +11,7 @@
     ftpConfig: {},
     ftpDefaultPort: 21,
     savedFtpConfig: null,
+    loadingIcon: '<span class="loading loading-spinner loading-xs" style="--size-selector:.185rem;"></span>',
 
     get selectProjectPathFlag() {
       return '%SELECT%';
@@ -110,9 +111,18 @@
     },
 
     startSyncFiles(path) {
+      Alpine.store('statusBar').setStatusText(this.loadingIcon + ' 正在启动文件同步...', true);
       return window.electronAPI.startSyncFiles(path, 'files.sync.progress').then(result => {
-      Alpine.store('statusBar').setStatusText(result ? '<span class="loading loading-spinner loading-xs" style="--size-selector:.185rem;"></span> 正在启动文件同步...' : '启动文件同步失败，已停止自动同步。', true);
+        Alpine.store('statusBar').setStatusText(result ? this.loadingIcon + ' 正在扫描项目文件...' : '启动文件同步失败，已停止自动同步。', true);
         return result;
+      });
+    },
+
+    stopSyncFiles() {
+      Alpine.store('statusBar').setStatusText(this.loadingIcon + ' 正在停止文件同步服务...', true);
+      return window.electronAPI.stopSyncFiles().then(isStopped => {
+        Alpine.store('statusBar').setStatusText(isStopped ? '文件同步服务已停止' : '文件同步服务停止失败');
+        return isStopped;
       });
     },
 
@@ -124,10 +134,7 @@
 
       const selectedValue = event.target.value;
       const restartSyncFiles = function(projectPath) {
-        window.electronAPI.stopSyncFiles().then(isStopped => {
-          if (isStopped) {
-            Alpine.store('statusBar').setStatusText('文件同步服务已停止');
-          }
+        this.stopSyncFiles().then(isStopped => {
           if (this.isSyncEnabled(projectPath)) {
             this.startSyncFiles(projectPath);
           }
@@ -239,7 +246,7 @@
 
           if (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object' && this.isFtpConfigChanged(this.savedFtpConfig[path], savedConfig[path])) {
             // 如果忽略路径发生了变化，则需要重启文件监听服务
-            window.electronAPI.stopSyncFiles()
+            this.stopSyncFiles()
               .then(() => this.startSyncFiles(path))
               .catch(err => showError('文件同步服务停止失败，无法重新为当前项目启动文件同步。请重启本程序。<br>' + err.message));
           } else {
