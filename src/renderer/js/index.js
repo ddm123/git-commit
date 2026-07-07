@@ -103,7 +103,7 @@ document.addEventListener('alpine:init', () => {
           .getStatus(projectPath)
           .then(status => {
             disableBody(false);
-            return this.fillFileList(JSON.parse(status));
+            return this.fillFileList(status);
           })
           .then((files) => {
             const th = this.$store.fileListing.element.querySelector('table thead :where(td, th)[order-dir]');

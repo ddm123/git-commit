@@ -14,12 +14,15 @@ async function handleGitStatus(event, projectPath) {
   const gitRepo = git(projectPath);
   const gitStatus = await gitRepo.status(['--porcelain', projectPath]);
   //const gitDiff = await gitRepo.diffSummary(['--numstat']);//可以查看有改动文件的被删除行数和增加行数，但无法查看未跟踪的文件
+  const status = {...gitStatus};
 
-  gitStatus.projectPath = await gitRepo.revparse(['--show-toplevel']);
-  gitStatus.selectedPath = projectPath;
-  gitStatus.files = gitStatus.files.map(file => ({path: file.path, index: file.index, working_dir: file.working_dir}));
+  status.projectPath = await gitRepo.revparse(['--show-toplevel']);
+  status.selectedPath = projectPath;
+  status.files = gitStatus.files.length ? gitStatus.files.map(file => ({from: file.from ?? undefined, path: file.path, index: file.index, working_dir: file.working_dir})) : [];
+  status.renamed = gitStatus.renamed.length ? gitStatus.renamed.map(file => ({from: file.from, to: file.to})) : [];
+  status.isClean = typeof gitStatus.isClean === 'function' ? gitStatus.isClean() : undefined;
 
-  return JSON.stringify(gitStatus);
+  return status;
 }
 
 async function handleGitPull(e, projectPath, options) {
@@ -53,11 +56,12 @@ async function handleGitPull(e, projectPath, options) {
   return await git(projectPath).pull(options);
 }
 
-async function handleGitDiff(event, projectPath, options) {
+function handleGitDiff(event, projectPath, options, gitOptions = undefined) {
   if(typeof options === 'string'){
     options = [options];
   }
-  return await git(projectPath).diff(options);
+  const gitRepo = gitOptions && Object.prototype.toString.call(gitOptions) === '[object Object]' ? git(projectPath, gitOptions) : git(projectPath);
+  return gitRepo.diff(options);
 }
 
 async function handleGitStashPush(event, projectPath, files, message = '') {
@@ -132,6 +136,11 @@ async function handleGitLogs (event, projectPath, options) {
     options = undefined;
   }
   return gitRepo.log(options);
+}
+
+function handleGitShow(event, projectPath, options, gitOptions) {
+  const gitRepo = gitOptions && Object.prototype.toString.call(gitOptions) === '[object Object]' ? git(projectPath, gitOptions) : git(projectPath);
+  return gitRepo.show(typeof options === 'string' ? [options] : (options && Array.isArray(options) ? options : []));
 }
 
 async function getUnpushedCommits(projectPath, options) {
@@ -400,7 +409,7 @@ module.exports = function setupGitHandlers(mainWin) {
   ipcMain.handle('git:checkout', async (event, projectPath, ...files) => await git(projectPath).checkout(['HEAD', '--', ...files]));
   ipcMain.handle('git:diff', handleGitDiff);
   ipcMain.handle('git:logs', handleGitLogs);
-  ipcMain.handle('git:show', (event, projectPath, options) => git(projectPath).show(typeof options === 'string' ? [options] : (options && Array.isArray(options) ? options : [])));
+  ipcMain.handle('git:show', handleGitShow);
   ipcMain.handle('git:showPasteContextMenu', showMessagePaste);
   ipcMain.handle('git:showDiff', handleShowDiff);
   ipcMain.handle('git:getUnpushedCommits', (event, projectPath, options) => getUnpushedCommits(projectPath, options));

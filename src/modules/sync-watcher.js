@@ -75,7 +75,7 @@ class SyncWatcher {
 
     if (this.options.ftp && typeof this.options.ftp.ignoredPaths === 'string' && this.options.ftp.ignoredPaths.trim() !== '') {
       const ignoredPaths = this.options.ftp.ignoredPaths.trim().replaceAll('\\', '/');
-      const re = new RegExp(this.#wildcardToRegex(ignoredPaths).replace(/\s*(?:\r\n|\n|\r)+\s*/g, '|'));
+      const re = new RegExp(this.#wildcardToRegex(ignoredPaths).replace(/\s*(?:\r\n|\n|\r)+\s*/g, '$|^'));
 
       this.options.ignored = (relPath) => re.test(relPath.replaceAll('\\', '/'));
     }

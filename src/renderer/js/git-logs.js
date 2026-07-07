@@ -212,8 +212,8 @@ document.addEventListener('alpine:init', () => {
       }
 
       return Promise.allSettled([
-        window.electronAPI.gitShow(this.projectPath, ['--numstat', '--format=', log.hash]),
-        window.electronAPI.gitShow(this.projectPath, ['--name-status', '--format=', log.hash])
+        window.electronAPI.gitShow(this.projectPath, ['--numstat', '--format=', log.hash], { config: ['core.quotepath=false'] }),
+        window.electronAPI.gitShow(this.projectPath, ['--name-status', '--format=', log.hash], { config: ['core.quotepath=false'] })
       ])
       .then(results => {
         this.resetLogFilesStatistics();
@@ -351,7 +351,7 @@ document.addEventListener('alpine:init', () => {
       }
 
       disableBody(true);
-      window.electronAPI.gitShow(this.projectPath, [file.hash, '--unified=50', '--format=', '--', file.file])
+      window.electronAPI.gitShow(this.projectPath, [file.hash, '--unified=50', '--format=', '--', file.file], { config: ['core.quotepath=false'] })
         .then(result => window.electronAPI.showDiff(this.projectPath, file.file, result))
         .catch(error => showError(error.message.replace(/(?:\r\n|\r|\n)/g, '<br/>')))
         .finally(() => disableBody(false));

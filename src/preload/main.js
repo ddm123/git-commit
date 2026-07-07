@@ -44,7 +44,7 @@ contextBridge.exposeInMainWorld('gitAPI', {
   push: (path, options) => ipcRenderer.invoke('git:push', path, options),
   reset: (path, parameters) => ipcRenderer.invoke('git:reset', path, parameters),
   checkout: (path, ...files) => ipcRenderer.invoke('git:checkout', path, ...files),
-  diff: (path, options) => ipcRenderer.invoke('git:diff', path, options),
+  diff: (path, options, gitOptions = undefined) => ipcRenderer.invoke('git:diff', path, options, gitOptions),
   logs: (path, options) => ipcRenderer.invoke('git:logs', path, options),
   showDiff: (path, file, diffChunks) => ipcRenderer.invoke('git:showDiff', path, file, diffChunks),
   showLogHistories: (path, branch, options, file) => ipcRenderer.invoke('git:showLogHistories', path, branch, options, file),
