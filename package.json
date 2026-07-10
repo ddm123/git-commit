@@ -45,15 +45,9 @@
     "appId": "ddm.git-commit-tool",
     "productName": "Git Commit Tool",
     "files": [
-      "**/*",
-      "!src/renderer/css/**",
-      "!out/**",
-      "!.gitignore",
-      "!.npmrc",
-      "!.git/**",
-      "!icon.png",
-      "!package-lock.json",
-      "!README.md"
+      "./src/**",
+      "./dist/**",
+      "!./src/renderer/css/**"
     ],
     "directories": {
       "output": "out"

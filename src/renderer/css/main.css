@@ -135,7 +135,7 @@ body.disable > .body-mask{
 }
 
 .textarea:focus, .textarea:focus-within,
-.select:focus, .select:focus-within,
+.select:focus, .select:focus-within, .select:open,
 .input:focus, .input:focus-within,
 .btn:focus-visible, .btn:has(:focus-visible) {
   box-shadow: 0 0 4px 0 var(--color-accent);

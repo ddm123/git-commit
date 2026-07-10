@@ -183,7 +183,7 @@ document.addEventListener('alpine:init', () => {
                 ext: getExtname(file.path),
                 fsize: fileStat ? formatFileSize(fileStat.size) : '-',
                 timestamp: fileStat ? fileStat.mtimeMs : 0,
-                time: fileStat ? new Date(fileStat.mtimeMs).toLocaleString('zh-CN', {
+                time: fileStat ? new Date(fileStat.mtimeMs).toLocaleString(navigator.language || 'zh-CN', {
                   year: 'numeric',
                   month: '2-digit',
                   day: '2-digit',

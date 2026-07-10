@@ -70,8 +70,8 @@ class SyncWatcher {
     //this.options.ignored ??= /(^|[\\\/])(node_modules|\.git|\.DS_Store)($|[\\\/])/i; // ignore ['**/node_modules/**', '**/.git/**', '**/.DS_Store']
     this.options.awaitWriteFinish ??= {};
     this.options.awaitWriteFinish.stabilityThreshold ??= 2000;
-    this.options.awaitWriteFinish.pollInterval ??= 200;
-    this.options.depth ??= 100;
+    this.options.awaitWriteFinish.pollInterval ??= 100;
+    //this.options.depth ??= 100;
 
     if (this.options.ftp && typeof this.options.ftp.ignoredPaths === 'string' && this.options.ftp.ignoredPaths.trim() !== '') {
       const ignoredPaths = this.options.ftp.ignoredPaths.trim().replaceAll('\\', '/');

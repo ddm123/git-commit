@@ -426,7 +426,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     formatDateTime(date) {
-      return new Date(date).toLocaleString('zh-CN', {
+      return new Date(date).toLocaleString(navigator.language || 'zh-CN', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
