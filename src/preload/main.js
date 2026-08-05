@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   stopSyncFiles: () => ipcRenderer.invoke('fs:stopSyncFiles')
 });
 contextBridge.exposeInMainWorld('gitAPI', {
+  raw: (path, options) => ipcRenderer.invoke('git:raw', path, options),
   getRootPath: (path) => ipcRenderer.invoke('git:getRootPath', path),
   getBranches: (path) => ipcRenderer.invoke('git:getBranches', path),
   getStatus: (path) => ipcRenderer.invoke('git:getStatus', path),

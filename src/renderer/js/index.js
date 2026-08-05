@@ -76,26 +76,40 @@ document.addEventListener('alpine:init', () => {
       disableBody(true);
 
       this.clearAllList();
-      window.gitAPI.getBranches(projectPath).then((result) => {
+
+      window.gitAPI.branch(projectPath).then(async result => {
         if (result.all.length === 0) {
           showError('没有找到任何分支');
           return;
         }
 
-        if (result.current) {
-          Alpine.store('projectPath').currentBranch = result.current;
-        }else{
+        if (!result.current) {
           this.branches.push({
             label: '没有指定当前分支',
-            value: ''
+            branch: '',
+            current: false,
+            remote: false
           });
         }
 
-        result.all.forEach((branch) => {
+        const commits = new Set();
+        result.all.forEach(branch => {
+          if (commits.has(result.branches[branch].commit)) return;
+          commits.add(result.branches[branch].commit);
+
+          const isRemote = branch.startsWith('remotes/');
+          const branchName = isRemote ? branch.substring(8) : branch;
+          const shortBranchName = isRemote ? branchName.replace(/^[^\/]+\//, '') : branchName;
           this.branches.push({
             label: result.branches[branch].name,
-            value: branch
+            branch: branchName,
+            short: shortBranchName,
+            current: result.branches[branch].current ?? (result.current == shortBranchName),
+            remote: isRemote
           });
+        });
+        this.$nextTick(() => {
+          if (result.current) Alpine.store('projectPath').currentBranch = result.current;
         });
 
         disableBody(true);
@@ -121,11 +135,11 @@ document.addEventListener('alpine:init', () => {
           })
           .catch(error => {
             disableBody(false);
-            this.showError(error.message);
+            this.showError(textToHtml(error.message));
           });
       })
       .catch(error => {
-        this.showError(error.message);
+        this.showError(textToHtml(error.message));
       })
       .finally(() => {
         disableBody(false);

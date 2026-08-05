@@ -1,4 +1,7 @@
-<dialog class="modal" x-init="Alpine.store('dialog', {
+<script>
+Alpine.store('dialog', {
+  dialogAlpineData: null,
+  minWidth: false,
   title: '',
   body: '',
   okBtn: null,
@@ -6,25 +9,46 @@
   isPrompt: false,
   promptLabel: '',
   promptPlaceholder: '',
-  open(title, body) {
+  open(title, body, okBtn = undefined, cancelBtn = undefined, minWidth = false) {
     this.isPrompt = false;
+    this.minWidth = minWidth;
     this.title = title;
     this.body = body;
-    $el.showModal();
+    this.dialogAlpineData.$el.showModal();
+
+    if (okBtn || cancelBtn) {
+      const promise = new Promise(resolve => {
+        if (okBtn) this.okBtnClick(() => resolve('ok'), okBtn===true ? '确定' : okBtn);
+        if (cancelBtn) this.cancelBtnClick(() => resolve('cancel'), cancelBtn===true ? '取消' : cancelBtn);
+        this.dialogAlpineData.$el.addEventListener('close', () => resolve('close'), {once: true});
+      });
+      promise.finally(() => {
+        this.dialogAlpineData.$el.close();
+        window.setTimeout(() => {
+          this.okBtn = null;
+          this.cancelBtn = null;
+        }, 500);
+      });
+      return promise;
+    }
+    return new Promise(resolve => this.dialogAlpineData.$el.addEventListener('close', () => resolve('close'), {once: true}));
   },
   prompt (title, label, placeholder = '') {
     this.isPrompt = true;
     this.title = title;
     this.promptLabel = label;
     this.promptPlaceholder = placeholder;
-    $el.showModal();
-    $nextTick(() => {$refs.modalPromptInput.focus();$refs.modalPromptInput.value='';});
+    this.dialogAlpineData.$el.showModal();
+    this.dialogAlpineData.$nextTick(() => {
+      this.dialogAlpineData.$refs.modalPromptInput.focus();
+      this.dialogAlpineData.$refs.modalPromptInput.value='';
+    });
     const promise = new Promise(resolve => {
-      this.okBtnClick(() => resolve($refs.modalPromptInput.value), '确定');
+      this.okBtnClick(() => resolve(this.dialogAlpineData.$refs.modalPromptInput.value), '确定');
       this.cancelBtnClick(() => resolve(null), '取消');
     });
     promise.finally(() => {
-      $el.close();
+      this.dialogAlpineData.$el.close();
       window.setTimeout(() => {
         this.isPrompt = false;
         this.okBtn = null;
@@ -41,8 +65,10 @@
     this.cancelBtn = [func.bind(this), label];
     return this;
   }
-})">
-  <div class="modal-box" :class="{'w-11/12 max-w-5xl': !$store.dialog.isPrompt}">
+});
+</script>
+<dialog class="modal" x-init="$store.dialog.dialogAlpineData = {'$el': $el, '$nextTick': $nextTick, '$refs': $refs}">
+  <div class="modal-box" :class="{'w-11/12 max-w-5xl': !$store.dialog.minWidth && !$store.dialog.isPrompt}">
     <form method="dialog">
       <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
     </form>

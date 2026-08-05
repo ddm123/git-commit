@@ -4,221 +4,247 @@ var messagesTimeoutId = null;
 var disableBodyCounter = 0;
 
 function disableBody(flag, enforce) {
-    const body = document.body;
-    if (flag || flag === undefined) {
-        if (enforce) {
-            body.classList.add('disable');
-            if (typeof NProgress === 'object') NProgress.start();
-        } else {
-            if (disableBodyCounter === 0) {
-                body.classList.add('disable');
-                if (typeof NProgress === 'object') NProgress.start();
-            }
-            disableBodyCounter++;
-        }
+  const body = document.body;
+  if (flag || flag === undefined) {
+    if (enforce) {
+      body.classList.add('disable');
+      if (typeof NProgress === 'object') NProgress.start();
     } else {
-        if (enforce) {
-            body.classList.remove('disable');
-            if (typeof NProgress === 'object') NProgress.done();
-        }else if(disableBodyCounter<=1) {
-            body.classList.remove('disable');
-            if (typeof NProgress === 'object') NProgress.done();
-            disableBodyCounter = 0;
-        }else{
-            disableBodyCounter--;
-        }
+      if (disableBodyCounter === 0) {
+        body.classList.add('disable');
+        if (typeof NProgress === 'object') NProgress.start();
+      }
+      disableBodyCounter++;
     }
-    return body;
+  } else {
+    if (enforce) {
+      body.classList.remove('disable');
+      if (typeof NProgress === 'object') NProgress.done();
+    }else if(disableBodyCounter<=1) {
+      body.classList.remove('disable');
+      if (typeof NProgress === 'object') NProgress.done();
+      disableBodyCounter = 0;
+    }else{
+      disableBodyCounter--;
+    }
+  }
+  return body;
 }
 
 function isDisabledBody() {
-    return document.body.classList.contains('disable');
+  return document.body.classList.contains('disable');
 }
 
-function showError(message) {console.trace();
-    const messageElement = createMessageElement(message);
-    messageElement.classList.add('error');
-    insertMessageElement(messageElement);
-    return messageElement;
+function showError(message) {
+  const messageElement = createMessageElement(message);
+  messageElement.classList.add('error');
+  insertMessageElement(messageElement);
+  return messageElement;
 }
 
 function showSuccess(message) {
-    const messageElement = createMessageElement(message);
-    messageElement.classList.add('success');
-    insertMessageElement(messageElement);
-    return messageElement;
+  const messageElement = createMessageElement(message);
+  messageElement.classList.add('success');
+  insertMessageElement(messageElement);
+  return messageElement;
+}
+
+function textToHtml(text) {
+  return text ? text.replace(/(?:\r\n|\r|\n)/g, '<br/>').replaceAll('  ', ' &nbsp;').replaceAll('\t', ' &nbsp; &nbsp;') : text;
 }
 
 function getExtname(fileName) {
-    const lastDotIndex = fileName.lastIndexOf('.');
-    return lastDotIndex === -1 ? '' : fileName.substring(lastDotIndex);
+  const lastDotIndex = fileName.lastIndexOf('.');
+  return lastDotIndex === -1 ? '' : fileName.substring(lastDotIndex);
 }
 
 function formatFileSize(size) {
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    let index = 0;
-    while (size >= 1024 && index < units.length - 1) {
-        size /= 1024;
-        index++;
-    }
-    return size.toFixed(2) + ' ' + units[index];
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let index = 0;
+  while (size >= 1024 && index < units.length - 1) {
+    size /= 1024;
+    index++;
+  }
+  return size.toFixed(2) + ' ' + units[index];
 }
 
 function debounce(fn, wait = 300) {
-    let timer;
+  let timer;
 
-     function debounced(...args) {
-          clearTimeout(timer);
-         timer = setTimeout(() => fn.apply(this, args), wait);
-     }
+   function debounced(...args) {
+      clearTimeout(timer);
+     timer = setTimeout(() => fn.apply(this, args), wait);
+   }
 
-     debounced.cancel = () => clearTimeout(timer);
-     return debounced;
+   debounced.cancel = () => clearTimeout(timer);
+   return debounced;
 }
 
 function htmlspecialchars(str) {
-    return str.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+  return str.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 }
 
 async function compileComponents(onLoad) {
-    const rendererComponent = function(component, html) {
-        let attributes = {};
-        for (const attr of component.attributes) {
-            attributes[attr.name] = attr.value;
+  const rendererComponent = function(component, html) {
+    let attributes = {};
+    for (const attr of component.attributes) {
+      attributes[attr.name] = attr.value;
+    }
+    attributes = JSON.stringify(attributes);
+
+    const scriptPromises = [];
+    const scriptElements = [];
+    html = html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (match, p1, p2) => {
+      const newScript = document.createElement('script');
+      let isSync = true;
+
+      if (p1) {
+        const attrRegex = /([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^'"\s>]+)))?/g;
+        let attrMatch;
+        while ((attrMatch = attrRegex.exec(p1)) !== null) {
+          newScript.setAttribute(attrMatch[1], attrMatch[2] || attrMatch[3] || attrMatch[4] || '');
+          if (attrMatch[1] === 'async' || attrMatch[1] === 'defer') isSync = false;
         }
-        attributes = JSON.stringify(attributes);
-
-        html = html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (match, p1, p2) => {
-            const newScript = document.createElement('script');
-
-            if (p1) {
-                const attrRegex = /([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^'"\s>]+)))?/g;
-                let attrMatch;
-                while ((attrMatch = attrRegex.exec(p1)) !== null) {
-                    newScript.setAttribute(attrMatch[1], attrMatch[2] || attrMatch[3] || attrMatch[4] || '');
-                }
-            }
-            if (p2 && (p2 = p2.trim())) {
-                newScript.textContent = `(function(props) { ${p2} })(${attributes});`;
-            }
-            document.head.appendChild(newScript);
-            return '';
+      }
+      if (p2 && (p2 = p2.trim())) {
+        newScript.textContent = `(function(props) { ${p2} })(${attributes});`;
+      }
+      if (isSync && newScript.getAttribute('src')) {
+        scriptPromises.push(new Promise((resolve, reject) => {
+          newScript.addEventListener('load', (event) => resolve(event));
+          newScript.addEventListener('error', (event) => reject(event));
+        }));
+      }
+      scriptElements.push(newScript);
+      return '';
+    });
+    if (scriptElements.length) scriptElements.forEach(scriptElement => document.head.appendChild(scriptElement));
+    if (scriptPromises.length) {
+      Promise.allSettled(scriptPromises).then(results => {
+        results.forEach(result => {
+          if (result.status === 'rejected') console.error('Error in component script:', result.reason);
         });
         component.insertAdjacentHTML('beforebegin', html);
         onLoad(html, component);
         component.remove();
-    };
-    const loadComponent = function(component) {
-        return fetch(component.getAttribute('src')/*, {cache: 'no-store', headers: {'Cache-Control': 'no-cache'}}*/)
-            .then(response => response.text())
-            .then(html => rendererComponent(component, html))
-            .catch(error => console.error('Error loading component '+component.getAttribute('src')+':', error));
-    }
-    if (typeof onLoad !== 'function') onLoad = () => {};
-
-    const deferComponents = [];
-    for (const component of document.querySelectorAll('component[src]')) {
-        if (component.hasAttribute('defer')) {
-            deferComponents.push(component);
-        } else {
-            await loadComponent(component);
-        }
-    }
-
-    let len = deferComponents.length;
-    if (len) {
-        for (let i = 0; i < len; i++) loadComponent(deferComponents[i]);
+      });
     } else {
-        onLoad(undefined, undefined);
+      component.insertAdjacentHTML('beforebegin', html);
+      onLoad(html, component);
+      component.remove();
     }
+  };
+  const loadComponent = function(component) {
+    return fetch(component.getAttribute('src')/*, {cache: 'no-store', headers: {'Cache-Control': 'no-cache'}}*/)
+      .then(response => response.text())
+      .then(html => rendererComponent(component, html))
+      .catch(error => console.error('Error loading component '+component.getAttribute('src')+':', error));
+  }
+  if (typeof onLoad !== 'function') onLoad = () => {};
+
+  const deferComponents = [];
+  for (const component of document.querySelectorAll('component[src]')) {
+    if (component.hasAttribute('defer')) {
+      deferComponents.push(component);
+    } else {
+      await loadComponent(component);
+    }
+  }
+
+  let len = deferComponents.length;
+  if (len) {
+    for (let i = 0; i < len; i++) loadComponent(deferComponents[i]);
+  } else {
+    onLoad(undefined, undefined);
+  }
 }
 
 function loadJsFile(url) {
-    if (loadJsFileCache.has(url)) {
-        return loadJsFileCache.get(url);
-    }
+  if (loadJsFileCache.has(url)) {
+    return loadJsFileCache.get(url);
+  }
 
-    const promise = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.type = 'text/javascript';
-        script.src = url;
-        script.async = true;
+  const promise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = url;
+    script.async = true;
 
-        script.addEventListener('load', (event) => resolve(event));
-        script.addEventListener('error', (event) => {
-            loadJsFileCache.delete(url); // 失败时清除缓存，允许重试
-            reject(new Error(`Failed to load script: ${url}`));
-        });
-
-        (document.head || document.body).appendChild(script);
+    script.addEventListener('load', (event) => resolve(event));
+    script.addEventListener('error', (event) => {
+      loadJsFileCache.delete(url); // 失败时清除缓存，允许重试
+      reject(new Error(`Failed to load script: ${url}`));
     });
 
-    loadJsFileCache.set(url, promise);
-    return promise;
+    (document.head || document.body).appendChild(script);
+  });
+
+  loadJsFileCache.set(url, promise);
+  return promise;
 }
 
 function createMessageElement(message) {
-    const messageElement = document.createElement('div');
-    const textElement = document.createElement('div');
-    const closeElement = document.createElement('div');
-    const classList = messageElement.classList;
-    const duration = 8;//单位：秒
+  const messageElement = document.createElement('div');
+  const textElement = document.createElement('div');
+  const closeElement = document.createElement('div');
+  const classList = messageElement.classList;
+  const duration = 8;//单位：秒
 
-    textElement.classList.add('text');
-    textElement.innerHTML = message;
-    closeElement.classList.add('close');
-    closeElement.innerHTML =
-     '<svg class="circle-progress" viewBox="0 0 200 200">' +
-       '<circle class="circle-bg" cx="100" cy="100" r="95"></circle>' +
-       '<circle class="circle-fill" cx="100" cy="100" r="95" stroke-dasharray="596.9">' +
-         '<animate attributeName="stroke-dashoffset" from="0" to="596.9" dur="' + duration + 's" fill="freeze"/>' +
-       '</circle>' +
-       '<path class="icon" d="M70 70 L130 130 M130 70 L70 130" fill="none"/>' +
-     '</svg>';
-    closeElement.msgIndex = messages.size;
-    closeElement.addEventListener('click', (event) => {
-        classList.remove('slide-in');
-        classList.add('slide-out');
-    });
-    messageElement.addEventListener('animationend', event => {
-        if (event.animationName === 'slideOut') {
-            messageElement.remove();
-            messages.delete(closeElement.msgIndex);
-        }
-    });
-    messageElement.appendChild(textElement);
-    messageElement.appendChild(closeElement);
-    classList.add('message');
-    classList.add('slide-in');
-    window.setTimeout(() => closeElement.click(), duration * 1000);
+  textElement.classList.add('text');
+  textElement.innerHTML = message;
+  closeElement.classList.add('close');
+  closeElement.innerHTML =
+   '<svg class="circle-progress" viewBox="0 0 200 200">' +
+     '<circle class="circle-bg" cx="100" cy="100" r="95"></circle>' +
+     '<circle class="circle-fill" cx="100" cy="100" r="95" stroke-dasharray="596.9">' +
+     '<animate attributeName="stroke-dashoffset" from="0" to="596.9" dur="' + duration + 's" fill="freeze"/>' +
+     '</circle>' +
+     '<path class="icon" d="M70 70 L130 130 M130 70 L70 130" fill="none"/>' +
+   '</svg>';
+  closeElement.msgIndex = messages.size;
+  closeElement.addEventListener('click', (event) => {
+    classList.remove('slide-in');
+    classList.add('slide-out');
+  });
+  messageElement.addEventListener('animationend', event => {
+    if (event.animationName === 'slideOut') {
+      messageElement.remove();
+      messages.delete(closeElement.msgIndex);
+    }
+  });
+  messageElement.appendChild(textElement);
+  messageElement.appendChild(closeElement);
+  classList.add('message');
+  classList.add('slide-in');
+  window.setTimeout(() => closeElement.click(), duration * 1000);
 
-    messages.set(closeElement.msgIndex, messageElement);
-    return messageElement;
+  messages.set(closeElement.msgIndex, messageElement);
+  return messageElement;
 }
 
 function insertMessageElement(messageElement) {
-    const messagesElement = document.getElementById('messages');
-    if (messagesElement) {
-        messagesElement.appendChild(messageElement);
-        return messageElement;
-    }
-
-    const childrens = Array.from(document.body.children);
-    let isInserted = false;
-    for (const child of childrens) {
-        if (child.nodeType === 1 && !child.classList.contains('message')) {
-            document.body.insertBefore(messageElement, child);
-            isInserted = true;
-            break;
-        }
-    }
-    if (!isInserted) {
-        document.body.appendChild(messageElement);
-    }
+  const messagesElement = document.getElementById('messages');
+  if (messagesElement) {
+    messagesElement.appendChild(messageElement);
     return messageElement;
+  }
+
+  const childrens = Array.from(document.body.children);
+  let isInserted = false;
+  for (const child of childrens) {
+    if (child.nodeType === 1 && !child.classList.contains('message')) {
+      document.body.insertBefore(messageElement, child);
+      isInserted = true;
+      break;
+    }
+  }
+  if (!isInserted) {
+    document.body.appendChild(messageElement);
+  }
+  return messageElement;
 }
 
 function clearMessages() {
-    messages.forEach(messageElement => messageElement.remove());
-    messages.clear();
+  messages.forEach(messageElement => messageElement.remove());
+  messages.clear();
 }

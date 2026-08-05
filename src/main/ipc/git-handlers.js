@@ -392,6 +392,7 @@ function toggleDevTools(event) {
 }
 
 module.exports = function setupGitHandlers(mainWin) {
+  ipcMain.handle('git:raw', (event, projectPath, options) => git(projectPath).raw(typeof options === 'string' ? [options] : (options && Array.isArray(options) ? options : [])));
   ipcMain.handle('git:getRootPath', async (event, projectPath) => await git(projectPath).revparse(['--show-toplevel']));
   ipcMain.handle('git:getBranches', async (event, projectPath) => await git(projectPath).branchLocal());
   ipcMain.handle('git:getStatus', handleGitStatus);

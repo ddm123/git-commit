@@ -1,0 +1,80 @@
+Alpine.data('commitMessage', () => ({
+  init() {
+    Alpine.store('commitMessage', { message: '' });
+
+    window.electronAPI.onMenuClick('clipboard:paste', (event, text) => this.insertCommitMessage(text));
+    window.electronAPI.onMenuClick('clipboard:copy', (event, text) => window.electronAPI.writeClipboard(text));
+    window.electronAPI.onMenuClick('clipboard:cut', (event, text) => {
+      window.electronAPI.writeClipboard(text);
+      this.insertCommitMessage('');
+    });
+  },
+
+  async showContextMenu(event) {
+    const projectPath = Alpine.store('projectPath').path;
+    const promises = [
+      window.electronAPI.readClipboard(),
+      Promise.resolve(this.getSelectionText()),
+      projectPath ? window.gitAPI.logs(projectPath, { maxCount: 10, multiLine: true, strictDate: true, userEmail: true }) : Promise.resolve(null)
+    ];
+
+    Promise.allSettled(promises).then(results => {
+      const menus = [];
+
+      if (results[0].status === 'fulfilled' && results[0].value) {
+        menus.push({ label: '粘贴', text: results[0].value, handler: 'clipboard:paste', args: [results[0].value] });
+      }
+
+      if (results[1].status === 'fulfilled' && results[1].value) {
+        menus.push(
+          { label: '复制', text: results[1].value, handler: 'clipboard:copy', args: [results[1].value] },
+          { label: '剪切', text: results[1].value, handler: 'clipboard:cut', args: [results[1].value] }
+        );
+      }
+
+      if (results[2].status === 'fulfilled' && results[2].value  && results[2].value.all) {
+        menus.push('-');
+        for (const log of results[2].value.all) {
+          let label = log.message;
+          let text = (log.body ?? log.message).trim();
+          if (label.length>50) label = label.substring(0, 50) + '...';
+          menus.push({ label, text, handler: 'clipboard:paste', args: [text] });
+        }
+      }
+
+      window.electronAPI.showPathContextMenu(menus);
+    });
+  },
+
+  insertCommitMessage(text) {
+    const textarea = this.$refs.commitMessage;
+
+    if(textarea){
+      let startPos = textarea.selectionStart ?? 0;
+      let endPos = textarea.selectionEnd ?? 0;
+
+      textarea.focus();
+      textarea.setRangeText(
+        text,// 要插入的文本
+        startPos,
+        endPos,
+        'end'// 可选: 'start'|'end'|'preserve'（光标位置）
+      );
+
+      Alpine.store('commitMessage').message = textarea.value;
+    }else{
+      Alpine.store('commitMessage').message = text;
+    }
+  },
+
+  getSelectionText() {
+    const textarea = this.$refs.commitMessage;
+    if (textarea && textarea.value) {
+      const start = textarea.selectionStart, end = textarea.selectionEnd;
+
+      if (start === null || end === null) return '';
+      return textarea.value.substring(start, end);
+    }
+    return '';
+  }
+}));
