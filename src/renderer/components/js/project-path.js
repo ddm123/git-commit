@@ -11,6 +11,7 @@ Alpine.data('projectPath', () => ({
   ftpDefaultPort: 21,
   savedFtpConfig: null,
   loadingIcon: '<span class="loading loading-spinner loading-xs" style="--size-selector:.185rem;"></span>',
+  isSyncing: false,
 
   get selectProjectPathFlag() {
     return '%SELECT%';
@@ -112,15 +113,17 @@ Alpine.data('projectPath', () => ({
   startSyncFiles(path) {
     Alpine.store('statusBar').setStatusText(this.loadingIcon + ' 正在启动文件同步...', true);
     return window.electronAPI.startSyncFiles(path, 'files.sync.progress').then(result => {
+      this.isSyncing = result;
       Alpine.store('statusBar').setStatusText(result ? this.loadingIcon + ' 正在扫描项目文件...' : '启动文件同步失败，已停止自动同步。', true);
       return result;
     });
   },
 
   stopSyncFiles() {
-    Alpine.store('statusBar').setStatusText(this.loadingIcon + ' 正在停止文件同步服务...', true);
+    if (this.isSyncing) Alpine.store('statusBar').setStatusText(this.loadingIcon + ' 正在停止文件同步服务...', true);
     return window.electronAPI.stopSyncFiles().then(isStopped => {
-      Alpine.store('statusBar').setStatusText(isStopped ? '文件同步服务已停止' : '文件同步服务停止失败');
+      this.isSyncing = false;
+      Alpine.store('statusBar').setStatusText(isStopped ? '文件同步服务已停止' : '');
       return isStopped;
     });
   },
