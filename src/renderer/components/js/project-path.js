@@ -54,8 +54,7 @@ Alpine.data('projectPath', () => ({
           window.electronStore.delete('projectPath');
         } else if (!paths.includes(Alpine.store('projectPath').path)) {
           Alpine.store('projectPath').path = this.lastSelectedPath = paths[0];
-          this.refresh();
-          window.electronStore.set('projectPath', paths[0]);
+          this.selectProjectPath({target: {value: paths[0]}});
         }
       });
     });
