@@ -248,3 +248,96 @@ function clearMessages() {
   messages.forEach(messageElement => messageElement.remove());
   messages.clear();
 }
+
+/**
+ * @param {Array} source 
+ * @param {Array} target 
+ * @param {Function} decorator 
+ * @param {Number} limit
+ * @returns {Promise<Boolean>}
+ */
+function chunkRenderer(source, target, decorator, limit = 50) {
+  const sourceCount = source.length;
+  if (!sourceCount) return Promise.resolve(true);
+  if (limit <= 0) return Promise.reject(new Error('Limit must be greater than 0'));
+
+  decorator ??= () => {};
+  if (chunkRenderer._rafId) {
+    window.cancelAnimationFrame(chunkRenderer._rafId);
+    chunkRenderer._rafId = null;
+  }
+  if (chunkRenderer._controller) {
+    chunkRenderer._controller.abort();
+    chunkRenderer._controller = null;
+  }
+
+  chunkRenderer._controller = new AbortController();
+
+  const signal = chunkRenderer._controller.signal;
+  let cursor = 0, done = false;
+
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      if (chunkRenderer._rafId !== null) {
+        window.cancelAnimationFrame(chunkRenderer._rafId);
+        chunkRenderer._rafId = null;
+      }
+      signal.removeEventListener('abort', abortHandler);
+      chunkRenderer._controller = null;
+    };
+
+    const abortHandler = () => {
+      if (done) return;
+      done = true;
+      cleanup();
+      reject(new Error('Cancel', { cause: 'signal.aborted' }));
+    };
+
+    if (signal.aborted) {
+      abortHandler();
+      return;
+    }
+
+    signal.addEventListener('abort', abortHandler, { once: true });
+
+    const processNextChunk = () => {
+      if (done || signal.aborted) {
+        abortHandler();
+        return;
+      }
+
+      const end = Math.min(cursor + limit, sourceCount);
+      let shouldStop = false;
+
+      for (let i = cursor; i < end; i++) {
+        try {
+          const result = decorator(i);
+          if (result === false) {
+            shouldStop = true;
+            break;
+          }
+          if (result === true) {
+            continue;
+          }
+        } catch (err) {
+          console.error(err);
+          // Ignore
+        }
+
+        target.push(source[i]);
+      }
+
+      if (shouldStop || end >= sourceCount) {
+        done = true;
+        cleanup();
+        resolve(true);
+        return;
+      }
+
+      cursor = end;
+      chunkRenderer._rafId = window.requestAnimationFrame(processNextChunk);
+    };
+
+    processNextChunk();
+  });
+}

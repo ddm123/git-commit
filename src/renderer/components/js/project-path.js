@@ -62,6 +62,7 @@ Alpine.data('projectPath', () => ({
       if(path && path !== this.selectProjectPathFlag){
         this.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? Object.assign({}, this.savedFtpConfig[path]) : {};
         this.initIgnoredFiles(path);
+        this.isForcedUseGitignore(path);
         window.gitAPI.getUnpushedCommits(path).then(commits => this.canPush = commits.length > 0);
       }
     });
@@ -87,6 +88,7 @@ Alpine.data('projectPath', () => ({
 
     document.addEventListener('componentsLoaded', () => {
       if(path){
+        this.isForcedUseGitignore(path);
         this.refresh();
       }
       if (this.isSyncEnabled(path)) {

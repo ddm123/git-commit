@@ -111,18 +111,16 @@ Alpine.data('fileListing', () => ({
   },
 
   toggleSelectAll(event) {
-    const files = this.getFileList();
-
     if (event.target.checked) {
       const key = this.isIgnoreMode ? 'ignored' : 'submitting';
       for (let i = 0; i < this.currentFilesCount; i++) {
-        files[i].selected = true;
-        this.selectedFilesCache[key].add(files[i].file);
+        this.files[i].selected = true;
+        this.selectedFilesCache[key].add(this.files[i].file);
       }
       Alpine.store('fileListing').selectedFilesCount = this.currentFilesCount;
     } else {
       for (let i = 0; i < this.currentFilesCount; i++) {
-        files[i].selected = false;
+        this.files[i].selected = false;
       }
       this.clearSelectedFileCache();
       Alpine.store('fileListing').selectedFilesCount = 0;
@@ -281,11 +279,12 @@ Alpine.data('fileListing', () => ({
   },
 
   addIgnoreFile(...file) {
+    const path = Alpine.store('projectPath').path;
+
     file.forEach(f => this.isIgnoreMode ? this.ignoreFiles.delete(f) : this.ignoreFiles.add(f));
-    this.refresh();
+    this.renderFiles(this.projectRootPath || path);
 
     return new Promise((resolve, reject) => {
-      const path = Alpine.store('projectPath').path;
       if (path) {
         const allIgnoreFiles = window.electronStore.get('ignoreFiles') ?? {};
         if (typeof allIgnoreFiles !== 'object') allIgnoreFiles = {};

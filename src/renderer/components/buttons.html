@@ -1,24 +1,29 @@
 <script type="text/javascript" src="./components/js/buttons.js"></script>
-<div x-data="buttons">
+<div x-data="buttons" class="overflow-hidden">
   <div class="my-1 flex items-center justify-between">
-    <div class="text-xs">共有
+    <div class="text-xs whitespace-nowrap">共有
       <span class="font-bold" x-text="currentFilesCount"></span> 个文件<span x-text="isIgnoreMode ? '已隐藏' : '已变更'"></span>，
-      <span class="font-bold" x-text="$store.fileListing.selectedFilesCount"></span> 个文件被选中
+      <span class="font-bold" x-text="$store.fileListing?.selectedFilesCount ?? 0"></span> 个文件被选中
     </div>
-    <div class="flex items-center gap-1">
-      <div class="dropdown dropdown-top dropdown-end">
-        <div tabindex="0" role="button" class="btn btn-xs font-normal" x-bind:class="{'btn-ghost': filterByDay==0}">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
-          </svg><span x-text="filterByDays.get(filterByDay)">全部</span>
-        </div>
-        <ul tabindex="-1" class="dropdown-content bg-base-300 rounded-box z-10 p-2 shadow-2xl">
+    <div class="flex items-center gap-1" x-show="$store.projectPath?.path">
+      <label class="select select-xs border-none px-0 gap-0 w-auto bg-none">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+        </svg>
+        <select x-model="filterByDay" class="w-auto mx-0 px-1">
           <template x-for="day in Array.from(filterByDays)">
-            <li class="whitespace-nowrap"><input type="radio" name="filter_by_day" class="w-full btn btn-ghost btn-sm font-normal justify-start" x-bind:value="day[0]" x-bind:aria-label="day[1]" x-model="filterByDay" /></li>
+            <option x-bind:value="day[0]" x-text="day[1]"></option>
           </template>
-        </ul>
-      </div>
-      <button class="btn btn-xs font-normal" x-bind:class="{'btn-ghost': !isIgnoreMode}" x-on:click="isIgnoreMode = !isIgnoreMode" x-text="isIgnoreMode ? '取消查看隐藏文件' : '查看隐藏的文件'"></button>
+        </select>
+      </label>
+      <label class="label gap-0 text-xs whitespace-nowrap">
+        <input type="checkbox" x-model="isIgnoreMode" class="checkbox checkbox-sm" />
+        <span style="margin-left:2px;color:var(--color-base-content);">查看隐藏的文件</span>
+      </label>
+      <label class="label gap-0 text-xs whitespace-nowrap">
+        <input type="checkbox" x-model="forcedUseGitignore" x-on:click="changForcedUseGitignore" class="checkbox checkbox-sm checked:border-orange-500 checked:bg-orange-400 checked:text-orange-800" />
+        <span style="margin-left:2px;color:var(--color-base-content);">强行按/.gitignore文件内容来隐藏文件</span>
+      </label>
     </div>
   </div>
   <div class="flex items-center justify-between">

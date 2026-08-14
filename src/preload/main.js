@@ -24,7 +24,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createArchiver: (zipFile, filesPath, files, options) => ipcRenderer.invoke('archiver:create', zipFile, filesPath, files, options),
   ftpUploadFile: (projectPath, files, progressChannel) => ipcRenderer.invoke('ftp:upload', projectPath, files, progressChannel),
   startSyncFiles: (projectPath, progressChannel) => ipcRenderer.invoke('fs:startSyncFiles', projectPath, progressChannel),
-  stopSyncFiles: () => ipcRenderer.invoke('fs:stopSyncFiles')
+  stopSyncFiles: () => ipcRenderer.invoke('fs:stopSyncFiles'),
+  filterGitIgnoredFiles: (path, files) => ipcRenderer.invoke('fs:filterGitIgnoredFiles', path, files),
 });
 contextBridge.exposeInMainWorld('gitAPI', {
   raw: (path, options) => ipcRenderer.invoke('git:raw', path, options),

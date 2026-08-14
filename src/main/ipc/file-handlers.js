@@ -84,6 +84,22 @@ function startSyncFiles(event, projectPath, progressChannel) {
   });
 }
 
+async function filterGitIgnoredFiles(event, dir, files) {
+  if (!files.length) return files;
+
+  try {
+    const gitIgnorePath = path.join(dir, '.gitignore');
+
+    // 异步读取 .gitignore 文件
+    const content = await fs.promises.readFile(gitIgnorePath, 'utf8');
+    const ignore = require('ignore');
+    return ignore().add(content).filter(files);
+  } catch (err) {
+    console.error('filterGitIgnoredFiles() error:', err);
+    return files;
+  }
+}
+
 async function stopSyncFiles() {
   if (!syncWatcher) return null;
   await syncWatcher.stop();
@@ -96,6 +112,7 @@ module.exports = function setupFileHandlers(win) {
   ipcMain.on('fs:getFileStatSync', (event, dir, file) => event.returnValue = getFileStatSync(event, dir, file));
   ipcMain.handle('fs:startSyncFiles', startSyncFiles);
   ipcMain.handle('fs:stopSyncFiles', stopSyncFiles);
+  ipcMain.handle('fs:filterGitIgnoredFiles', filterGitIgnoredFiles);
 
   bindWinClose(async () => {
     try {

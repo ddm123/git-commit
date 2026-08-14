@@ -1,8 +1,10 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('app', () => ({
     currentTheme: '',
+    projectRootPath: null,
     branches: [],
     files: [],
+    origFiles: [],
     currentFilesCount: 0,
     canPush: false,
     untrackedCount: 0,
@@ -12,7 +14,9 @@ document.addEventListener('alpine:init', () => {
     selectedFilesCache: {submitting: new Set(), ignored: new Set()},
     ignoreFiles: new Set(),
     isIgnoreMode: false,
-    _rafId: null,
+    forcedUseGitignore: false,
+    filteredGitIgnoredFiles: new Set(),
+    _renderingFiles: false,
 
     init() {
       const saveTheme = debounce(theme => window.electronStore.set('theme', theme), 1000);
@@ -27,7 +31,10 @@ document.addEventListener('alpine:init', () => {
       this.$watch('filterByDay', days => {
         days = parseFloat(days);
         if (days > 0) this.setFilterDayRange(days - 1);
-        this.refresh();
+        this.renderFiles(this.projectRootPath || Alpine.store('projectPath')?.path);
+      });
+      this.$watch('isIgnoreMode', flag => {
+        this.renderFiles(this.projectRootPath || Alpine.store('projectPath')?.path);
       });
 
       this.currentTheme = window.electronStore.get('theme') ?? '';
@@ -36,7 +43,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     get isRenderingFiles() {
-      return this._rafId !== null;
+      return this._renderingFiles;
     },
 
     setFilterDayRange(subDays = 0) {
@@ -58,6 +65,7 @@ document.addEventListener('alpine:init', () => {
       if (Alpine.store('fileListing')) Alpine.store('fileListing').selectedFilesCount = 0;
       this.branches = [];
       this.files = [];
+      this.origFiles = [];
       this.untrackedCount = 0;
       this.currentFilesCount = 0;
       document.dispatchEvent(new CustomEvent('files_changed', { detail: {files: this.files} }));
@@ -67,10 +75,6 @@ document.addEventListener('alpine:init', () => {
     refresh(succeedCallback) {
       const projectPath = Alpine.store('projectPath').path;
       if (!projectPath || isDisabledBody()) return;
-      if (this._rafId!==null) {
-        window.cancelAnimationFrame(this._rafId);
-        this._rafId = null;
-      }
 
       clearMessages();
       disableBody(true);
@@ -117,16 +121,10 @@ document.addEventListener('alpine:init', () => {
           .getStatus(projectPath)
           .then(status => {
             disableBody(false);
+            this.projectRootPath = status.projectPath;
             return this.fillFileList(status);
           })
           .then((files) => {
-            const th = this.$store.fileListing.element.querySelector('table thead :where(td, th)[order-dir]');
-            if(th){
-              const orderDir = th.getAttribute('order-dir')==='asc' ? 'desc' : 'asc';
-              th.setAttribute('order-dir', orderDir);
-              this.sortFiles({target: th});
-            }
-
             if(typeof succeedCallback === 'function'){
               succeedCallback(files, this.branches);
             }
@@ -135,7 +133,11 @@ document.addEventListener('alpine:init', () => {
           })
           .catch(error => {
             disableBody(false);
-            this.showError(textToHtml(error.message));
+            if (error.cause && error.cause === 'signal.aborted') {
+              console.error(error);
+            } else {
+              this.showError(textToHtml(error.message));
+            }
           });
       })
       .catch(error => {
@@ -151,99 +153,109 @@ document.addEventListener('alpine:init', () => {
         Alpine.store('projectPath').currentBranch = status.current;
       }
 
-      await this.renderFiles(Alpine.store('projectPath').path, status.files);
-      document.dispatchEvent(new CustomEvent('files_changed', { detail: {files: this.files} }));
-      if (this._rafId!==null) {
-        window.cancelAnimationFrame(this._rafId);
-        this._rafId = null;
+      const path = this.projectRootPath || Alpine.store('projectPath').path;
+      this.origFiles = status.files ?? [];
+      if (this.isForcedUseGitignore()) {
+        await this.filterGitIgnoredFiles(path, this.origFiles.map(f => f.file || f.path));
       }
+
+      await this.renderFiles(path);
+      document.dispatchEvent(new CustomEvent('files_changed', { detail: {files: this.files} }));
+
       return this.files;
     },
 
-    renderFiles(projectPath, files, start = 0) {
-      return new Promise((resolve, reject) => {
-        const limit = 10;
-        const fileCount = files.length;
-        const types = { 'M': 'modified', 'D': 'deleted', 'A': 'added', 'U': 'unmerged', '?': 'untracked' };
-        const typeLabels = { 'M': '已修改', 'D': '已删除', 'A': '已添加', 'U': '未解决合并冲突', '?': '未跟踪' };
+    renderFiles(projectPath) {
+      this.files = [];
+      this.currentFilesCount = 0;
+      this._renderingFiles = true;
 
-        // file.working_dir表示文件在工作区的状态，
-        // file.index表示文件在暂存区的状态（只有执行过git add命令后才会有值）
-        this._rafId = window.requestAnimationFrame(() => {
-          let index = null;
-          for (let i = 0; i < limit && index < fileCount; i++) {
-            index = start + i;
-            if (index < fileCount) {
-              const file = files[index];
-              const type = file.working_dir && file.working_dir !== ' ' ? file.working_dir : file.index;
-              const fileStat = type === 'D' ? null : window.electronAPI.getFileStatSync(projectPath, file.path);
+      const fileListing = Alpine.store('fileListing');
+      const types = { 'M': 'modified', 'D': 'deleted', 'A': 'added', 'U': 'unmerged', '?': 'untracked' };
+      const typeLabels = { 'M': '已修改', 'D': '已删除', 'A': '已添加', 'U': '未解决合并冲突', '?': '未跟踪' };
 
-              // 如果是一个文件夹，跳过
-              if (fileStat && fileStat.isDirectory) {
-                continue;
-              }
+      if (fileListing) fileListing.selectedFilesCount = 0;
 
-              if (type === '?') {
-                this.untrackedCount++;
-              }
+      return chunkRenderer(this.origFiles, this.files, i => {
+        const file = this.origFiles[i];
+        const type = file.working_dir && file.working_dir !== ' ' ? file.working_dir : file.index;
 
-              this.files.push({
-                key: index,
-                file: file.path,
-                absPath: fileStat ? fileStat.absPath : projectPath + (projectPath.includes('\\') ? '\\' : '/') + file.path,
-                status: types[type] ?? type,
-                statusLabel: typeLabels[type] ?? type,
-                size: fileStat ? fileStat.size : 0,
-                ext: getExtname(file.path),
-                fsize: fileStat ? formatFileSize(fileStat.size) : '-',
-                timestamp: fileStat ? fileStat.mtimeMs : 0,
-                time: fileStat ? new Date(fileStat.mtimeMs).toLocaleString(navigator.language || 'zh-CN', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                  hour12: false
-                }) : '-',
-                selected: file.index && file.index !== ' ' && file.index !== '?' &&  file.index !== 'U'
-              });
-            }
+        if (typeof this.origFiles[i].stat === 'undefined') {
+          this.origFiles[i].stat = type === 'D' ? null : window.electronAPI.getFileStatSync(projectPath, file.path);
+        }
+        this.origFiles[i].selected ??= file.index && file.index !== ' ' && file.index !== '?' && file.index !== 'U';
+
+        if (this.isIgnored(this.origFiles[i], fileListing)) return true;
+
+        const fileStat = this.origFiles[i].stat;
+        this.origFiles[i].DS ??= projectPath.includes('\\') ? '\\' : '/';
+        if (typeof file.file === 'undefined') {
+          this.origFiles[i].file = file.path;
+          this.origFiles[i].path = file.path.substring(0, file.path.lastIndexOf(this.origFiles[i].DS));
+        }
+        this.origFiles[i].absPath ??= fileStat ? fileStat.absPath : projectPath + this.origFiles[i].DS + this.origFiles[i].file;
+        this.origFiles[i].status ??= types[type] ?? type;
+        this.origFiles[i].statusLabel ??= typeLabels[type] ?? type;
+        this.origFiles[i].size ??= fileStat ? fileStat.size : 0;
+        this.origFiles[i].fsize ??= fileStat ? formatFileSize(fileStat.size) : '-';
+        this.origFiles[i].ext ??= getExtname(this.origFiles[i].file);
+        this.origFiles[i].timestamp ??= fileStat ? fileStat.mtimeMs : 0;
+        this.origFiles[i].time ??= fileStat ? new Date(fileStat.mtimeMs).toLocaleString(navigator.language || 'zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          }) : '-';
+
+        if (type === '?') {
+          this.untrackedCount++;
+        }
+        this.currentFilesCount++;
+        return undefined;
+      }, 50)
+        .then(result => {
+          this.currentFilesCount = this.files.length;
+          const th = fileListing?.element.querySelector('table thead :where(td, th)[order-dir]');
+          if (th) {
+            const orderDir = th.getAttribute('order-dir') === 'asc' ? 'desc' : 'asc';
+            th.setAttribute('order-dir', orderDir);
+            this._renderingFiles = false
+            this.sortFiles({ target: th });
           }
-
-          if (index && (++index < fileCount)) {
-            this.renderFiles(projectPath, files, index).then(() => resolve(true)).catch(err => reject(err));
-          } else {
-            resolve(true);
+          return result;
+        })
+        .catch(error => {
+          if (error?.cause !== 'signal.aborted') {
+            throw error;
           }
-        });
-      });
+        })
+        .finally(() => this._renderingFiles = false);
     },
 
-    getFileList() {
-      this.currentFilesCount = 0;
-      const key = this.isIgnoreMode ? 'ignored' : 'submitting';
-      const files = [];
-      let selectedCount = 0;
-      for (let len = this.files.length, i = 0; i < len; i++) {
-        if (this.isIgnoreMode === this.ignoreFiles.has(this.files[i].file)) {
-          // 如果需要过滤日期
-          if (this.filterByDay>0 && this.files[i].timestamp>0 && (this.files[i].timestamp<this.filterDayRange.start || this.files[i].timestamp>this.filterDayRange.end)) {
-            continue;
-          }
-          if (this.files[i].selected) {
-            selectedCount++;
-          } else if (this.selectedFilesCache[key].has(this.files[i].file)) {
-            this.files[i].selected = true;
-            selectedCount++;
-          }
-          this.currentFilesCount = files.push(this.files[i]);
-        }
+    isIgnored(file, fileListingStore) {
+      if (file.stat && file.stat.isDirectory) return true; // 如果是一个文件夹，跳过
+
+      const f = file.file ?? file.path;
+      if (this.isIgnoreMode !== this.ignoreFiles.has(f)) return true;
+
+      // 如果需要过滤日期
+      const ftime = file.timestamp ?? (file.stat ? file.stat.mtimeMs : 0);
+      if (this.filterByDay>0 && ftime>0 && (ftime<this.filterDayRange.start || ftime>this.filterDayRange.end)) return true;
+
+      // 如果需要强行按/.gitignore文件内容来隐藏文件
+      if (this.forcedUseGitignore && !this.filteredGitIgnoredFiles.has(f)) return true;
+
+      if (file.selected) {
+        if (fileListingStore) fileListingStore.selectedFilesCount++;
+      } else if (this.selectedFilesCache[this.isIgnoreMode ? 'ignored' : 'submitting'].has(f)) {
+        file.selected = true;
+        if (fileListingStore) fileListingStore.selectedFilesCount++;
       }
-      if (Alpine.store('fileListing')) {
-        Alpine.store('fileListing').selectedFilesCount = selectedCount;
-      }
-      return files;
+
+      return false;
     },
 
     sortFiles(event) {
@@ -274,7 +286,6 @@ document.addEventListener('alpine:init', () => {
         }
         return orderDir === 'asc' ? 1 : -1;
       });
-      document.dispatchEvent(new CustomEvent('files_changed', { detail: {files: this.files} }));
     },
 
     getSelectedFiles() {
@@ -292,6 +303,47 @@ document.addEventListener('alpine:init', () => {
       let allIgnoreFiles = window.electronStore.get('ignoreFiles') ?? {};
       if (typeof allIgnoreFiles !== 'object') allIgnoreFiles = {};
       return allIgnoreFiles[projectPath] ? allIgnoreFiles[projectPath].split(';') : [];
+    },
+
+    isForcedUseGitignore(...args) {
+      const argc = args.length;
+      let values = window.electronStore.get('forcedUseGitignore');
+
+      // 如果是设置
+      if (argc > 1 || (argc === 1 && typeof args[0] === 'boolean')) {
+        const projectPath = argc > 1 ? args[0] : Alpine.store('projectPath').path;
+        if (projectPath) {
+          if (!values || typeof values !== 'object') values = {};
+          this.forcedUseGitignore = values[projectPath] = (argc > 1 ? args[1] : args[0]) ? true : false;
+          window.electronStore.setJSON('forcedUseGitignore', JSON.stringify(values));
+        }
+        return this;
+      }
+
+      if (!values || typeof values !== 'object') return false;
+
+      const projectPath = argc > 0 ? args[0] : Alpine.store('projectPath').path;
+      return this.forcedUseGitignore = values[projectPath] ? true : false;
+    },
+
+    filterGitIgnoredFiles(projectPath, files) {
+      return window.electronAPI.filterGitIgnoredFiles(projectPath, files).then(files => {
+        this.filteredGitIgnoredFiles = new Set(files);
+        return files;
+      });
+    },
+
+    changForcedUseGitignore (event) {
+      const path = this.projectRootPath || Alpine.store('projectPath')?.path;
+      if (path) {
+        this.isForcedUseGitignore(event.target.checked);
+        if (event.target.checked) {
+          this.filterGitIgnoredFiles(path, this.origFiles.map(f => f.file || f.path)).then(() => this.renderFiles(path));
+        } else {
+          this.filteredGitIgnoredFiles.clear();
+          this.renderFiles(path);
+        }
+      }
     },
 
     setSelectedFileCache(file, isAdd = true) {

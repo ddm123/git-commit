@@ -17,7 +17,6 @@ document.addEventListener('alpine:init', () => {
     intersectionObserver: null,
     isLoadingLogs: false,
     highlightCss: 'bg-secondary text-secondary-content',
-    _rafId: null,
 
     init() {
       this.projectPath = window.electronAPI.getArgument('project-path');
@@ -206,11 +205,6 @@ document.addEventListener('alpine:init', () => {
       const keyMap = new Map();
       const files = [];
 
-      if (this._rafId!==null) {
-        window.cancelAnimationFrame(this._rafId);
-        this._rafId = null;
-      }
-
       return Promise.allSettled([
         window.electronAPI.gitShow(this.projectPath, ['--numstat', '--format=', log.hash], { config: ['core.quotepath=false'] }),
         window.electronAPI.gitShow(this.projectPath, ['--name-status', '--format=', log.hash], { config: ['core.quotepath=false'] })
@@ -310,27 +304,8 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
-    renderFiles(files, start = 0) {
-      return new Promise((resolve, reject) => {
-        const limit = 10;
-        const fileCount = files.length;
-        if (fileCount === 0) return resolve(true);
-
-        this._rafId = window.requestAnimationFrame(() => {
-          let index = null;
-          for (let i = 0; i < limit && index < fileCount; i++) {
-            index = start + i;
-            if (index < fileCount) {
-              this.logFiles.push(files[index]);
-            }
-          }
-          if (index && (++index < fileCount)) {
-            this.renderFiles(files, index).then(() => resolve(true)).catch(err => reject(err));
-          } else {
-            resolve(true);
-          }
-        });
-      });
+    renderFiles(files) {
+      return chunkRenderer(files, this.logFiles, null, 5);
     },
 
     resetLogFilesStatistics() {

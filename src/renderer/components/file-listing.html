@@ -12,7 +12,7 @@
       </tr>
     </thead>
     <tbody x-on:keydown="keyboardSelectFile">
-      <template x-for="file in getFileList()" :key="file.key">
+      <template x-for="file in files" :key="file.absPath">
         <tr :class="rowClass(file)" x-on:click="clickRow.bind($data, $event, $el, file)">
           <th class="col-checkbox"><input type="checkbox" x-model="file.selected" x-bind:data-file="file.file" class="checkbox checkbox-sm" /></th>
           <td x-text="file.file" :data-title="rowClasses[file.file] ? '未跟踪的文件 (' + untrackedCount + ')' : ''" x-on:contextmenu="showPathContextMenu.bind($data, file)" x-on:dblclick="showDiff.bind($data, file)"></td>
