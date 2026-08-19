@@ -229,6 +229,13 @@ document.addEventListener('alpine:init', () => {
                 row.file = fileMatch[1] + fileMatch[3] + fileMatch[4];
                 row.oldFile = fileMatch[1] + fileMatch[2] + fileMatch[4];
                 row.fileFormatted = fileMatch[0];
+                row.status = 'R';
+              } else if (row.file.includes('=>')) {
+                const files = row.file.split(/\s*=>\s*/);
+                row.fileFormatted = row.file;
+                row.file = files[1];
+                row.oldFile = files[0];
+                row.status = 'R';
               }
               if (this.currentFilter.action === 'file' && this.currentFilter.text) {
                 row.fileFormatted = this.highlightText(row.fileFormatted ?? row.file, this.currentFilter.text, true);
@@ -305,7 +312,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     renderFiles(files) {
-      return chunkRenderer(files, this.logFiles, null, 5);
+      return chunkRenderer(files, this.logFiles, null, 30);
     },
 
     resetLogFilesStatistics() {

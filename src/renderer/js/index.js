@@ -215,7 +215,7 @@ document.addEventListener('alpine:init', () => {
         }
         this.currentFilesCount++;
         return undefined;
-      }, 50)
+      }, 30)
         .then(result => {
           this.currentFilesCount = this.files.length;
           const th = fileListing?.element.querySelector('table thead :where(td, th)[order-dir]');

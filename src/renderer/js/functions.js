@@ -84,55 +84,66 @@ function htmlspecialchars(str) {
   return str.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 }
 
+function extractScriptFromHtml(html, props = undefined) { 
+  const scriptPromises = [];
+  const scriptElements = [];
+
+  html = html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (match, p1, p2) => {
+    const newScript = document.createElement('script');
+    let isSync = true;
+
+    if (p1) {
+      const attrRegex = /([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^'"\s>]+)))?/g;
+      let attrMatch;
+      while ((attrMatch = attrRegex.exec(p1)) !== null) {
+        newScript.setAttribute(attrMatch[1], attrMatch[2] || attrMatch[3] || attrMatch[4] || '');
+        if (attrMatch[1] === 'async' || attrMatch[1] === 'defer') isSync = false;
+      }
+    }
+    if (p2 && (p2 = p2.trim())) {
+      newScript._funcName = '__temp_function_' + Math.random().toString(36).substring(2) + '__';
+      newScript._funcArgs = props;
+      newScript.textContent = 'window["'+newScript._funcName+'"] = function(props){\n'+p2+'\n};';
+    }
+    if (isSync && newScript.getAttribute('src')) {
+      scriptPromises.push(new Promise((resolve, reject) => {
+        newScript.addEventListener('load', (event) => resolve(event));
+        newScript.addEventListener('error', (event) => reject(event));
+      }));
+    }
+    scriptElements.push(newScript);
+    return '';
+  });
+
+  return {html, scriptPromises, scriptElements};
+}
+
 async function compileComponents(onLoad) {
-  const rendererComponent = function(component, html) {
+  const rendererComponent = async function(component, html) {
     let attributes = {};
     for (const attr of component.attributes) {
       attributes[attr.name] = attr.value;
     }
-    attributes = JSON.stringify(attributes);
 
-    const scriptPromises = [];
-    const scriptElements = [];
-    html = html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (match, p1, p2) => {
-      const newScript = document.createElement('script');
-      let isSync = true;
-
-      if (p1) {
-        const attrRegex = /([\w:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^'"\s>]+)))?/g;
-        let attrMatch;
-        while ((attrMatch = attrRegex.exec(p1)) !== null) {
-          newScript.setAttribute(attrMatch[1], attrMatch[2] || attrMatch[3] || attrMatch[4] || '');
-          if (attrMatch[1] === 'async' || attrMatch[1] === 'defer') isSync = false;
-        }
+    let scriptPromises = [], scriptElements = [];
+    ({html, scriptPromises, scriptElements} = extractScriptFromHtml(html, attributes));
+    if (scriptElements.length) scriptElements.forEach(elm => {
+      document.head.appendChild(elm);
+      if (elm._funcName) {
+        window[elm._funcName](elm._funcArgs);
+        delete window[elm._funcName];
       }
-      if (p2 && (p2 = p2.trim())) {
-        newScript.textContent = `(function(props) { ${p2} })(${attributes});`;
-      }
-      if (isSync && newScript.getAttribute('src')) {
-        scriptPromises.push(new Promise((resolve, reject) => {
-          newScript.addEventListener('load', (event) => resolve(event));
-          newScript.addEventListener('error', (event) => reject(event));
-        }));
-      }
-      scriptElements.push(newScript);
-      return '';
     });
-    if (scriptElements.length) scriptElements.forEach(scriptElement => document.head.appendChild(scriptElement));
     if (scriptPromises.length) {
-      Promise.allSettled(scriptPromises).then(results => {
-        results.forEach(result => {
-          if (result.status === 'rejected') console.error('Error in component script:', result.reason);
-        });
-        component.insertAdjacentHTML('beforebegin', html);
-        onLoad(html, component);
-        component.remove();
+      const results = await Promise.allSettled(scriptPromises);
+      results.forEach(result => {
+        if (result.status === 'rejected') console.error('Error in component script:', result.reason);
       });
-    } else {
-      component.insertAdjacentHTML('beforebegin', html);
-      onLoad(html, component);
-      component.remove();
     }
+    component.insertAdjacentHTML('beforebegin', html);
+    onLoad(html, component);
+    component.remove();
+    if (scriptElements.length) scriptElements.forEach(elm => elm.remove());
   };
   const loadComponent = function(component) {
     return fetch(component.getAttribute('src')/*, {cache: 'no-store', headers: {'Cache-Control': 'no-cache'}}*/)
