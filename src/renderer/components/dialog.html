@@ -143,10 +143,10 @@ Alpine.store('dialog', {
     <template x-if="$store.dialog.okBtn || $store.dialog.cancelBtn">
       <div class="modal-action">
         <template x-if="$store.dialog.cancelBtn">
-          <button class="btn" x-on:click="$store.dialog.cancelBtn[0]" x-text="$store.dialog.cancelBtn[1] ?? '取消'"></button>
+          <button type="button" class="btn" x-on:click="$store.dialog.cancelBtn[0]" x-text="$store.dialog.cancelBtn[1] ?? '取消'"></button>
         </template>
         <template x-if="$store.dialog.okBtn">
-          <button class="btn btn-primary" x-on:click="$store.dialog.okBtn[0]" x-text="$store.dialog.okBtn[1] ?? '确定'"></button>
+          <button type="button" class="btn btn-primary" x-on:click="$store.dialog.okBtn[0]" x-text="$store.dialog.okBtn[1] ?? '确定'"></button>
         </template>
       </div>
     </template>

@@ -12,12 +12,21 @@ Alpine.data('cloneRemoteDialog', () => ({
         }).catch(() => { /* Ignore error */ });
       }
     });
+  },
+
+  clone() {
+    if (this.$refs.cloneRemoteDialogForm.reportValidity()) {
+      disableBody(true);
+      window.gitAPI.clone({baseDir: Alpine.store('projectPath').path, progress: 'git:progress'}, this.remoteUrl)
+      .catch(err => this.showError(textToHtml(err.message)))
+      .finally(() => disableBody(false));
+    }
   }
 }));
 </script>
 <div x-data="cloneRemoteDialog" class="clone-remote-dialog" :class="$store.projectPath.isInsideWorkTree ? '' : 'show'">
   <template x-if="!$store.projectPath.isInsideWorkTree">
-  <form method="post" x-ref="cloneRemoteDialogForm" class="max-w-150">
+  <form method="post" x-ref="cloneRemoteDialogForm" class="max-w-150" onsubmit="return false;">
     <label class="input my-1 w-full validator">
       <span class="label min-w-30">远程仓库地址</span>
       <input type="text" x-model="remoteUrl" required />
@@ -30,6 +39,9 @@ Alpine.data('cloneRemoteDialog', () => ({
       <span class="label min-w-30">提交人E-mail</span>
       <input type="email" x-model="email" required />
     </label>
+    <div class="modal-action">
+      <button type="button" class="btn btn-primary" x-on:click="clone">确定</button>
+    </div>
   </form>
   </template>
 </div>

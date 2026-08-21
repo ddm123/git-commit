@@ -14,7 +14,7 @@ Alpine.data('projectFtpDialogFieldset', () => ({
 }));
 </script>
 <div x-data="projectFtpDialogFieldset">
-  <form method="post" x-ref="ftpConfigForm">
+  <form method="post" x-ref="ftpConfigForm" onsubmit="return false;">
     <label class="select my-1 w-auto">
       <span class="label">协议</span>
       <select x-model="ftpConfig.protocol">

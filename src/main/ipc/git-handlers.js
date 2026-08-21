@@ -413,11 +413,7 @@ function handleGetGlobalConfig(event) {
 
 function handleIsInsideWorkTree(event, projectPath) {
   const p1 = git(projectPath).raw(['rev-parse', '--is-inside-work-tree']);
-  const p2 = fs.promises.opendir(projectPath).then(async dir => {
-    const firstEntry = await dir.read();
-    await dir.close();
-    return firstEntry === null;
-  });
+  const p2 = isEmptyDir(projectPath);
 
   return Promise.allSettled([p1, p2]).then(results => {
     let isInsideWorkTree = results[0].status==='fulfilled' ? results[0].value.trim().toLowerCase() : null;
@@ -429,6 +425,34 @@ function handleIsInsideWorkTree(event, projectPath) {
 
     return [isInsideWorkTree, isEmpty];
   });
+}
+
+async function handleClone(event, projectPath, repoPath) {
+  let baseDir = projectPath;
+
+  if(typeof projectPath === 'object'){
+    if (projectPath.progress) {
+      let eventName = projectPath.progress;
+      projectPath.progress = e => {
+        event.sender.send(eventName, e);
+      };
+    }
+    baseDir = projectPath.baseDir;
+  }
+
+  const emptyDir = await isEmptyDir(baseDir);
+  const gitRepo = git(projectPath);
+  if (emptyDir) {
+    await gitRepo.raw(['clone', repoPath, baseDir]);
+    const listRemote = await gitRepo.listRemote(['--symref', 'origin', 'HEAD']);console.log(listRemote);
+    return listRemote;
+  }
+
+  await gitRepo.init();console.log('IN 3');
+  await gitRepo.addRemote('origin', repoPath);console.log('IN 4');
+  const listRemote = await gitRepo.listRemote(['--symref', 'origin', 'HEAD']);console.log(listRemote);
+  await gitRepo.raw(['pull', 'origin', 'main', '--allow-unrelated-histories']);console.log('IN 5');
+  return gitRepo.raw(['switch', 'main']);
 }
 
 function closeWindow(event) {
@@ -447,11 +471,30 @@ function toggleDevTools(event) {
   }
 }
 
+async function isEmptyDir(dirPath) {
+  try {
+    const dir = await fs.promises.opendir(dirPath);
+    let isEmpty = true;
+    for await (const entry of dir) {
+      if (entry.name !== '.' && entry.name !== '..') {
+        isEmpty = false;
+        break;
+      }
+    }
+
+    return isEmpty;
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
+}
+
 module.exports = function setupGitHandlers(mainWin) {
   ipcMain.handle('git:raw', (event, projectPath, options) => git(projectPath).raw(typeof options === 'string' ? [options] : (options && Array.isArray(options) ? options : [])));
   ipcMain.handle('git:getGlobalConfig', handleGetGlobalConfig);
   ipcMain.handle('git:getRootPath', async (event, projectPath) => await git(projectPath).revparse(['--show-toplevel']));
   ipcMain.handle('git:isInsideWorkTree', handleIsInsideWorkTree);
+  ipcMain.handle('git:clone', handleClone);
   ipcMain.handle('git:getBranches', async (event, projectPath) => await git(projectPath).branchLocal());
   ipcMain.handle('git:getStatus', handleGitStatus);
   ipcMain.handle('git:switchBranch', async (event, projectPath, branch) => await git(projectPath).checkout(branch));

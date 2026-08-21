@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('gitAPI', {
   getGlobalConfig: () => ipcRenderer.invoke('git:getGlobalConfig'),
   getRootPath: (path) => ipcRenderer.invoke('git:getRootPath', path),
   isInsideWorkTree: (path) => ipcRenderer.invoke('git:isInsideWorkTree', path),
+  clone: (projectPath, repoPath) => ipcRenderer.invoke('git:clone', projectPath, repoPath),
   getBranches: (path) => ipcRenderer.invoke('git:getBranches', path),
   getStatus: (path) => ipcRenderer.invoke('git:getStatus', path),
   switchBranch: (path, branch) => ipcRenderer.invoke('git:switchBranch', path, branch),
