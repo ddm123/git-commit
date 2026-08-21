@@ -29,7 +29,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 contextBridge.exposeInMainWorld('gitAPI', {
   raw: (path, options) => ipcRenderer.invoke('git:raw', path, options),
+  getGlobalConfig: () => ipcRenderer.invoke('git:getGlobalConfig'),
   getRootPath: (path) => ipcRenderer.invoke('git:getRootPath', path),
+  isInsideWorkTree: (path) => ipcRenderer.invoke('git:isInsideWorkTree', path),
   getBranches: (path) => ipcRenderer.invoke('git:getBranches', path),
   getStatus: (path) => ipcRenderer.invoke('git:getStatus', path),
   switchBranch: (path, branch) => ipcRenderer.invoke('git:switchBranch', path, branch),

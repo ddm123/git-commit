@@ -1,85 +1,145 @@
 <script>
 Alpine.store('dialog', {
-  dialogAlpineData: null,
+  $el: null,
+  $nextTick: () => {},
+
+  dialogClass: '',
   minWidth: false,
   title: '',
-  body: '',
+  bodyId: 'modalBody',
   okBtn: null,
   cancelBtn: null,
-  isPrompt: false,
-  promptLabel: '',
-  promptPlaceholder: '',
+
   open(title, body, okBtn = undefined, cancelBtn = undefined, minWidth = false) {
-    this.isPrompt = false;
     this.minWidth = minWidth;
     this.title = title;
-    this.body = body;
-    this.dialogAlpineData.$el.showModal();
+    this.bodyId = 'modalBody' + Math.random().toString(36).substring(2);
+    this.$el.showModal();
+
+    this.$nextTick(() => {
+      const bodyEl = document.getElementById(this.bodyId);
+      if (body instanceof Element) {
+        bodyEl.innerHTML = '';
+        bodyEl.appendChild(body);
+      } else {
+        bodyEl.innerHTML = body;
+      }
+    });
 
     if (okBtn || cancelBtn) {
       const promise = new Promise(resolve => {
-        if (okBtn) this.okBtnClick(() => resolve('ok'), okBtn===true ? '确定' : okBtn);
-        if (cancelBtn) this.cancelBtnClick(() => resolve('cancel'), cancelBtn===true ? '取消' : cancelBtn);
-        this.dialogAlpineData.$el.addEventListener('close', () => resolve('close'), {once: true});
+        if (okBtn) {
+          const isArr = Array.isArray(okBtn);
+          this.okBtnClick(() => {
+            const v = isArr ? okBtn[1]() : 'ok';
+            v===false ? null : resolve(v === undefined ? 'ok' : v);
+          }, okBtn===true ? '确定' : (isArr ? okBtn[0] : okBtn));
+        }
+        if (cancelBtn) {
+          const isArr = Array.isArray(cancelBtn);
+          this.cancelBtnClick(() => {
+            const v = isArr ? cancelBtn[1]() : 'cancel';
+            v===false ? null : resolve(v === undefined ? 'cancel' : v);
+          }, cancelBtn===true ? '取消' : (isArr ? cancelBtn[0] : cancelBtn));
+        }
+        this.$el.addEventListener('close', () => resolve('close'), {once: true});
       });
       promise.finally(() => {
-        this.dialogAlpineData.$el.close();
+        this.$el.close();
         window.setTimeout(() => {
           this.okBtn = null;
           this.cancelBtn = null;
+          this.dialogClass = '';
         }, 500);
       });
       return promise;
     }
-    return new Promise(resolve => this.dialogAlpineData.$el.addEventListener('close', () => resolve('close'), {once: true}));
+    return new Promise(resolve => this.$el.addEventListener('close', () => resolve('close'), {once: true}));
   },
+
   prompt (title, label, placeholder = '') {
-    this.isPrompt = true;
-    this.title = title;
-    this.promptLabel = label;
-    this.promptPlaceholder = placeholder;
-    this.dialogAlpineData.$el.showModal();
-    this.dialogAlpineData.$nextTick(() => {
-      this.dialogAlpineData.$refs.modalPromptInput.focus();
-      this.dialogAlpineData.$refs.modalPromptInput.value='';
+    let p;
+    const inputElm = document.createElement('input');
+    const okBtn = ['确定', () => inputElm.value];
+    const cancelBtn = ['取消', () => null];
+    inputElm.setAttribute('type', 'text');
+    inputElm.setAttribute('placeholder', placeholder ?? '');
+    if (label) {
+      const labelElm = document.createElement('label');
+      labelElm.className = 'input my-1 w-full';
+      labelElm.innerHTML = '<span class="label">'+htmlspecialchars(label)+'</span>';
+      labelElm.appendChild(inputElm);
+      p = this.open(title, labelElm, okBtn, cancelBtn, true);
+    } else {
+      inputElm.className = 'input w-full';
+      p = this.open(title, inputElm, okBtn, cancelBtn, true);
+    }
+
+    this.$nextTick(() => {
+      inputElm.value = '';
+      inputElm.focus();
     });
-    const promise = new Promise(resolve => {
-      this.okBtnClick(() => resolve(this.dialogAlpineData.$refs.modalPromptInput.value), '确定');
-      this.cancelBtnClick(() => resolve(null), '取消');
-    });
-    promise.finally(() => {
-      this.dialogAlpineData.$el.close();
-      window.setTimeout(() => {
-        this.isPrompt = false;
-        this.okBtn = null;
-        this.cancelBtn = null;
-      }, 500);
-    });
-    return promise;
+
+    return p;
   },
+
+  openWithComponent (title, componentFile, props = undefined, okBtn = undefined, cancelBtn = undefined, minWidth = false) {
+    const loading = document.createElement('div');
+    loading.style.marginBlock = '2rem';
+    loading.innerHTML = '<p class="text-center"><span class="loading loading-spinner loading-xl"></span></p>';
+    const p = this.open(title, loading, okBtn, cancelBtn, minWidth);
+
+    fetch(componentFile)
+      .then(response => response.text())
+      .then(async html => {
+        const {html: newhtml, scriptPromises, scriptElements} = extractScriptFromHtml(html, props);
+        if (scriptElements.length) scriptElements.forEach(elm => {
+          document.head.appendChild(elm);
+          if (elm._funcName) {
+            window[elm._funcName](elm._funcArgs);
+            delete window[elm._funcName];
+          }
+        });
+        if (scriptPromises.length) {
+          const results = await Promise.allSettled(scriptPromises);
+          results.forEach(result => {
+            if (result.status === 'rejected') console.error('Error in component script:', result.reason);
+          });
+        }
+        loading.insertAdjacentHTML('beforebegin', newhtml);
+        loading.remove();
+
+        if (scriptElements.length) scriptElements.forEach(elm => elm.remove());
+        return newhtml;
+      })
+      .catch(error => console.error('Error loading component '+componentFile+':', error));
+
+    return p;
+  },
+
+  setDialogClass (className) {
+    this.dialogClass = className;
+    return this;
+  },
+
   okBtnClick (func, label) {
     this.okBtn = [func.bind(this), label];
     return this;
   },
+
   cancelBtnClick (func, label) {
     this.cancelBtn = [func.bind(this), label];
     return this;
   }
 });
 </script>
-<dialog class="modal" x-init="$store.dialog.dialogAlpineData = {'$el': $el, '$nextTick': $nextTick, '$refs': $refs}">
-  <div class="modal-box" :class="{'w-11/12 max-w-5xl': !$store.dialog.minWidth && !$store.dialog.isPrompt}">
+<dialog class="modal" x-init="$store.dialog['$el'] = $el; $store.dialog['$nextTick'] = $nextTick;" x-bind:class="$store.dialog.dialogClass">
+  <div class="modal-box" :class="{'w-11/12 max-w-5xl': !$store.dialog.minWidth}">
     <form method="dialog">
       <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
     </form>
     <h3 class="text-lg font-bold" x-text="$store.dialog.title"></h3>
-    <div class="py-4" x-show="!$store.dialog.isPrompt" x-html="$store.dialog.body"></div>
-    <div class="py-4" x-show="$store.dialog.isPrompt">
-      <label class="input my-1 w-full">
-        <span class="label" x-text="$store.dialog.promptLabel"></span>
-        <input type="text" x-ref="modalPromptInput" x-bind:placeholder="$store.dialog.promptPlaceholder" />
-      </label>
-    </div>
+    <div class="py-4" x-bind:id="$store.dialog.bodyId"></div>
     <template x-if="$store.dialog.okBtn || $store.dialog.cancelBtn">
       <div class="modal-action">
         <template x-if="$store.dialog.cancelBtn">

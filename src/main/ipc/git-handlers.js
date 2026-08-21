@@ -1,6 +1,7 @@
 const { app, BrowserWindow, Menu, ipcMain, clipboard } = require('electron');
 const path = require('node:path');
 const fs = require('fs');
+const { exec } = require('node:child_process');
 const git = require('simple-git');
 const Store = require('../../modules/electron-store.js');
 const { addListener: bindWinClose } = require('../../modules/main-win-onclose.js');
@@ -375,6 +376,61 @@ async function isBinaryFile(filePath, maxBytes = 8192) {
   });
 }
 
+function handleGetGlobalConfig(event) {
+  const gitCmd = process.platform === 'win32' ? 'git.exe' : 'git';
+  return new Promise((resolve, reject) => {
+    try {
+      exec(gitCmd+' config --global --list', (error, stdout, stderr) => {
+          if (error) {
+              reject(error);
+              return;
+          }
+          if (stderr) {
+              // 注意：git 有时会将警告输出到 stderr，但不一定代表失败
+              console.warn('stderr:', stderr);
+          }
+
+          stdout = stdout ? stdout.trim() : '';
+          const configs = {};
+          if (stdout) {
+            const matches = stdout.matchAll(/^([^=]+)=([^\r\n]*)/gm);
+            if (matches) {
+              for (const match of matches) {
+                const key = match[1].trim();
+                configs[key] = match[2].trim();
+                if (configs[key] === 'true') configs[key] = true;
+                else if (configs[key] === 'false') configs[key] = false;
+              }
+            }
+          }
+          resolve(configs);
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function handleIsInsideWorkTree(event, projectPath) {
+  const p1 = git(projectPath).raw(['rev-parse', '--is-inside-work-tree']);
+  const p2 = fs.promises.opendir(projectPath).then(async dir => {
+    const firstEntry = await dir.read();
+    await dir.close();
+    return firstEntry === null;
+  });
+
+  return Promise.allSettled([p1, p2]).then(results => {
+    let isInsideWorkTree = results[0].status==='fulfilled' ? results[0].value.trim().toLowerCase() : null;
+    if (isInsideWorkTree === 'true') isInsideWorkTree = true;
+    else if (isInsideWorkTree === 'false') isInsideWorkTree = false;
+    else isInsideWorkTree = null;
+
+    let isEmpty = results[1].status==='fulfilled' ? results[1].value : null;
+
+    return [isInsideWorkTree, isEmpty];
+  });
+}
+
 function closeWindow(event) {
   //event.sender is webContents
   /** @var {BrowserWindow} win */
@@ -393,7 +449,9 @@ function toggleDevTools(event) {
 
 module.exports = function setupGitHandlers(mainWin) {
   ipcMain.handle('git:raw', (event, projectPath, options) => git(projectPath).raw(typeof options === 'string' ? [options] : (options && Array.isArray(options) ? options : [])));
+  ipcMain.handle('git:getGlobalConfig', handleGetGlobalConfig);
   ipcMain.handle('git:getRootPath', async (event, projectPath) => await git(projectPath).revparse(['--show-toplevel']));
+  ipcMain.handle('git:isInsideWorkTree', handleIsInsideWorkTree);
   ipcMain.handle('git:getBranches', async (event, projectPath) => await git(projectPath).branchLocal());
   ipcMain.handle('git:getStatus', handleGitStatus);
   ipcMain.handle('git:switchBranch', async (event, projectPath, branch) => await git(projectPath).checkout(branch));

@@ -15,7 +15,7 @@
         <option x-bind:value="selectProjectPathFlag">选择项目文件夹...</option>
       </select>
     </label>
-    <label class="shrink-0 select w-auto">
+    <label class="shrink-0 select w-auto" x-show="$store.projectPath.isInsideWorkTree">
       <span class="label whitespace-nowrap">当前分支</span>
       <select x-model="$store.projectPath.currentBranch" x-on:change="switchBranch" class="w-auto">
         <template x-for="branch in branches">
@@ -23,8 +23,8 @@
         </template>
       </select>
     </label>
-    <button class="btn shrink-0" x-on:click="showFtpConfig" x-bind:class="ftpConfig.host ? 'btn-success' : ''">远程服务器</button>
-    <div class="dropdown dropdown-bottom dropdown-end shrink-0 flex items-center theme-button">
+    <button class="btn shrink-0" x-on:click="showFtpConfig" x-bind:class="ftpConfig.host ? 'btn-success' : ''" x-show="$store.projectPath.isInsideWorkTree">远程服务器</button>
+    <div class="dropdown dropdown-bottom dropdown-end shrink-0 flex items-center theme-button" x-show="$store.projectPath.isInsideWorkTree">
       <div tabindex="0" role="button" class="btn p-0">
         <svg class="size-8" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
           <g>
@@ -44,56 +44,4 @@
       </ul>
     </div>
   </div>
-
-  <dialog id="ftp-config-dialog" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box">
-      <h3 class="text-lg font-bold">FTP设置</h3>
-      <div class="py-4">
-        <label class="select my-1 w-auto">
-          <span class="label">协议</span>
-          <select x-model="ftpConfig.protocol">
-            <option value="ftp">FTP</option>
-            <option value="sftp">SFTP</option>
-          </select>
-        </label>
-        <label class="input my-1 w-full">
-          <span class="label">主机</span>
-          <input type="text" placeholder="127.0.0.1" x-model="ftpConfig.host" />
-        </label>
-        <label class="input my-1 w-35">
-          <span class="label">端口</span>
-          <input type="text" :placeholder="ftpDefaultPort" x-model.number="ftpConfig.port" />
-        </label>
-        <label class="input my-1 w-full">
-          <span class="label">用户名</span>
-          <input type="text" x-model="ftpConfig.username" />
-        </label>
-        <label class="input my-1 w-full">
-          <span class="label">密码</span>
-          <input type="password" x-model="ftpConfig.password" />
-        </label>
-        <label class="input my-1 w-full">
-          <span class="label">远程路径</span>
-          <input type="text" placeholder="/" x-model="ftpConfig.remotePath" />
-        </label>
-        <label class="label my-1">
-          <input type="checkbox" x-model="ftpConfig.autoSync" class="toggle toggle-primary" />
-          自动同步到远程服务器
-        </label>
-        <label class="label my-1" x-show="ftpConfig.autoSync">
-          <input type="checkbox" x-model="ftpConfig.childProcessSync" class="toggle toggle-primary" />
-          创建子进程去同步（好处是不会出现主窗口被卡死的情况）
-        </label>
-        <fieldset class="fieldset my-1 w-full" x-show="ftpConfig.autoSync">
-          <legend class="fieldset-legend">以下路径不自动同步</legend>
-          <textarea class="textarea w-full h-21" x-model="ftpConfig.ignoredPaths"></textarea>
-          <div class="label">多个路径请用换行分隔。注意路径是区分大小写的</div>
-        </fieldset>
-      </div>
-      <div class="modal-action">
-        <button class="btn" x-on:click="closeFtpConfig">取消</button>
-        <button class="btn btn-primary" x-on:click="saveFtpConfig">保存</button>
-      </div>
-    </div>
-  </dialog>
 </div>

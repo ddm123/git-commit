@@ -1,6 +1,25 @@
 Alpine.store('projectPath', {
   path: '',
-  currentBranch: ''
+  currentBranch: '',
+  isInsideWorkTree: null, // true: git 仓库; false: 非 git 仓库; null: 无效/失败
+  isEmptyDir: null,
+
+  async validatePath(path = undefined) {
+    const projectPath = path === undefined ? this.path : path;
+    if (!projectPath) return [null, null];
+
+    try {
+      const [isInsideWorkTree, isEmptyDir] = await window.gitAPI.isInsideWorkTree(projectPath);
+      if (projectPath == this.path) {
+        if (this.isInsideWorkTree !== isInsideWorkTree) this.isInsideWorkTree = isInsideWorkTree;
+        if (this.isEmptyDir !== isEmptyDir) this.isEmptyDir = isEmptyDir;
+      }
+      return [isInsideWorkTree, isEmptyDir];
+    } catch (err) {
+      console.error(err);
+      return [null, null];
+    }
+  }
 });
 
 Alpine.data('projectPath', () => ({
@@ -8,7 +27,6 @@ Alpine.data('projectPath', () => ({
   lastSelectedPath: '',
   branches: [],
   ftpConfig: {},
-  ftpDefaultPort: 21,
   savedFtpConfig: null,
   loadingIcon: '<span class="loading loading-spinner loading-xs" style="--size-selector:.185rem;"></span>',
   isSyncing: false,
@@ -66,9 +84,6 @@ Alpine.data('projectPath', () => ({
         window.gitAPI.getUnpushedCommits(path).then(commits => this.canPush = commits.length > 0);
       }
     });
-    this.$watch('ftpConfig.protocol', protocol => {
-      this.ftpDefaultPort = protocol === 'sftp' ? 22 : 21;
-    });
 
     let paths = window.electronStore.get('historyProjectPaths');
     if(paths){
@@ -88,8 +103,12 @@ Alpine.data('projectPath', () => ({
 
     document.addEventListener('componentsLoaded', () => {
       if(path){
-        this.isForcedUseGitignore(path);
-        this.refresh();
+        Alpine.store('projectPath').validatePath().then(result => {
+          if (result[0]) {
+            this.isForcedUseGitignore(path);
+            this.refresh();
+          }
+        });
       }
       if (this.isSyncEnabled(path)) {
         this.startSyncFiles(path);
@@ -145,49 +164,52 @@ Alpine.data('projectPath', () => ({
         showError('文件同步服务停止失败，无法重新为当前项目启动文件同步。请重启本程序。<br>' + error.message);
       });
     };
+    const switchPath = function(path) {
+      Alpine.store('projectPath').path = path;
+
+      return Alpine.store('projectPath').validatePath(path)
+      .then(result => {
+        if (result[0]) {
+          this.refresh(() => {
+            // 提供的路径如果是有效的，则更新这次选择的路径
+            this.lastSelectedPath = path;
+            window.electronStore.set('projectPath', path);
+
+            let paths = window.electronStore.get('historyProjectPaths');
+            paths = paths ? paths.split(';') : [];
+            if(!paths.includes(path)){
+              paths.unshift(path);
+              window.electronStore.set('historyProjectPaths', paths.join(';'));
+            }
+
+            restartSyncFiles.call(this, path);
+          });
+        }
+        return result[0];
+      });
+    };
 
     if (selectedValue === this.selectProjectPathFlag) {
       disableBody(true);
       window.electronAPI.openDirectory(this.lastSelectedPath).then((result) => {
+        disableBody(false);
         if (result) {
           if(!this.historyProjectPaths.includes(result)){
             this.historyProjectPaths.unshift(result);
           }
 
-          Alpine.store('projectPath').path = result;
+          return switchPath.call(this, result);
+        }
 
-          disableBody(false);
-          this.refresh(() => {
-            // 提供的路径如果是有效的，则更新这次选择的路径
-            this.lastSelectedPath = result;
-            window.electronStore.set('projectPath', result);
-
-            let paths = window.electronStore.get('historyProjectPaths');
-            paths = paths ? paths.split(';') : [];
-            if(!paths.includes(result)){
-              paths.unshift(result);
-              window.electronStore.set('historyProjectPaths', paths.join(';'));
-            }
-
-            restartSyncFiles.call(this, result);
-          });
-        } else {
-          Alpine.store('projectPath').path = this.lastSelectedPath;
+        Alpine.store('projectPath').path = this.lastSelectedPath;
+        if (window.electronStore.get('projectPath') != this.lastSelectedPath) {
           window.electronStore.set('projectPath', this.lastSelectedPath);
         }
+        return true;
       })
-      .finally(() => {
-        disableBody(false);
-      });
+      .catch(err => disableBody(false));
     } else if (selectedValue) {
-      Alpine.store('projectPath').path = selectedValue;
-      this.refresh(() => {
-        // 提供的路径如果是有效的，则更新这次选择的路径
-        this.lastSelectedPath = selectedValue;
-        window.electronStore.set('projectPath', selectedValue);
-
-        restartSyncFiles.call(this, selectedValue);
-      });
+      switchPath.call(this, selectedValue);
     }
   },
 
@@ -261,11 +283,22 @@ Alpine.data('projectPath', () => ({
       return;
     }
 
-    this.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? Object.assign({}, this.savedFtpConfig[path]) : {};
-    this.ftpConfig.autoSync ??= false;
-    this.ftpConfig.childProcessSync ??= true;
-    this.ftpConfig.ignoredPaths ??= '**/node_modules/**\n**/.git/**\n**/.DS_Store**';
-    document.getElementById('ftp-config-dialog').showModal();
+    const props = {ftpConfig: null, ftpConfigForm: null};
+    props.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? Object.assign({}, this.savedFtpConfig[path]) : {};
+    props.ftpConfig.autoSync ??= false;
+    props.ftpConfig.childProcessSync ??= true;
+    props.ftpConfig.ignoredPaths ??= '**/node_modules/**\n**/.git/**\n**/.DS_Store**';
+
+    Alpine.store('dialog')
+    .setDialogClass('modal-bottom sm:modal-middle')
+    .openWithComponent('FTP设置', './dialogs/project-ftp.html', props, '保存', true, true)
+    .then(result => {
+      if (result === 'ok') {
+        this.ftpConfig ??= {};
+        Object.assign(this.ftpConfig, props.ftpConfig);
+        this.saveFtpConfig();
+      }
+    })
   },
 
   saveFtpConfig() {
@@ -304,8 +337,6 @@ Alpine.data('projectPath', () => ({
 
     this.savedFtpConfig = savedConfig;
     showSuccess('已成功保存FTP设置');
-
-    document.getElementById('ftp-config-dialog').close();
   },
 
   isFtpConfigChanged(before, after) {
@@ -322,7 +353,6 @@ Alpine.data('projectPath', () => ({
   closeFtpConfig() {
     const path = Alpine.store('projectPath').path;
     this.ftpConfig = (path && this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? Object.assign({}, this.savedFtpConfig[path]) : {};
-    document.getElementById('ftp-config-dialog').close();
   },
 
   initIgnoredFiles(projectPath) {
