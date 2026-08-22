@@ -81,7 +81,9 @@ Alpine.data('projectPath', () => ({
         this.ftpConfig = (this.savedFtpConfig && typeof this.savedFtpConfig[path] === 'object') ? Object.assign({}, this.savedFtpConfig[path]) : {};
         this.initIgnoredFiles(path);
         this.isForcedUseGitignore(path);
-        window.gitAPI.getUnpushedCommits(path).then(commits => this.canPush = commits.length > 0);
+        window.gitAPI.getUnpushedCommits(path)
+        .then(commits => this.canPush = commits.length > 0)
+        .catch(err => console.log('获取未推送的提交出错: ' + err.message));
       }
     });
 
@@ -114,6 +116,22 @@ Alpine.data('projectPath', () => ({
         this.startSyncFiles(path);
       } else {
         window.electronAPI.stopSyncFiles();
+      }
+    });
+    document.addEventListener('add_project_path', event => {
+      let path = event.detail.path;
+      if (path) {
+        if(!this.historyProjectPaths.includes(path)){
+          event.detail.isAppend ? this.historyProjectPaths.push(path) : this.historyProjectPaths.unshift(path);
+        }
+        let paths = window.electronStore.get('historyProjectPaths');
+        paths = paths ? paths.split(';') : [];
+        if(!paths.includes(path)){
+          event.detail.isAppend ? paths.push(path) : paths.unshift(path);
+          window.electronStore.set('historyProjectPaths', paths.join(';'));
+        }
+
+        this.selectProjectPath({target: {value: path}});
       }
     });
   },

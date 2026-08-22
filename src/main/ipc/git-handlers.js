@@ -444,15 +444,94 @@ async function handleClone(event, projectPath, repoPath) {
   const gitRepo = git(projectPath);
   if (emptyDir) {
     await gitRepo.raw(['clone', repoPath, baseDir]);
-    const listRemote = await gitRepo.listRemote(['--symref', 'origin', 'HEAD']);console.log(listRemote);
-    return listRemote;
+  } else {
+    const gitDir = path.join(baseDir, '.git');
+    try {
+      await fsPromises.access(gitDir);
+      const gitDirIsEmpty = await isEmptyDir(gitDir);
+      if (gitDirIsEmpty) {
+        await fs.promises.rm(gitDir, { recursive: true, force: true });
+        throw new Error('已把.git文件夹删除, 请重新初始化仓库');
+      }
+    } catch {
+      // .git文件夹不存在
+      await gitRepo.init();
+    }
+
+    try {
+      await gitRepo.addRemote('origin', repoPath);
+    } catch {
+      // 已存在远程仓库
+    }
   }
 
-  await gitRepo.init();console.log('IN 3');
-  await gitRepo.addRemote('origin', repoPath);console.log('IN 4');
-  const listRemote = await gitRepo.listRemote(['--symref', 'origin', 'HEAD']);console.log(listRemote);
-  await gitRepo.raw(['pull', 'origin', 'main', '--allow-unrelated-histories']);console.log('IN 5');
-  return gitRepo.raw(['switch', 'main']);
+  let branch = null;
+  try {
+    const listRemote = await gitRepo.listRemote(['--symref', 'origin', 'HEAD']);
+    const matches = listRemote ? listRemote.match(/\s*ref\s*:\s*refs\/heads\/([^\s]+)/i) : null;
+    if (matches) {
+      branch = matches[1];
+    }
+  } catch (err) {
+    console.error(err);
+  }
+  if (branch) {
+    if (!emptyDir) {
+      try {
+        await backupProject(baseDir, false);
+        await gitRepo.pull('origin', branch, { '--allow-unrelated-histories': null });
+      } finally {
+        await backupProject(baseDir, true);
+      }
+    }
+    await gitRepo.raw(['switch', branch]);
+  }
+  return {'remote': repoPath, 'local': baseDir, 'branch': branch};
+}
+
+async function backupProject(projectPath, recover = false) {
+  const fsPromises = fs.promises;
+  const destDir = path.join(projectPath, '_current_dir_bak_');
+
+  if (recover) {// 恢复模式
+    try {
+      await fsPromises.access(destDir);
+    } catch {
+      return;
+    }
+
+    const mergeMove = async (src, dst) => {
+      const entries = await fsPromises.readdir(src, { withFileTypes: true });
+      for (const entry of entries) {
+        const srcPath = path.join(src, entry.name);
+        const dstPath = path.join(dst, entry.name);
+        try {
+          await fsPromises.rename(srcPath, dstPath);
+        } catch (err) {
+          if (err.code === 'ENOTEMPTY' && entry.isDirectory()) {
+            await mergeMove(srcPath, dstPath);       // 递归合并子目录
+            await fsPromises.rm(srcPath, { recursive: true, force: true }); // 删除空源目录
+          } else {
+            throw err; // 其他错误直接抛出
+          }
+        }
+      }
+    };
+
+    await mergeMove(destDir, projectPath);
+    await fsPromises.rm(destDir, { recursive: true, force: true });
+  } else {// 备份模式
+    await fsPromises.rm(destDir, { recursive: true, force: true });
+
+    const entries = await fsPromises.readdir(projectPath, { withFileTypes: true });
+    await fsPromises.mkdir(destDir, { recursive: true, mode: 0o755 });
+    for (const entry of entries) {
+      if (entry.name === '.git') continue;
+      const src = path.join(projectPath, entry.name);
+      const dst = path.join(destDir, entry.name);
+      await fsPromises.rename(src, dst);
+    }
+  }
 }
 
 function closeWindow(event) {

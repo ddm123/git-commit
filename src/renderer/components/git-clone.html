@@ -1,14 +1,15 @@
 <script>
 Alpine.data('cloneRemoteDialog', () => ({
   remoteUrl: '',
-  username: '',
-  email: '',
+  userName: '',
+  userEmail: '',
 
   init() {
     this.$watch('$store.projectPath.isInsideWorkTree', flag => {
       if(!flag){
         window.gitAPI.getGlobalConfig().then(result => {
-          console.log(result);
+          if (typeof result['user.name'] === 'string') this.userName = result['user.name'];
+          if (typeof result['user.email'] === 'string') this.userEmail = result['user.email'];
         }).catch(() => { /* Ignore error */ });
       }
     });
@@ -18,27 +19,37 @@ Alpine.data('cloneRemoteDialog', () => ({
     if (this.$refs.cloneRemoteDialogForm.reportValidity()) {
       disableBody(true);
       window.gitAPI.clone({baseDir: Alpine.store('projectPath').path, progress: 'git:progress'}, this.remoteUrl)
-      .catch(err => this.showError(textToHtml(err.message)))
-      .finally(() => disableBody(false));
+      .then(result => {
+        disableBody(false);
+
+        window.gitAPI.raw(result.local, ['config', '--local', 'user.name', this.userName]).catch(err => this.showError(textToHtml(err.message)));
+        window.gitAPI.raw(result.local, ['config', '--local', 'user.email', this.userEmail]).catch(err => this.showError(textToHtml(err.message)));
+        document.dispatchEvent(new CustomEvent('add_project_path', { detail: {path: result.local, isAppend: false} }));
+      })
+      .catch(err => {
+        disableBody(false);
+        this.showError(textToHtml(err.message));
+      });
     }
   }
 }));
 </script>
 <div x-data="cloneRemoteDialog" class="clone-remote-dialog" :class="$store.projectPath.isInsideWorkTree ? '' : 'show'">
   <template x-if="!$store.projectPath.isInsideWorkTree">
-  <form method="post" x-ref="cloneRemoteDialogForm" class="max-w-150" onsubmit="return false;">
-    <label class="input my-1 w-full validator">
-      <span class="label min-w-30">远程仓库地址</span>
-      <input type="text" x-model="remoteUrl" required />
-    </label>
-    <label class="input my-1 w-full validator">
-      <span class="label min-w-30">提交人</span>
-      <input type="text" x-model="username" required />
-    </label>
-    <label class="input my-1 w-full validator">
-      <span class="label min-w-30">提交人E-mail</span>
-      <input type="email" x-model="email" required />
-    </label>
+  <form method="post" x-ref="cloneRemoteDialogForm" class="w-full max-w-xl" onsubmit="return false;">
+    <fieldset class="fieldset w-full">
+      <legend class="fieldset-legend">远程仓库地址</legend>
+      <input type="text" class="input w-full validator" x-model="remoteUrl" required />
+      <p class="label">请填写HTTP或者SSL地址</p>
+    </fieldset>
+    <div>&nbsp;</div>
+    <fieldset class="fieldset border-base-300 rounded-box w-xs border p-4">
+      <legend class="fieldset-legend">设置提交人</legend>
+      <label class="label">姓名</label>
+      <input type="text" class="input validator" x-model="userName" required />
+      <label class="label">邮箱</label>
+      <input type="email" class="input validator" x-model="userEmail" required />
+    </fieldset>
     <div class="modal-action">
       <button type="button" class="btn btn-primary" x-on:click="clone">确定</button>
     </div>
