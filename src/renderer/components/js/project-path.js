@@ -106,6 +106,7 @@ Alpine.data('projectPath', () => ({
     document.addEventListener('componentsLoaded', () => {
       if(path){
         Alpine.store('projectPath').validatePath().then(result => {
+          //if (result[1] === null) showError(path + '路径不存在');
           if (result[0]) {
             this.isForcedUseGitignore(path);
             this.refresh();
@@ -187,6 +188,7 @@ Alpine.data('projectPath', () => ({
 
       return Alpine.store('projectPath').validatePath(path)
       .then(result => {
+        //if (result[1] === null) showError(path + '路径不存在');
         if (result[0]) {
           this.refresh(() => {
             // 提供的路径如果是有效的，则更新这次选择的路径

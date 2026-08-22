@@ -412,19 +412,22 @@ function handleGetGlobalConfig(event) {
 }
 
 function handleIsInsideWorkTree(event, projectPath) {
-  const p1 = git(projectPath).raw(['rev-parse', '--is-inside-work-tree']);
-  const p2 = isEmptyDir(projectPath);
+  return fs.promises.access(projectPath, fs.constants.F_OK).then(() => {
+    const p1 = git(projectPath).raw(['rev-parse', '--is-inside-work-tree']);
+    const p2 = isEmptyDir(projectPath);
 
-  return Promise.allSettled([p1, p2]).then(results => {
-    let isInsideWorkTree = results[0].status==='fulfilled' ? results[0].value.trim().toLowerCase() : null;
-    if (isInsideWorkTree === 'true') isInsideWorkTree = true;
-    else if (isInsideWorkTree === 'false') isInsideWorkTree = false;
-    else isInsideWorkTree = null;
+    return Promise.allSettled([p1, p2]).then(results => {
+      let isInsideWorkTree = results[0].status==='fulfilled' ? results[0].value.trim().toLowerCase() : null;
+      if (isInsideWorkTree === 'true') isInsideWorkTree = true;
+      else if (isInsideWorkTree === 'false') isInsideWorkTree = false;
+      else isInsideWorkTree = null;
 
-    let isEmpty = results[1].status==='fulfilled' ? results[1].value : null;
+      let isEmpty = results[1].status==='fulfilled' ? results[1].value : null;
 
-    return [isInsideWorkTree, isEmpty];
-  });
+      return [isInsideWorkTree, isEmpty];
+    });
+  })
+  .catch(() => [null, null]);
 }
 
 async function handleClone(event, projectPath, repoPath) {
@@ -440,17 +443,26 @@ async function handleClone(event, projectPath, repoPath) {
     baseDir = projectPath.baseDir;
   }
 
-  const emptyDir = await isEmptyDir(baseDir);
+  const fsPromises = fs.promises;
+  let emptyDir = undefined;
+  try {
+    await fsPromises.access(baseDir, fs.constants.F_OK);
+  } catch {
+    await fsPromises.mkdir(baseDir, { recursive: true, mode: 0o755 });
+    emptyDir = true;
+  }
+
+  emptyDir ??= await isEmptyDir(baseDir);
   const gitRepo = git(projectPath);
   if (emptyDir) {
     await gitRepo.raw(['clone', repoPath, baseDir]);
   } else {
     const gitDir = path.join(baseDir, '.git');
     try {
-      await fsPromises.access(gitDir);
+      await fsPromises.access(gitDir, fs.constants.F_OK);
       const gitDirIsEmpty = await isEmptyDir(gitDir);
       if (gitDirIsEmpty) {
-        await fs.promises.rm(gitDir, { recursive: true, force: true });
+        await fsPromises.rm(gitDir, { recursive: true, force: true });
         throw new Error('已把.git文件夹删除, 请重新初始化仓库');
       }
     } catch {
@@ -495,9 +507,9 @@ async function backupProject(projectPath, recover = false) {
 
   if (recover) {// 恢复模式
     try {
-      await fsPromises.access(destDir);
+      await fsPromises.access(destDir, fs.constants.F_OK);
     } catch {
-      return;
+      return; // 备份文件已不存在
     }
 
     const mergeMove = async (src, dst) => {
