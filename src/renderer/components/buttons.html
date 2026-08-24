@@ -28,15 +28,15 @@
   </div>
   <div class="flex items-center justify-between">
     <div class="shrink-0 flex items-center gap-1">
-      <button class="btn" x-on:click="refresh">刷新(F5)</button>
-      <button class="btn" x-on:click="pull">拉取(F6)</button>
-      <button class="btn" x-on:click="stashList">查看储藏(F7)</button>
-      <button class="btn show-histories-btn" x-on:click="showLogHistories" title="Ctrl + H">提交历史</button>
+      <button type="button" class="btn" x-on:click="refresh">刷新(F5)</button>
+      <button type="button" class="btn" x-on:click="pull">拉取(F6)</button>
+      <button type="button" class="btn" x-on:click="stashList">查看储藏(F7)</button>
+      <button type="button" class="btn show-histories-btn" x-on:click="showLogHistories" title="Ctrl + H">提交历史</button>
     </div>
     <div class="join shrink-0" style="align-items:center;">
-      <button class="btn join-item" x-on:click="commit" data-action="commit" title="Ctrl + Enter">提交</button>
-      <button class="btn join-item" x-show="canPush" x-on:click="push">推送</button>
-      <button class="btn join-item" x-on:click="commit" data-action="commitAndPush" title="Ctrl + Shift + Enter">提交并推送</button>
+      <button type="button" class="btn join-item" x-on:click="commit" data-action="commit" title="Ctrl + Enter">提交</button>
+      <button type="button" class="btn join-item" x-show="canPush" x-on:click="push">推送</button>
+      <button type="button" class="btn join-item" x-on:click="commit" data-action="commitAndPush" title="Ctrl + Shift + Enter">提交并推送</button>
     </div>
   </div>
 </div>

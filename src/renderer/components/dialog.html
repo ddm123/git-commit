@@ -136,7 +136,7 @@ Alpine.store('dialog', {
 <dialog class="modal" x-init="$store.dialog['$el'] = $el; $store.dialog['$nextTick'] = $nextTick;" x-bind:class="$store.dialog.dialogClass">
   <div class="modal-box" :class="{'w-11/12 max-w-5xl': !$store.dialog.minWidth}">
     <form method="dialog">
-      <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+      <button type="submit" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
     </form>
     <h3 class="text-lg font-bold" x-text="$store.dialog.title"></h3>
     <div class="py-4" x-bind:id="$store.dialog.bodyId"></div>

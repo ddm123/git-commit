@@ -233,8 +233,8 @@ Alpine.data('buttons', () => ({
             html += '<td x-text="item.message"></td>';
             html += '<td x-html="item.date.replace(\'T\', \'<br>\')"></td>';
             html += '<td class="flex flex-wrap items-center justify-center gap-1">';
-            html +=   '<button class="btn whitespace-nowrap btn-xs" x-on:click="pop.bind($data, index)">应用并删除</button>';
-            html +=   '<button class="btn whitespace-nowrap btn-xs" x-on:click="drop.bind($data, index)">直接删除</button>';
+            html +=   '<button type="button" class="btn whitespace-nowrap btn-xs" x-on:click="pop.bind($data, index)">应用并删除</button>';
+            html +=   '<button type="button" class="btn whitespace-nowrap btn-xs" x-on:click="drop.bind($data, index)">直接删除</button>';
             html += '</td>';
             html += '</tr>';
           html += '</template>';

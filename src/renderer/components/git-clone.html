@@ -16,7 +16,7 @@ Alpine.data('cloneRemoteDialog', () => ({
   },
 
   clone() {
-    if (this.$refs.cloneRemoteDialogForm.reportValidity()) {
+    if (this.$refs.cloneRemoteDialogForm.reportValidity() && this.validateProjectPath()) {
       disableBody(true);
       window.gitAPI.clone({baseDir: Alpine.store('projectPath').path, progress: 'git:progress'}, this.remoteUrl)
       .then(result => {
@@ -31,6 +31,29 @@ Alpine.data('cloneRemoteDialog', () => ({
         this.showError(textToHtml(err.message));
       });
     }
+  },
+
+  validateProjectPath() {
+    const pathSelect = document.querySelector('select[role="history-project-paths"]');
+    let path = Alpine.store('projectPath').path;
+    if (!path) {
+      if (pathSelect) {
+        path = pathSelect.value;
+        if (path && path !== '%SELECT%') {
+          Alpine.store('projectPath').path = path;
+          pathSelect.setCustomValidity('');
+          return true;
+        }
+        pathSelect.setCustomValidity('请选择项目路径');
+        pathSelect.reportValidity();
+      } else {
+        this.showError('请选择项目路径');
+      }
+      return false;
+    } else if (pathSelect) {
+      pathSelect.setCustomValidity('');
+    }
+    return true;
   }
 }));
 </script>
