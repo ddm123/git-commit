@@ -7,8 +7,8 @@
   <script src="../../src/renderer/js/functions.js" type="text/javascript"></script>
   <script src="../../src/renderer/js/git-logs.js" type="text/javascript"></script>
 </head>
-<body class="m-2" x-data="gitLogHistory">
-  <div class="filter-form mb-2">
+<body class="mx-3 my-0 h-screen flex flex-col" x-data="gitLogHistory">
+  <div class="filter-form mt-1">
     <div class="join w-full">
       <select class="select join-item w-auto" x-model="filter.action">
         <option value="name">提交人</option>
@@ -32,7 +32,7 @@
       <button type="button" class="btn join-item" x-on:click="search">搜索</button>
     </div>
   </div>
-  <div class="logs" x-ref="logsContainer">
+  <div class="logs mt-2" x-ref="logsContainer">
     <table class="table table-pin-rows table-xs">
       <thead>
         <tr class="text-xs">
@@ -80,7 +80,7 @@
   </div>
   </template>
   <template x-if="logFiles.length">
-  <div class="log-files files-color">
+  <div class="log-files files-color mb-1">
     <table class="table table-xs">
       <tbody>
         <template x-for="file in logFiles" :key="file.file">

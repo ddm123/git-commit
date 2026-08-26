@@ -149,7 +149,7 @@ body.disable > .body-mask{
 }
 .file-list {
   --input-color: color-mix(in oklab, var(--color-base-content) 20%, #0000);
-  height: calc(100vh - 250px);
+  flex: 1;
   min-height: 100px;
   border: 1px solid var(--input-color);
   border-radius: .25rem;
@@ -332,7 +332,7 @@ td.d2h-code-side-linenumber.d2h-code-side-emptyplaceholder {
   font-size: .75rem;
 }
 .log-files {
-  height: calc(58vh - var(--spacing) * 10 - 2.5rem);
+  flex: 1;
 }
 .log-files .table-xs :is(th, td, div) {
   font-size: 0.8rem;
