@@ -388,7 +388,7 @@ td.d2h-code-side-linenumber.d2h-code-side-emptyplaceholder {
   z-index: 8;
   top: 2.85rem;
   bottom: 16px;
-  left: calc(var(--spacing) * 4);
-  right: calc(var(--spacing) * 4);
+  left: 0;
+  right: 0;
   background-color: var(--color-base-100);
 }
