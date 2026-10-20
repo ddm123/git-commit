@@ -5,7 +5,7 @@ Alpine.data('fileListing', () => ({
 
   init() {
     this.$store.fileListing.element = this.$el;
-    document.addEventListener('files_changed', (e) => {
+    const initRowClasses = e => {
       this.rowClasses = {};
       for (const file of e.detail.files) {
         if (file.status === 'untracked') {
@@ -13,7 +13,9 @@ Alpine.data('fileListing', () => ({
           break;
         }
       }
-    });
+    };
+    document.addEventListener('files_changed', initRowClasses);
+    document.addEventListener('files_sorted', initRowClasses);
     this.$watch('$store.fileListing.selectedFilesCount', value => {
       const selectAllCheckbox = document.getElementById('select-all');
       if (selectAllCheckbox) {

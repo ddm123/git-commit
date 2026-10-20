@@ -286,6 +286,8 @@ document.addEventListener('alpine:init', () => {
         }
         return orderDir === 'asc' ? 1 : -1;
       });
+
+      document.dispatchEvent(new CustomEvent('files_sorted', { detail: {files: this.files} }));
     },
 
     getSelectedFiles() {
